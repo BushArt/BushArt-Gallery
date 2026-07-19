@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+@theme {
+  /* Surfaces & Text — "Ink & Paper" */
+  --color-ink-950: #121110;
+  --color-ink-900: #1b1917;
+  --color-ink-800: #242220;
+  --color-ink-700: #34312c;
+  --color-ink-600: #4a453d;
+  --color-paper-100: #f3efe7;
+  --color-paper-300: #d6cfc0;
+  --color-paper-500: #a69c8c;
+
+  /* Functional Accents — "Studio Materials" */
+  --color-accent-brass: #b8944f;
+  --color-accent-ember: #a8543d;
+  --color-accent-ink-blue: #4a7a82;
+
+  /* Font families */
+  --font-fraunces: "Fraunces", serif;
+  --font-inter: "Inter", sans-serif;
+  --font-ibm-plex-mono: "IBM Plex Mono", monospace;
+}

@@ -1,0 +1,1 @@
+{"version":3,"sources":["../../../../src/app/artwork/%5Bslug%5D/page.tsx"],"sourcesContent":["export default function ArtworkPage() {\r\n  return null;\r\n}"],"names":["ArtworkPage"],"mappings":"wDAAe,SAASA,EACtB,OAAO,IACT"}
