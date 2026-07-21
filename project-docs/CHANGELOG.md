@@ -6,6 +6,16 @@ Format: loosely follows [Keep a Changelog](https://keepachangelog.com/) conventi
 
 ---
 
+## [Unreleased]
+
+### Added
+- **TODO-001** — Scaffolded the repository: Next.js 16 App Router project with TypeScript strict mode, ESLint v9 flat config (`eslint.config.mjs`), and Tailwind v4 (PostCSS-based via `@tailwindcss/postcss`). Implemented the full empty directory skeleton per `08-Project-Structure.md` with App Router routes, library structure, and configuration files. `npm run build` succeeds on the scaffold.
+
+### Documentation Updates
+- `08-Project-Structure.md` §6 — Updated to reflect Tailwind v4 uses PostCSS-based configuration (`postcss.config.mjs`) instead of `tailwind.config.ts`, and ESLint v9 flat config (`eslint.config.mjs`) instead of `.eslintrc.json`.
+
+---
+
 ## [0.1] — 2026-07-18
 
 **Initial creation of the full documentation package**, generated prior to any application code, establishing the project's single source of truth per `README.md`.

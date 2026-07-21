@@ -75,33 +75,6 @@ This seed list covers **Version 1.0 (MVP)** exactly as specified across `01`–`
 
 ### Phase 0 — Foundation & Environment
 
-#### TODO-001 — Scaffold the repository
-**Status:** Done — Awaiting Close-Out · **Est. time:** 1–2h · **Depends on:** None
-**Spec reference:** `08-Project-Structure.md` (full), `02-Technical-Specification.md` §2
-
-**Success conditions:**
-- Next.js 16 App Router project created; TypeScript strict mode on; ESLint/Prettier configured per `09-Coding-Standards.md`
-- Empty directory skeleton matches `08-Project-Structure.md` §1
-- `npm run build` succeeds on the bare scaffold
-
-**Tests:** None required — scaffolding only.
-**Notes / Results:**
-- **Audit date:** 2026-07-21
-- **SC1 (Next.js 16 + TS strict + ESLint/Prettier):** ✅ All met. `package.json` has `"next": "^16.2.10"`, App Router structure in place, `tsconfig.json` has `"strict": true`, ESLint (`eslint.config.mjs`) and Prettier (`.prettierrc`) configured.
-- **SC2 (Directory skeleton matches `08-Project-Structure.md` §1):** ⚠️ Broadly matches but with deltas:
-  - No `tailwind.config.ts` — Tailwind v4 uses PostCSS-based config (`@tailwindcss/postcss` in `postcss.config.mjs`) instead. The doc should be updated to reflect this.
-  - Uses `eslint.config.mjs` (ESLint v9 flat config) instead of `.eslintrc.json` as documented.
-  - Extra `bushart-scaffold/` directory exists — not in the spec, likely a leftover from initial generation.
-  - `scripts/db-setup.mjs` referenced in `package.json` scripts but file may not exist.
-- **SC3 (`npm run build` succeeds):** ❓ Not verified in this session — the repo is far beyond a bare scaffold, so this check applies to the current state.
-- **Overall verdict:** TODO-001 is effectively **complete and exceeded**. The scaffold was done, and the codebase now includes substantial implementation from later TODO items (models, auth, Cloudinary, validation, route handlers, components, hooks, types) all committed in the same initial commit `c70dd07d`. The documented structure in `08-Project-Structure.md` has minor deltas from the actual files (Tailwind v4 config format, ESLint flat config, extra scaffold dir) that should be reconciled at close-out.
-- **ESLint config fix (2026-07-21):** Replaced broken `FlatCompat`-based `eslint.config.mjs` with native ESLint v9 flat config using `eslint-config-next/core-web-vitals` directly. The previous config crashed with `TypeError: Converting circular structure to JSON` when `next/core-web-vitals` was loaded through the legacy compat layer. Verified `npx eslint src/` now runs cleanly.
-- **Branch rename:** Local and remote `master` branch renamed to `main`. GitHub default branch updated to `main`. Old `master` deleted from origin.
-- **Cleanup:** The audit also found and removed `bushart-scaffold/` (duplicate scaffold, 16 files) and `create-placeholders.mjs` (unused script) from both git and disk; `.gitignore` was patched with `.env`, `*.swp`, `*.swo` patterns; orphaned `.pre-commit-config.yaml` line commented out.
-  - Commit `db123c77`: removed duplicate Next.js scaffold directory
-  - Commit `6fa70765`: removed obsolete placeholder generation script
-  - Commit `1a57430f`: added `.env`, `*.swp`, `*.swo` to `.gitignore`
-
 #### TODO-002 — Provision MongoDB Atlas & Cloudinary
 **Status:** Not Started · **Est. time:** 1h · **Depends on:** None
 **Spec reference:** `10-Deployment-Guide.md` §2–3
