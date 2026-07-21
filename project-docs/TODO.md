@@ -75,18 +75,6 @@ This seed list covers **Version 1.0 (MVP)** exactly as specified across `01`–`
 
 ### Phase 0 — Foundation & Environment
 
-#### TODO-002 — Provision MongoDB Atlas & Cloudinary
-**Status:** Not Started · **Est. time:** 1h · **Depends on:** None
-**Spec reference:** `10-Deployment-Guide.md` §2–3
-
-**Success conditions:**
-- M0 cluster live, DB user created, network access configured
-- Cloudinary account created, credentials in hand
-- `.env.example` and local `.env.local` populated per `02-Technical-Specification.md` §9
-
-**Tests:** None — external setup.
-**Notes / Results:** _(none yet)_
-
 #### TODO-003 — Wire design tokens + load fonts
 **Status:** Not Started · **Est. time:** 2h · **Depends on:** TODO-001
 **Spec reference:** `06-UI-Design-System.md` §2–5
@@ -454,6 +442,7 @@ This seed list covers **Version 1.0 (MVP)** exactly as specified across `01`–`
 
 **Tests:** Manual production smoke test against the full checklist in `10` §10.
 **Notes / Results:** _(none yet)_
+- [ ] `NEXT_PUBLIC_SITE_URL` must be set to the production Render URL in the Render dashboard environment variables before deployment (also affects share links and Open Graph metadata).
 
 #### TODO-035 — Backup workflow
 **Status:** Not Started · **Est. time:** 3h · **Depends on:** TODO-034

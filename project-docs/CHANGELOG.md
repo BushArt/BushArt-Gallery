@@ -14,6 +14,12 @@ Format: loosely follows [Keep a Changelog](https://keepachangelog.com/) conventi
 ### Documentation Updates
 - `08-Project-Structure.md` §6 — Updated to reflect Tailwind v4 uses PostCSS-based configuration (`postcss.config.mjs`) instead of `tailwind.config.ts`, and ESLint v9 flat config (`eslint.config.mjs`) instead of `.eslintrc.json`.
 
+- **TODO-002** — Provisioned MongoDB Atlas M0 cluster and Cloudinary account; local environment wired and connectivity verified with `scripts/verify-env.mjs`.
+
+### Documentation Updates
+- `02-Technical-Specification.md` §9 — no change; implementation matched the documented contract.
+- `10-Deployment-Guide.md` §2–3 — no change; implementation matched the documented contract.
+
 ---
 
 ## [0.1] — 2026-07-18
