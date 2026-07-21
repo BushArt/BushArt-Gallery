@@ -96,6 +96,7 @@ This seed list covers **Version 1.0 (MVP)** exactly as specified across `01`–`
 - **SC3 (`npm run build` succeeds):** ❓ Not verified in this session — the repo is far beyond a bare scaffold, so this check applies to the current state.
 - **Overall verdict:** TODO-001 is effectively **complete and exceeded**. The scaffold was done, and the codebase now includes substantial implementation from later TODO items (models, auth, Cloudinary, validation, route handlers, components, hooks, types) all committed in the same initial commit `c70dd07d`. The documented structure in `08-Project-Structure.md` has minor deltas from the actual files (Tailwind v4 config format, ESLint flat config, extra scaffold dir) that should be reconciled at close-out.
 - **Branch rename:** Local and remote `master` branch renamed to `main`. GitHub default branch updated to `main`. Old `master` deleted from origin.
+- **Cleanup (via TODO-037):** The audit also found and removed `bushart-scaffold/` (duplicate scaffold) and `create-placeholders.mjs` (unused script) from both git and disk; `.gitignore` was patched with `.env`, `*.swp`, `*.swo` patterns. These are logged in TODO-037.
 
 #### TODO-002 — Provision MongoDB Atlas & Cloudinary
 **Status:** Not Started · **Est. time:** 1h · **Depends on:** None
@@ -497,6 +498,27 @@ This seed list covers **Version 1.0 (MVP)** exactly as specified across `01`–`
 
 **Tests:** None — operational configuration.
 **Notes / Results:** _(none yet)_
+
+### Housekeeping
+
+#### TODO-037 — Environment cleanup: remove scaffold debris, fix .gitignore
+**Status:** Done — Awaiting Close-Out · **Est. time:** 15min · **Depends on:** None
+**Spec reference:** None (audit-driven)
+
+**Success conditions:**
+- `bushart-scaffold/` directory removed from git and disk
+- `create-placeholders.mjs` removed from git and disk
+- `.gitignore` updated: `.env` (bare), `*.swp`, `*.swo` added; stray `.pre-commit-config.yaml` uncommented
+- All three cleanup commits pushed to `origin/main`
+
+**Tests:** None required — housekeeping only.
+**Notes / Results:**
+- **2026-07-21:** Executed per audit recommendations.
+- Commit 1 (`db123c77`): `chore: remove duplicate Next.js scaffold directory` — deleted 16 files from `bushart-scaffold/`
+- Commit 2 (`6fa70765`): `chore: remove obsolete placeholder generation script` — deleted `create-placeholders.mjs`
+- Commit 3 (`1a57430f`): `chore: add .env and vim swap patterns to .gitignore` — added `.env`, `*.swp`, `*.swo` patterns; commented out orphaned `.pre-commit-config.yaml` line
+- All three pushed to `origin/main`. Git status is clean.
+- **Remaining low-priority item:** Update `08-Project-Structure.md` to reflect actual file tree (defer to close-out).
 
 ---
 
