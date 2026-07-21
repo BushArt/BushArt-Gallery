@@ -9,6 +9,7 @@ out/
 *.tsbuildinfo
 
 # Environment
+.env
 .env.local
 .env.production.local
 .env.development.local
@@ -21,6 +22,10 @@ out/
 Thumbs.db
 .DS_Store
 
+# Editor temp files
+*.swp
+*.swo
+
 # Logs
 *.log
 npm-debug.log*
@@ -29,4 +34,4 @@ npm-debug.log*
 coverage/
 
 # Misc
-.pre-commit-config.yaml
+# .pre-commit-config.yaml
