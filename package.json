@@ -13,26 +13,26 @@
     "db:setup": "node scripts/db-setup.mjs"
   },
   "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cloudinary": "^2.6.0",
+    "framer-motion": "^12.0.0",
+    "mongodb": "^6.21.0",
     "next": "^16.2.10",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "zod": "^3.24.0",
-    "bcryptjs": "^2.4.3",
-    "framer-motion": "^12.0.0",
-    "mongodb": "^6.10.0",
-    "cloudinary": "^2.6.0"
+    "zod": "^3.24.0"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.0.0",
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "@types/bcryptjs": "^2.4.6",
-    "typescript": "^5.7.0",
     "eslint": "^9.0.0",
     "eslint-config-next": "^16.2.10",
     "eslint-config-prettier": "^10.0.0",
     "prettier": "^3.4.0",
     "tailwindcss": "^4.0.0",
-    "@tailwindcss/postcss": "^4.0.0"
+    "typescript": "^5.7.0"
   }
 }
