@@ -73,19 +73,6 @@ Use `### Changed` or `### Fixed` instead of `### Added` where that's the more ac
 
 This seed list covers **Version 1.0 (MVP)** exactly as specified across `01`–`12`, sequenced into a technical build order — it is not a replacement for the version-based staging in `11-Project-Roadmap.md`; it's how the MVP milestone gets built. V1.1+ items get their own entries here when work on them begins, following the rules in §4.
 
-### Phase 0 — Foundation & Environment
-
-#### TODO-003 — Wire design tokens + load fonts
-**Status:** Not Started · **Est. time:** 2h · **Depends on:** TODO-001
-**Spec reference:** `06-UI-Design-System.md` §2–5
-
-**Success conditions:**
-- `tailwind.config.ts` exposes every color/spacing/radius/type token from §2–5 by name
-- Fraunces, Inter, and IBM Plex Mono load via `next/font`, self-hosted (no runtime Google Fonts request)
-
-**Tests:** None required — visual/config only.
-**Notes / Results:** _(none yet)_
-
 ### Phase 1 — Data Layer
 
 #### TODO-004 — MongoDB connection helper + index setup script

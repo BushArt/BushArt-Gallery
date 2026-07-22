@@ -11,12 +11,13 @@ Format: loosely follows [Keep a Changelog](https://keepachangelog.com/) conventi
 ### Added
 - **TODO-001** — Scaffolded the repository: Next.js 16 App Router project with TypeScript strict mode, ESLint v9 flat config (`eslint.config.mjs`), and Tailwind v4 (PostCSS-based via `@tailwindcss/postcss`). Implemented the full empty directory skeleton per `08-Project-Structure.md` with App Router routes, library structure, and configuration files. `npm run build` succeeds on the scaffold.
 
-### Documentation Updates
-- `08-Project-Structure.md` §6 — Updated to reflect Tailwind v4 uses PostCSS-based configuration (`postcss.config.mjs`) instead of `tailwind.config.ts`, and ESLint v9 flat config (`eslint.config.mjs`) instead of `.eslintrc.json`.
-
 - **TODO-002** — Provisioned MongoDB Atlas M0 cluster and Cloudinary account; local environment wired and connectivity verified with `scripts/verify-env.mjs`.
 
+- **TODO-003** — Wired design tokens and self-hosted fonts via Tailwind v4 `@theme` and `next/font`.
+
 ### Documentation Updates
+- `08-Project-Structure.md` §6 — Updated to reflect Tailwind v4 uses PostCSS-based configuration (`postcss.config.mjs`) instead of `tailwind.config.ts`, and ESLint v9 flat config (`eslint.config.mjs`) instead of `.eslintrc.json`.
+- `06-UI-Design-System.md` §2–5 — no change; implementation matched the documented token names and values. Tokens are defined via `@theme` in `globals.css` per Tailwind v4 convention; functionally equivalent to a `tailwind.config.ts`.
 - `02-Technical-Specification.md` §9 — no change; implementation matched the documented contract.
 - `10-Deployment-Guide.md` §2–3 — no change; implementation matched the documented contract.
 

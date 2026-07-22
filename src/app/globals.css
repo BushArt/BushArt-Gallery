@@ -20,4 +20,91 @@
   --font-fraunces: "Fraunces", serif;
   --font-inter: "Inter", sans-serif;
   --font-ibm-plex-mono: "IBM Plex Mono", monospace;
+
+  /* Type Scale — font sizes */
+  --text-display-lg: 48px;
+  --text-display-md: 32px;
+  --text-display-sm: 22px;
+  --text-body-lg: 17px;
+  --text-body-md: 15px;
+  --text-body-sm: 13px;
+  --text-label: 12px;
+
+  /* Line heights */
+  --leading-display-lg: 1.1;
+  --leading-display-md: 1.15;
+  --leading-display-sm: 1.2;
+  --leading-body-lg: 1.6;
+  --leading-body-md: 1.5;
+  --leading-body-sm: 1.4;
+  --leading-label: 1.3;
+
+  /* Letter spacing */
+  --tracking-label: 0.02em;
+
+  /* Spacing Scale — 4px base */
+  --spacing-1: 4px;
+  --spacing-2: 8px;
+  --spacing-3: 12px;
+  --spacing-4: 16px;
+  --spacing-6: 24px;
+  --spacing-8: 32px;
+  --spacing-12: 48px;
+  --spacing-16: 64px;
+  --spacing-24: 96px;
+
+  /* Border Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+
+  /* Elevation */
+  --shadow-float: 0 8px 24px rgba(0, 0, 0, 0.45);
+
+  /* Transition timing */
+  --ease-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Responsive breakpoints */
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+}
+
+@layer base {
+  :root {
+    /* Motion durations — kept as CSS vars for Framer Motion / JS access */
+    --motion-instant: 100ms;
+    --motion-fast: 200ms;
+    --motion-base: 300ms;
+    --motion-deliberate: 450ms;
+
+    /* Legacy CSS variable aliases for direct var() access */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-6: 24px;
+    --space-8: 32px;
+    --space-12: 48px;
+    --space-16: 64px;
+    --space-24: 96px;
+    --lh-display-lg: 1.1;
+    --lh-display-md: 1.15;
+    --lh-display-sm: 1.2;
+    --lh-body-lg: 1.6;
+    --lh-body-md: 1.5;
+    --lh-body-sm: 1.4;
+    --lh-label: 1.3;
+    --ls-label: 0.02em;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+    --radius-full: 9999px;
+    --shadow-float: 0 8px 24px rgba(0, 0, 0, 0.45);
+    --ease-out: cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-in-out: cubic-bezier(0.16, 1, 0.3, 1);
+  }
 }
