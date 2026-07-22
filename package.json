@@ -10,7 +10,9 @@
     "start": "next start",
     "lint": "next lint",
     "format": "prettier --write .",
-    "db:setup": "node scripts/db-setup.mjs"
+    "db:setup": "node scripts/db-setup.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -33,6 +35,7 @@
     "eslint-config-prettier": "^10.0.0",
     "prettier": "^3.4.0",
     "tailwindcss": "^4.0.0",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
   }
 }

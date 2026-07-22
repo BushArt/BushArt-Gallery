@@ -75,17 +75,6 @@ This seed list covers **Version 1.0 (MVP)** exactly as specified across `01`–`
 
 ### Phase 1 — Data Layer
 
-#### TODO-004 — MongoDB connection helper + index setup script
-**Status:** Not Started · **Est. time:** 2–3h · **Depends on:** TODO-001, TODO-002
-**Spec reference:** `04-Database-Schema.md` §3–6
-
-**Success conditions:**
-- `lib/db/mongodb.ts` caches a single client across hot reloads/invocations
-- `npm run db:setup` idempotently creates every index listed in §3–6; running it twice causes no errors
-
-**Tests:** Integration test against a local/test MongoDB instance asserting all listed indexes exist post-setup.
-**Notes / Results:** _(none yet)_
-
 #### TODO-005 — Data-access layer for all four collections
 **Status:** Not Started · **Est. time:** 4–6h · **Depends on:** TODO-004
 **Spec reference:** `04-Database-Schema.md` §3–6

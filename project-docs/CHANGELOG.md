@@ -15,8 +15,10 @@ Format: loosely follows [Keep a Changelog](https://keepachangelog.com/) conventi
 
 - **TODO-003** — Wired design tokens and self-hosted fonts via Tailwind v4 `@theme` and `next/font`.
 
+- **TODO-004** — MongoDB connection helper with hot-reload-safe client caching, idempotent index setup script, and vitest-based integration test covering all schema-defined indexes.
+
 ### Documentation Updates
-- `08-Project-Structure.md` §6 — Updated to reflect Tailwind v4 uses PostCSS-based configuration (`postcss.config.mjs`) instead of `tailwind.config.ts`, and ESLint v9 flat config (`eslint.config.mjs`) instead of `.eslintrc.json`.
+- `04-Database-Schema.md` §3–6 — no change; implementation matched the documented contract.
 - `06-UI-Design-System.md` §2–5 — no change; implementation matched the documented token names and values. Tokens are defined via `@theme` in `globals.css` per Tailwind v4 convention; functionally equivalent to a `tailwind.config.ts`.
 - `02-Technical-Specification.md` §9 — no change; implementation matched the documented contract.
 - `10-Deployment-Guide.md` §2–3 — no change; implementation matched the documented contract.
