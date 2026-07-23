@@ -17,10 +17,13 @@ Format: loosely follows [Keep a Changelog](https://keepachangelog.com/) conventi
 
 - **TODO-004** — MongoDB connection helper with hot-reload-safe client caching, idempotent index setup script, and vitest-based integration test covering all schema-defined indexes.
 
+- **Phase 0 audit remediation** — Post-close-out audit fixes applied to the scaffold: typed `getDb()` in `src/lib/db/mongodb.ts`; implemented `scripts/seed-admin.ts` with bcrypt cost 12 and idempotency; added `npm run seed:admin`; removed duplicate legacy CSS var aliases from `src/app/globals.css`; replaced bare `proxy.ts` re-export with a documented placeholder referencing CVE-2025-29927; strengthened `tests/db-setup.test.ts` with idempotency, index option assertions, and deterministic `site_settings` coverage.
+
 ### Documentation Updates
-- `04-Database-Schema.md` §3–6 — no change; implementation matched the documented contract.
-- `06-UI-Design-System.md` §2–5 — no change; implementation matched the documented token names and values. Tokens are defined via `@theme` in `globals.css` per Tailwind v4 convention; functionally equivalent to a `tailwind.config.ts`.
-- `02-Technical-Specification.md` §9 — no change; implementation matched the documented contract.
+- `02-Technical-Specification.md` §4, §9 — no change; implementation matches the documented contract and proxy defense-in-depth requirement.
+- `04-Database-Schema.md` §3–6 — no change; strengthened tests cover the same index contract already documented.
+- `06-UI-Design-System.md` §2–5 — no change; `@theme`-only token strategy matches the documented design intent.
+- `08-Project-Structure.md` §2 — no change; `scripts/seed-admin.ts` was already listed and is now implemented.
 - `10-Deployment-Guide.md` §2–3 — no change; implementation matched the documented contract.
 
 ---

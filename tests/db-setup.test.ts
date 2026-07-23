@@ -30,6 +30,16 @@ describeSuite("db-setup — index creation", () => {
     expect(indexNames).toContain("artworks_featured");
   });
 
+  it("creates artworks_slug_unique with correct options", async () => {
+    const db = client.db();
+    const indexes = await db.collection("artworks").listIndexes().toArray();
+    const slugIdx = indexes.find((idx) => idx.name === "artworks_slug_unique");
+
+    expect(slugIdx).toBeDefined();
+    expect(slugIdx!.unique).toBe(true);
+    expect(slugIdx!.key).toEqual({ slug: 1 });
+  });
+
   it("creates all tags indexes", async () => {
     const db = client.db();
     const indexes = await db.collection("tags").listIndexes().toArray();
@@ -37,6 +47,19 @@ describeSuite("db-setup — index creation", () => {
 
     expect(indexNames).toContain("tags_slug_unique");
     expect(indexNames).toContain("tags_name_unique");
+  });
+
+  it("creates tags_name_unique with case-insensitive collation", async () => {
+    const db = client.db();
+    const indexes = await db.collection("tags").listIndexes().toArray();
+    const nameIdx = indexes.find((idx) => idx.name === "tags_name_unique");
+
+    expect(nameIdx).toBeDefined();
+    expect(nameIdx!.unique).toBe(true);
+    expect(nameIdx!.key).toEqual({ name: 1 });
+    expect(nameIdx!.collation).toEqual(
+      expect.objectContaining({ locale: "en", strength: 2 }),
+    );
   });
 
   it("creates all admins indexes", async () => {
@@ -47,14 +70,30 @@ describeSuite("db-setup — index creation", () => {
     expect(indexNames).toContain("admins_username_unique");
   });
 
+  it("creates admins_username_unique with correct options", async () => {
+    const db = client.db();
+    const indexes = await db.collection("admins").listIndexes().toArray();
+    const userIdx = indexes.find((idx) => idx.name === "admins_username_unique");
+
+    expect(userIdx).toBeDefined();
+    expect(userIdx!.unique).toBe(true);
+    expect(userIdx!.key).toEqual({ username: 1 });
+  });
+
+  it("is idempotent — re-running artworks_slug_unique creation does not error", async () => {
+    const db = client.db();
+    // This mimics what db-setup.mjs does: createIndex with the same name+spec
+    await expect(
+      db.collection("artworks").createIndex({ slug: 1 }, { unique: true, name: "artworks_slug_unique" }),
+    ).resolves.not.toThrow();
+  });
+
   it("creates no custom indexes on site_settings (only _id_)", async () => {
     const db = client.db();
-    // site_settings collection may not exist yet (created on first settings write)
+    // Ensure site_settings exists by explicitly creating it
     const collections = await db.listCollections({ name: "site_settings" }).toArray();
     if (collections.length === 0) {
-      // Collection doesn't exist — no custom indexes possible, which satisfies the intent
-      expect(true).toBe(true);
-      return;
+      await db.createCollection("site_settings");
     }
     const indexes = await db.collection("site_settings").listIndexes().toArray();
     // Only the default _id_ index should exist

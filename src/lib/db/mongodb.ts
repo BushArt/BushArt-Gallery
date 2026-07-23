@@ -1,4 +1,4 @@
-import { MongoClient } from "mongodb";
+import { MongoClient, Db } from "mongodb";
 
 declare global {
   var _mongoClientPromise: Promise<MongoClient> | undefined;
@@ -37,8 +37,11 @@ export async function getClient(): Promise<MongoClient> {
 
 /**
  * Returns the application database handle.
+ *
+ * @param dbName - Optional explicit database name. Defaults to the database
+ *   specified in `MONGODB_URI` (or `"bushart"` if none is present in the URI).
  */
-export async function getDb() {
+export async function getDb(dbName?: string): Promise<Db> {
   const client = await getClient();
-  return client.db();
+  return client.db(dbName);
 }
