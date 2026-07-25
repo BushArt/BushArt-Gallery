@@ -73,6 +73,64 @@ Use `### Changed` or `### Fixed` instead of `### Added` where that's the more ac
 
 This seed list covers **Version 1.0 (MVP)** exactly as specified across `01`–`12`, sequenced into a technical build order — it is not a replacement for the version-based staging in `11-Project-Roadmap.md`; it's how the MVP milestone gets built. V1.1+ items get their own entries here when work on them begins, following the rules in §4.
 
+## 7. Audit Close-Out
+
+**Position note:** This rule is deliberately placed last among the numbered/lettered rules, immediately before the `## Unnumbered Phase Audit Task` section it governs. It is a hybrid rule/task: as a rule it is permanent and never erased; as a task trigger it is what fills and empties the `Notes / Results` log inside the audit section below.
+
+1. **Firing the audit** — Firing the audit (per the Trigger Rule in the task below) populates the `Notes / Results` log in the `## Unnumbered Phase Audit Task` section with findings, and sets its status line.
+2. **Close-out sequence** — A close-out sequence, once explicitly permitted by the user for this audit instance, erases only the contents of `Notes / Results` and resets the audit's status line to `Pending Audit`. The `## Unnumbered Phase Audit Task` heading, its Purpose, Trigger Rule, Checklist, and Status Definitions are never removed — they are the reusable shell for the next phase's audit.
+3. **CHANGELOG entry** — Close-out writes one line to `CHANGELOG.md`: `[Phase [X] audit remediation] — <description>` where `<description>` contains only the important details of what was found and fixed (not a full dump of the `Notes / Results` log — that log is being deleted, so anything worth keeping must be summarized into this line).
+4. **Permission requirement** — This rule does not override §2. No `Notes / Results` content, status change, or `CHANGELOG` line is written on an agent's own judgment. Permission means the user directly saying to close out this audit instance — never inferred from silence, from the phase moving on, or from the audit reaching `Pass`. A `Pass` audit's `Notes / Results` are not erased, and no `CHANGELOG` line is written, without this explicit permission — same as a `Blocked` audit that was later resolved and re-run to `Pass`.
+
+## Unnumbered Phase Audit Task
+
+### Purpose
+
+Purpose: Before any code for a new phase begins, run this unnumbered audit to root out integration gaps, missing specs, and dependency issues that would otherwise surface mid-build. It is not a numbered TODO item — it sits before the phase's first item, with its own status, and must pass before the phase's first item can move to In Progress.
+
+### Trigger Rule
+
+Trigger Rule: The audit runs immediately before the first TODO item of a new phase is picked up. It is triggered by the transition from "the previous phase is done" to "work on the next phase is about to start." The audit itself is the first action of the new phase — no code is written until it completes.
+
+### Checklist
+
+Working through everything touching the last completed phase, verify:
+
+- **Bug sweep** — review all code changed or added during the last phase for defects, not just the specific behavior it was written to satisfy.
+- **Regression check** — confirm existing functionality and tests that passed before the last phase still pass after it.
+- **Incomplete work** — search for stubs, placeholder logic, unresolved TODOs, or partially wired features left behind from the last phase.
+- **Inconsistencies** — cross-check naming, data shapes, and behavior for agreement across files/modules the last phase touched.
+- **Convention deviations** — compare the last phase's output against established project conventions (style, structure, patterns) and flag departures.
+- **Integration gaps** — verify the interfaces, dependencies, and assumptions the last phase produced actually satisfy what the upcoming phase's first items need.
+
+Each item that surfaces a finding is logged in Notes / Results as it's found, not batched at the end.
+
+### Status Definitions
+
+| Status | Meaning |
+|---|---|
+| `Pending Audit` | Default/reset state. The audit for this phase transition has not yet started. |
+| `In Progress` | The checklist above is actively being worked; findings are being logged to `Notes / Results` as they surface. |
+| `Blocked` | One or more checklist items surfaced unresolved issues. The phase gate stays shut — the phase's first TODO item cannot move to `In Progress` while this status holds. |
+| `Pass` | The checklist has been worked through and any findings resolved, and the user has told the agent to stop the audit and accept this result. The phase gate lifts. |
+
+**Transitions:** `Pending Audit` → `In Progress` → `Blocked` (if findings block) → `In Progress` (on rework) → `Pass`, or directly `In Progress` → `Pass` if nothing blocking surfaces. Only the user decides when the audit stops and what the final status is — the agent runs the checklist and logs findings, but does not unilaterally declare `Pass`. This mirrors the permission requirement in the Close-Out rule above: logging a finding is not the same act as resolving or closing it.
+
+### Outcome Recording Format
+
+A single status line sits at the top of `Notes / Results`, updated in place as the audit progresses:
+
+> `Status: <Pending Audit | In Progress | Blocked | Pass>`
+
+Below it, each finding is logged as it surfaces:
+
+- [Checklist item] <what was found> — <resolution or "unresolved">
+### Notes / Results
+
+(log audit findings here as they surface; erased only per the Close-Out rule above)
+
+Status: Pending Audit
+
 ### Phase 1 — Data Layer
 
 #### TODO-006 — Zod schemas + shared TypeScript types
