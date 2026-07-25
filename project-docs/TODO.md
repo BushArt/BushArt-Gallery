@@ -75,17 +75,6 @@ This seed list covers **Version 1.0 (MVP)** exactly as specified across `01`–`
 
 ### Phase 1 — Data Layer
 
-#### TODO-005 — Data-access layer for all four collections
-**Status:** Not Started · **Est. time:** 4–6h · **Depends on:** TODO-004
-**Spec reference:** `04-Database-Schema.md` §3–6
-
-**Success conditions:**
-- `lib/db/models/{artwork,tag,admin,settings}.ts` expose typed functions covering every operation later endpoints need
-- No Route Handler needs to import the MongoDB driver directly; `ObjectId` ↔ string conversion happens only at this boundary (`09-Coding-Standards.md` §4)
-
-**Tests:** Unit tests for each model function's query shape (mocked driver) — required per `09-Coding-Standards.md` §13.
-**Notes / Results:** _(none yet)_
-
 #### TODO-006 — Zod schemas + shared TypeScript types
 **Status:** Not Started · **Est. time:** 3–4h · **Depends on:** TODO-005
 **Spec reference:** `04-Database-Schema.md` (validation rules throughout), `05-API-Specification.md`
@@ -93,7 +82,6 @@ This seed list covers **Version 1.0 (MVP)** exactly as specified across `01`–`
 **Success conditions:**
 - `lib/validation/{artwork,tag,settings}.ts` implement every validation rule in `04` (1–20 images, `type` enum, slug pattern, `featuredOrder` required iff `featured`, etc.)
 - `src/types/*` derived via `z.infer`, matching `05`'s request/response shapes field-for-field
-
 **Tests:** Unit tests covering each validation rule's pass/fail boundary.
 **Notes / Results:** _(none yet)_
 

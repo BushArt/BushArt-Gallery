@@ -9,6 +9,8 @@ Format: loosely follows [Keep a Changelog](https://keepachangelog.com/) conventi
 ## [Unreleased]
 
 ### Added
+- **TODO-005** — Data-access layer for all four collections: typed model functions for artworks, tags, admins, and settings with server-side ObjectId conversion, NSFW-safe defaults, cursor pagination, and 28 mocked-driver unit tests.
+
 - **TODO-001** — Scaffolded the repository: Next.js 16 App Router project with TypeScript strict mode, ESLint v9 flat config (`eslint.config.mjs`), and Tailwind v4 (PostCSS-based via `@tailwindcss/postcss`). Implemented the full empty directory skeleton per `08-Project-Structure.md` with App Router routes, library structure, and configuration files. `npm run build` succeeds on the scaffold.
 
 - **TODO-002** — Provisioned MongoDB Atlas M0 cluster and Cloudinary account; local environment wired and connectivity verified with `scripts/verify-env.mjs`.
@@ -20,6 +22,9 @@ Format: loosely follows [Keep a Changelog](https://keepachangelog.com/) conventi
 - **Phase 0 audit remediation** — Post-close-out audit fixes applied to the scaffold: typed `getDb()` in `src/lib/db/mongodb.ts`; implemented `scripts/seed-admin.ts` with bcrypt cost 12 and idempotency; added `npm run seed:admin`; removed duplicate legacy CSS var aliases from `src/app/globals.css`; replaced bare `proxy.ts` re-export with a documented placeholder referencing CVE-2025-29927; strengthened `tests/db-setup.test.ts` with idempotency, index option assertions, and deterministic `site_settings` coverage.
 
 ### Documentation Updates
+- `04-Database-Schema.md` §3–6 — no change; implementation matched the documented contract.
+- `09-Coding-Standards.md` §4 — no change; model-boundary rule satisfied as specified.
+
 - `02-Technical-Specification.md` §4, §9 — no change; implementation matches the documented contract and proxy defense-in-depth requirement.
 - `04-Database-Schema.md` §3–6 — no change; strengthened tests cover the same index contract already documented.
 - `06-UI-Design-System.md` §2–5 — no change; `@theme`-only token strategy matches the documented design intent.
