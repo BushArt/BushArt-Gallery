@@ -94,7 +94,6 @@ function createMockCollection<T extends { _id: ObjectId }>() {
     find(_filter: any) {
       const filter = _filter ?? {};
       const filtered = docs.filter((d: any) => {
-        // Evaluate all filter clauses; a doc must pass every one.
         const matchesId = !filter._id
           ? true
           : filter._id.$in
@@ -136,7 +135,6 @@ function createMockCollection<T extends { _id: ObjectId }>() {
             if (or.completionDate?.$eq && or._id) {
               const eqDate = new Date(or.completionDate.$eq);
               const idHex = d._id?.toHexString?.();
-              // or._id may be a direct value (string/ObjectId) or a sub-operator { $gt: ..., $lt: ... }
               const cursorIdHex = or._id.$gt
                 ? (typeof or._id.$gt === "string" ? or._id.$gt : or._id.$gt.toHexString())
                 : or._id.$lt
@@ -247,7 +245,7 @@ describe("models/artwork", () => {
       nsfw: false,
       featured: false,
       featuredOrder: null,
-      images: [{ publicId: "x", url: "u", width: 100, height: 100, order: 0 }],
+      images: [{ publicId: "x", url: "https://example.com/x.jpg", width: 100, height: 100, order: 0 }],
       timelapse: null,
       tagIds: [],
       completionDate: new Date(),
@@ -269,7 +267,7 @@ describe("models/artwork", () => {
       nsfw: false,
       featured: false,
       featuredOrder: null,
-      images: [{ publicId: "x", url: "u", width: 1, height: 1, order: 0 }],
+      images: [{ publicId: "x", url: "https://example.com/x.jpg", width: 1, height: 1, order: 0 }],
       timelapse: null,
       tagIds: [],
       completionDate: new Date(),
@@ -294,7 +292,7 @@ describe("models/artwork", () => {
       nsfw: false,
       featured: false,
       featuredOrder: null,
-      images: [{ publicId: "x", url: "u", width: 1, height: 1, order: 0 }],
+      images: [{ publicId: "x", url: "https://example.com/x.jpg", width: 1, height: 1, order: 0 }],
       timelapse: null,
       tagIds: [],
       completionDate: new Date(),
@@ -319,7 +317,7 @@ describe("models/artwork", () => {
       nsfw: false,
       featured: false,
       featuredOrder: null,
-      images: [{ publicId: "x", url: "u", width: 1, height: 1, order: 0 }],
+      images: [{ publicId: "x", url: "https://example.com/x.jpg", width: 1, height: 1, order: 0 }],
       timelapse: null,
       tagIds: [],
       completionDate: new Date(),
@@ -340,7 +338,7 @@ describe("models/artwork", () => {
       nsfw: false,
       featured: false,
       featuredOrder: null,
-      images: [{ publicId: "x", url: "u", width: 1, height: 1, order: 0 }],
+      images: [{ publicId: "x", url: "https://example.com/x.jpg", width: 1, height: 1, order: 0 }],
       timelapse: null,
       tagIds: [],
       completionDate: new Date(),
@@ -354,7 +352,7 @@ describe("models/artwork", () => {
       nsfw: true,
       featured: false,
       featuredOrder: null,
-      images: [{ publicId: "y", url: "v", width: 1, height: 1, order: 0 }],
+      images: [{ publicId: "y", url: "https://example.com/y.jpg", width: 1, height: 1, order: 0 }],
       timelapse: null,
       tagIds: [],
       completionDate: new Date(),
@@ -376,7 +374,7 @@ describe("models/artwork", () => {
       nsfw: false,
       featured: false,
       featuredOrder: null,
-      images: [{ publicId: "x", url: "u", width: 1, height: 1, order: 0 }],
+      images: [{ publicId: "x", url: "https://example.com/x.jpg", width: 1, height: 1, order: 0 }],
       timelapse: null,
       tagIds: [],
       completionDate: new Date("2023-06-15"),
@@ -390,7 +388,7 @@ describe("models/artwork", () => {
       nsfw: false,
       featured: false,
       featuredOrder: null,
-      images: [{ publicId: "x", url: "u", width: 1, height: 1, order: 0 }],
+      images: [{ publicId: "x", url: "https://example.com/x.jpg", width: 1, height: 1, order: 0 }],
       timelapse: null,
       tagIds: [],
       completionDate: new Date("2024-06-15"),
@@ -399,6 +397,76 @@ describe("models/artwork", () => {
     const result = await listArtworks({ year: 2023 });
     expect(result.items).toHaveLength(1);
     expect(result.items[0].slug).toBe("year-2023");
+  });
+
+  it("listArtworks filters by type", async () => {
+    await createArtwork({
+      slug: "personal-art",
+      title: "Personal",
+      description: null,
+      medium: "Oil",
+      type: "personal",
+      nsfw: false,
+      featured: false,
+      featuredOrder: null,
+      images: [{ publicId: "x", url: "https://example.com/x.jpg", width: 1, height: 1, order: 0 }],
+      timelapse: null,
+      tagIds: [],
+      completionDate: new Date(),
+    });
+    await createArtwork({
+      slug: "commission-art",
+      title: "Commission",
+      description: null,
+      medium: "Oil",
+      type: "commission",
+      nsfw: false,
+      featured: false,
+      featuredOrder: null,
+      images: [{ publicId: "x", url: "https://example.com/x.jpg", width: 1, height: 1, order: 0 }],
+      timelapse: null,
+      tagIds: [],
+      completionDate: new Date(),
+    });
+
+    const result = await listArtworks({ type: "commission" });
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0].slug).toBe("commission-art");
+  });
+
+  it("listArtworks filters by medium", async () => {
+    await createArtwork({
+      slug: "oil-art",
+      title: "Oil",
+      description: null,
+      medium: "Oil",
+      type: "personal",
+      nsfw: false,
+      featured: false,
+      featuredOrder: null,
+      images: [{ publicId: "x", url: "https://example.com/x.jpg", width: 1, height: 1, order: 0 }],
+      timelapse: null,
+      tagIds: [],
+      completionDate: new Date(),
+    });
+    await createArtwork({
+      slug: "acrylic-art",
+      title: "Acrylic",
+      description: null,
+      medium: "Acrylic",
+      type: "personal",
+      nsfw: false,
+      featured: false,
+      featuredOrder: null,
+      images: [{ publicId: "x", url: "https://example.com/x.jpg", width: 1, height: 1, order: 0 }],
+      timelapse: null,
+      tagIds: [],
+      completionDate: new Date(),
+    });
+
+    const result = await listArtworks({ medium: "Acrylic" });
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0].slug).toBe("acrylic-art");
   });
 
   it("listArtworks respects nsfw=include and sort oldest", async () => {
@@ -411,7 +479,7 @@ describe("models/artwork", () => {
       nsfw: false,
       featured: false,
       featuredOrder: null,
-      images: [{ publicId: "x", url: "u", width: 1, height: 1, order: 0 }],
+      images: [{ publicId: "x", url: "https://example.com/x.jpg", width: 1, height: 1, order: 0 }],
       timelapse: null,
       tagIds: [],
       completionDate: new Date("2020-01-01"),
@@ -425,7 +493,7 @@ describe("models/artwork", () => {
       nsfw: false,
       featured: false,
       featuredOrder: null,
-      images: [{ publicId: "x", url: "u", width: 1, height: 1, order: 0 }],
+      images: [{ publicId: "x", url: "https://example.com/x.jpg", width: 1, height: 1, order: 0 }],
       timelapse: null,
       tagIds: [],
       completionDate: new Date("2024-01-01"),
@@ -447,7 +515,7 @@ describe("models/artwork", () => {
         nsfw: false,
         featured: false,
         featuredOrder: null,
-        images: [{ publicId: "x", url: "u", width: 1, height: 1, order: 0 }],
+        images: [{ publicId: "x", url: "https://example.com/x.jpg", width: 1, height: 1, order: 0 }],
         timelapse: null,
         tagIds: [],
         completionDate: new Date(2024, 0, i + 1),
@@ -470,7 +538,7 @@ describe("models/artwork", () => {
       nsfw: true,
       featured: false,
       featuredOrder: null,
-      images: [{ publicId: "x", url: "u", width: 1, height: 1, order: 0 }],
+      images: [{ publicId: "x", url: "https://example.com/x.jpg", width: 1, height: 1, order: 0 }],
       timelapse: null,
       tagIds: [],
       completionDate: new Date(),
@@ -490,7 +558,7 @@ describe("models/artwork", () => {
       nsfw: true,
       featured: false,
       featuredOrder: null,
-      images: [{ publicId: "x", url: "u", width: 1, height: 1, order: 0 }],
+      images: [{ publicId: "x", url: "https://example.com/x.jpg", width: 1, height: 1, order: 0 }],
       timelapse: null,
       tagIds: [],
       completionDate: new Date(),
@@ -513,7 +581,7 @@ describe("models/artwork", () => {
       nsfw: false,
       featured: false,
       featuredOrder: null,
-      images: [{ publicId: "x", url: "u", width: 1, height: 1, order: 0 }],
+      images: [{ publicId: "x", url: "https://example.com/x.jpg", width: 1, height: 1, order: 0 }],
       timelapse: null,
       tagIds: [oid(tagA.id)],
       completionDate: new Date("2024-01-01"),
@@ -527,7 +595,7 @@ describe("models/artwork", () => {
       nsfw: false,
       featured: false,
       featuredOrder: null,
-      images: [{ publicId: "x", url: "u", width: 1, height: 1, order: 0 }],
+      images: [{ publicId: "x", url: "https://example.com/x.jpg", width: 1, height: 1, order: 0 }],
       timelapse: null,
       tagIds: [oid(tagB.id)],
       completionDate: new Date("2024-02-01"),
@@ -541,7 +609,7 @@ describe("models/artwork", () => {
       nsfw: false,
       featured: false,
       featuredOrder: null,
-      images: [{ publicId: "x", url: "u", width: 1, height: 1, order: 0 }],
+      images: [{ publicId: "x", url: "https://example.com/x.jpg", width: 1, height: 1, order: 0 }],
       timelapse: null,
       tagIds: [oid(tagA.id), oid(tagB.id)],
       completionDate: new Date("2024-03-01"),
@@ -563,7 +631,7 @@ describe("models/artwork", () => {
       nsfw: false,
       featured: false,
       featuredOrder: null,
-      images: [{ publicId: "x", url: "u", width: 1, height: 1, order: 0 }],
+      images: [{ publicId: "x", url: "https://example.com/x.jpg", width: 1, height: 1, order: 0 }],
       timelapse: null,
       tagIds: [],
       completionDate: new Date(),
@@ -620,7 +688,7 @@ describe("models/tag", () => {
       nsfw: false,
       featured: false,
       featuredOrder: null,
-      images: [{ publicId: "x", url: "u", width: 1, height: 1, order: 0 }],
+      images: [{ publicId: "x", url: "https://example.com/x.jpg", width: 1, height: 1, order: 0 }],
       timelapse: null,
       tagIds: [oid(tag.id)],
       completionDate: new Date(),
@@ -629,13 +697,11 @@ describe("models/tag", () => {
     const deleted = await deleteTag(tag.id);
     expect(deleted).toBe(true);
 
-    // Verify cascade: the artwork's tagIds no longer contains the deleted tag
     const artwork = await findArtworkBySlug("cascade-art");
     expect(artwork?.tagIds).not.toContain(tag.id);
   });
 
   it("listArtworks oldest sort with cursor paginates correctly", async () => {
-    // Use distinct dates so cursor boundary is purely date-based (no _id tiebreaker needed)
     for (let i = 0; i < 5; i++) {
       await createArtwork({
         slug: `cursor-oldest-${i}`,
@@ -646,7 +712,7 @@ describe("models/tag", () => {
         nsfw: false,
         featured: false,
         featuredOrder: null,
-        images: [{ publicId: "x", url: "u", width: 1, height: 1, order: 0 }],
+        images: [{ publicId: "x", url: "https://example.com/x.jpg", width: 1, height: 1, order: 0 }],
         timelapse: null,
         tagIds: [],
         completionDate: new Date(2024, 0, i + 1),
@@ -667,7 +733,6 @@ describe("models/tag", () => {
     expect(page3.hasMore).toBe(false);
     expect(page3.nextCursor).toBeNull();
 
-    // Verify total ordering across pages
     const allSlugs = [...page1.items, ...page2.items, ...page3.items].map((i) => i.slug);
     expect(allSlugs).toEqual([
       "cursor-oldest-0",
@@ -690,7 +755,7 @@ describe("models/tag", () => {
         nsfw: false,
         featured: false,
         featuredOrder: null,
-        images: [{ publicId: "x", url: "u", width: 1, height: 1, order: 0 }],
+        images: [{ publicId: "x", url: "https://example.com/x.jpg", width: 1, height: 1, order: 0 }],
         timelapse: null,
         tagIds: [],
         completionDate: new Date("2024-06-15T12:00:00Z"),
@@ -721,7 +786,7 @@ describe("models/tag", () => {
         nsfw: false,
         featured: false,
         featuredOrder: null,
-        images: [{ publicId: "x", url: "u", width: 1, height: 1, order: 0 }],
+        images: [{ publicId: "x", url: "https://example.com/x.jpg", width: 1, height: 1, order: 0 }],
         timelapse: null,
         tagIds: [],
         completionDate: new Date(2024, 0, i + 1),
@@ -791,6 +856,18 @@ describe("models/settings", () => {
   it("findSettings returns null when missing", async () => {
     const found = await findSettings();
     expect(found).toBeNull();
+  });
+
+  it("findSettings returns existing settings", async () => {
+    await upsertSettings({
+      artistName: "Bush",
+      tagline: "Test",
+      socialLinks: [],
+      contactEmail: null,
+    });
+    const found = await findSettings();
+    expect(found?.artistName).toBe("Bush");
+    expect(found?.tagline).toBe("Test");
   });
 
   it("upsertSettings preserves omitted fields on partial update", async () => {

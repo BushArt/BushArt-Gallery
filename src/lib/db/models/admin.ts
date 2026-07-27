@@ -1,7 +1,7 @@
 import { ObjectId } from "mongodb";
 import { getDb } from "@/lib/db/mongodb";
 import bcrypt from "bcryptjs";
-import type { Admin } from "@/types/admin";
+import type { Admin, AdminInternal } from "@/types/admin";
 
 // ── Internal MongoDB document shapes ──────────────────────────────────────
 
@@ -13,11 +13,6 @@ interface AdminDoc {
   lockUntil: Date | null;
   lastLoginAt: Date | null;
   createdAt: Date;
-}
-
-/** Internal admin shape returned by model functions — includes passwordHash. */
-export interface AdminInternal extends Admin {
-  passwordHash: string;
 }
 
 // ── Collection accessor ───────────────────────────────────────────────────
@@ -36,7 +31,7 @@ function docToAdmin(doc: AdminDoc): AdminInternal {
     failedLoginAttempts: doc.failedLoginAttempts,
     lockUntil: doc.lockUntil,
     lastLoginAt: doc.lastLoginAt,
-    createdAt: doc.createdAt.toISOString(),
+    createdAt: doc.createdAt,
   };
 }
 

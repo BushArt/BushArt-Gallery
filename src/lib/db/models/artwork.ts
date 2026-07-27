@@ -1,6 +1,36 @@
 import { ObjectId, type Sort, type Filter } from "mongodb";
 import { getDb } from "@/lib/db/mongodb";
+import { ArtworkSchema, ArtworkBaseSchema, ImageAssetSchema, VideoAssetSchema } from "@/lib/validation/artwork";
+import { z } from "zod";
 import type { Artwork, ArtworkListItem, ImageAsset, VideoAsset } from "@/types/artwork";
+
+/**
+ * Internal validation schema for createArtwork.
+ * Matches the internal CreateArtworkData shape (Date for dates, ObjectId[] for tagIds).
+ * Field-level constraints mirror ArtworkBaseSchema; cross-field refinements are delegated
+ * to the API-layer ArtworkSchema.
+ */
+const ArtworkCreateInternalSchema = z.object({
+  slug: ArtworkBaseSchema.shape.slug,
+  title: ArtworkBaseSchema.shape.title,
+  description: ArtworkBaseSchema.shape.description,
+  medium: ArtworkBaseSchema.shape.medium,
+  type: ArtworkBaseSchema.shape.type,
+  nsfw: ArtworkBaseSchema.shape.nsfw,
+  featured: ArtworkBaseSchema.shape.featured,
+  featuredOrder: ArtworkBaseSchema.shape.featuredOrder,
+  images: ArtworkBaseSchema.shape.images,
+  timelapse: ArtworkBaseSchema.shape.timelapse,
+  // tagIds is already validated as string ObjectIds by the API layer and converted to ObjectId[] before reaching the DB layer.
+  tagIds: z.array(z.any()),
+  completionDate: z.date({ message: "completionDate must be a Date object" }),
+});
+
+/**
+ * Internal validation schema for updateArtwork.
+ * All fields optional, same internal Date/ObjectId types as CreateInternalSchema.
+ */
+const ArtworkUpdateInternalSchema = ArtworkCreateInternalSchema.partial();
 
 // ── Internal MongoDB document shapes ──────────────────────────────────────
 
@@ -55,7 +85,6 @@ function collection() {
 // ── Helpers ───────────────────────────────────────────────────────────────
 
 function docToArtwork(doc: ArtworkDoc): Artwork {
-  // Validation in TODO-006 ensures images is non-empty; pass through as-is until then.
   return {
     id: doc._id.toHexString(),
     slug: doc.slug,
@@ -95,7 +124,6 @@ function docToListItem(
 ): ArtworkListItem {
   const cover = doc.images[0] ?? {
     publicId: "",
-    url: "",
     width: 0,
     height: 0,
   };
@@ -160,6 +188,8 @@ const ARTWORK_PROJECTION = {
 export async function createArtwork(
   data: CreateArtworkData,
 ): Promise<Artwork> {
+  // Validate internal data shape before writing to MongoDB
+  ArtworkCreateInternalSchema.parse(data);
   const now = new Date();
   const doc: ArtworkDoc = {
     _id: new ObjectId(),
@@ -184,6 +214,8 @@ export async function updateArtwork(
   id: string,
   data: UpdateArtworkData,
 ): Promise<Artwork | null> {
+  // Validate partial internal data shape before writing to MongoDB
+  ArtworkUpdateInternalSchema.parse(data);
   const col = await collection();
   const result = await col.findOneAndUpdate(
     { _id: new ObjectId(id) },

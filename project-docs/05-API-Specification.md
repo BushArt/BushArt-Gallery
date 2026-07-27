@@ -52,7 +52,9 @@ List endpoints that support pagination (`GET /api/artworks`) share one shape:
 }
 ```
 
-`nextCursor` is a base64-encoded `{ createdAt, _id }` pair (or the equivalent for the active sort mode — see §4.1). It is opaque by contract: clients pass it back verbatim and must not construct or parse it themselves. `nextCursor` is `null` and `hasMore` is `false` on the last page.
+`nextCursor` is a base64-encoded `{ sortValue, _id }` pair, where `sortValue` is the ISO string of the sort field (`completionDate` for the default "recent" and "oldest" modes). It is opaque by contract: clients pass it back verbatim and must not construct or parse it themselves. `nextCursor` is `null` and `hasMore` is `false` on the last page.
+
+Spec correction: an earlier draft described this payload as `{ createdAt, _id }`; the actual encoded field is the active sort value, defaulting to `completionDate`, so the accurate description is `{ sortValue, _id }`.
 
 ---
 

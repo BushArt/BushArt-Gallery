@@ -133,16 +133,6 @@ Status: Pending Audit
 
 ### Phase 1 — Data Layer
 
-#### TODO-006 — Zod schemas + shared TypeScript types
-**Status:** Not Started · **Est. time:** 3–4h · **Depends on:** TODO-005
-**Spec reference:** `04-Database-Schema.md` (validation rules throughout), `05-API-Specification.md`
-
-**Success conditions:**
-- `lib/validation/{artwork,tag,settings}.ts` implement every validation rule in `04` (1–20 images, `type` enum, slug pattern, `featuredOrder` required iff `featured`, etc.)
-- `src/types/*` derived via `z.infer`, matching `05`'s request/response shapes field-for-field
-**Tests:** Unit tests covering each validation rule's pass/fail boundary.
-**Notes / Results:** _(none yet)_
-
 ### Phase 2 — Authentication
 
 #### TODO-007 — Core auth utilities

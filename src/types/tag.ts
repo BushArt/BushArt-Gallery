@@ -1,7 +1,3 @@
-export interface Tag {
-  id: string;
-  name: string;
-  slug: string;
-  usageCount: number;
-  createdAt: string;
-}
+import type { Tag } from "../lib/validation/tag";
+
+export { Tag };

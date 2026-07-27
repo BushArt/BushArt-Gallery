@@ -11,8 +11,8 @@
  * Env:   MONGODB_URI, INITIAL_ADMIN_USERNAME, INITIAL_ADMIN_PASSWORD must be set.
  */
 
-import { MongoClient } from "mongodb";
-import bcrypt from "bcryptjs";
+import { hashPassword, findByUsername, createAdmin } from "@/lib/db/models/admin";
+import { getDb } from "@/lib/db/mongodb";
 
 const RAW_URI = process.env.MONGODB_URI;
 const RAW_USERNAME = process.env.INITIAL_ADMIN_USERNAME;
@@ -33,37 +33,25 @@ if (!RAW_PASSWORD) {
   process.exit(1);
 }
 
-const MONGODB_URI: string = RAW_URI;
 const USERNAME: string = RAW_USERNAME;
 const PASSWORD: string = RAW_PASSWORD;
 
 async function main() {
-  const client = new MongoClient(MONGODB_URI);
-  await client.connect();
-  const db = client.db();
-  const admins = db.collection("admins");
+  // Ensure DB connection is initialized
+  await getDb();
 
   // Check if admin already exists (idempotency)
-  const existing = await admins.findOne({ username: USERNAME });
+  const existing = await findByUsername(USERNAME);
   if (existing) {
     console.log(`ℹ️  Admin "${USERNAME}" already exists — skipping.`);
-    await client.close();
     return;
   }
 
-  const passwordHash = await bcrypt.hash(PASSWORD, 12);
+  const passwordHash = await hashPassword(PASSWORD);
 
-  await admins.insertOne({
-    username: USERNAME,
-    passwordHash,
-    failedLoginAttempts: 0,
-    lockUntil: null,
-    lastLoginAt: null,
-    createdAt: new Date(),
-  });
+  await createAdmin({ username: USERNAME, passwordHash });
 
   console.log(`✅ Admin "${USERNAME}" created successfully.`);
-  await client.close();
 }
 
 main().catch((err) => {

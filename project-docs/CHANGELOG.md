@@ -8,6 +8,13 @@ Format: loosely follows [Keep a Changelog](https://keepachangelog.com/) conventi
 
 ## [Unreleased]
 
+### Fixed
+- **TODO-006** — Added Zod validation schemas for artwork, tag, and settings with strict field-level enforcement; introduced internal DB-layer schemas (`ArtworkCreateInternalSchema`/`ArtworkUpdateInternalSchema`) so `createArtwork`/`updateArtwork` and `createTag` validate before write. Added auth request/response schemas for Phase 2. Tightened `Admin.createdAt` to non-null `Date` to match `04-Database-Schema.md §5`.
+
+### Documentation Updates
+- `05-API-Specification.md §3 — corrected nextCursor encoding description from `{ createdAt, _id }` to `{ sortValue, _id }` to match implementation.
+- `04-Database-Schema.md §3–6 — no change; implementation matched the documented contract.
+
 ### Added
 - **TODO-005** — Data-access layer for all four collections: typed model functions for artworks, tags, admins, and settings with server-side ObjectId conversion, NSFW-safe defaults, cursor pagination, and 28 mocked-driver unit tests.
 

@@ -1,5 +1,6 @@
 import { ObjectId, type Filter } from "mongodb";
 import { getDb } from "@/lib/db/mongodb";
+import { TagSchema } from "@/lib/validation/tag";
 import type { Tag } from "@/types/tag";
 
 // ── Internal MongoDB document shapes ──────────────────────────────────────
@@ -42,6 +43,8 @@ export async function createTag(data: {
   name: string;
   slug: string;
 }): Promise<Tag> {
+  // Validate input against schema before writing to MongoDB
+  TagSchema.pick({ name: true, slug: true }).parse(data);
   const doc: TagDoc = {
     _id: new ObjectId(),
     name: data.name,
@@ -130,9 +133,9 @@ export async function deleteTag(id: string): Promise<boolean> {
   const artworksCol = await getDb().then((db) => db.collection<any>("artworks"));
   await artworksCol.updateMany(
     { tagIds: tagDoc._id },
-    // Narrow `as any` to the $pull operand only — the driver types have a known gap
-    // here with ObjectId comparison inside $pull.
-    { $pull: { tagIds: tagDoc._id } as any },
+    // The MongoDB driver type for $pull has a known gap with ObjectId comparison;
+    // the cast is scoped to the operand level only.
+    { $pull: { tagIds: tagDoc._id } } as any,
   );
 
   return true;

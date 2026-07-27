@@ -1,4 +1,5 @@
 import { getDb } from "@/lib/db/mongodb";
+import { SiteSettingsSchema } from "@/lib/validation/settings";
 import type { SiteSettings } from "@/types/settings";
 
 // ── Internal MongoDB document shape ───────────────────────────────────────
@@ -28,7 +29,6 @@ export async function findSettings(): Promise<SiteSettings | null> {
   const doc = await db.collection<SiteSettingsDoc>("site_settings").findOne({});
   if (!doc) return null;
   return {
-    id: doc._id.toHexString(),
     artistName: doc.artistName,
     tagline: doc.tagline,
     biography: doc.biography,
@@ -51,15 +51,18 @@ export async function upsertSettings(data: Partial<SiteSettings>): Promise<SiteS
   const db = await getDb();
   const now = new Date();
 
-  const setData: Record<string, unknown> = { updatedAt: now };
-  if (data.artistName !== undefined) setData.artistName = data.artistName;
-  if (data.tagline !== undefined) setData.tagline = data.tagline;
-  if (data.biography !== undefined) setData.biography = data.biography;
-  if (data.profileImage !== undefined) setData.profileImage = data.profileImage;
-  if (data.bannerImage !== undefined) setData.bannerImage = data.bannerImage;
-  if (data.socialLinks !== undefined) setData.socialLinks = data.socialLinks;
-  if (data.contactEmail !== undefined) setData.contactEmail = data.contactEmail;
-  if (data.contactUrl !== undefined) setData.contactUrl = data.contactUrl;
+  // Validate input against schema (strip unknown fields, normalize types)
+  const validated = SiteSettingsSchema.partial().strip().parse({
+    ...data,
+    updatedAt: now.toISOString(),
+  });
+
+  // Spread validated fields (excluding server-managed `updatedAt` which is set below)
+  const { updatedAt: _stripped, ...validatedFields } = validated;
+  const setData: Record<string, unknown> = {
+    ...validatedFields,
+    updatedAt: now,
+  };
 
   await db.collection<SiteSettingsDoc>("site_settings").updateOne(
     {},
@@ -71,7 +74,6 @@ export async function upsertSettings(data: Partial<SiteSettings>): Promise<SiteS
   if (!updated) throw new Error("Failed to upsert site settings");
 
   return {
-    id: updated._id.toHexString(),
     artistName: updated.artistName,
     tagline: updated.tagline,
     biography: updated.biography,
