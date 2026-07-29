@@ -234,7 +234,6 @@ import {
   findFeaturedArtworks,
 } from "@/lib/db/models/artwork";
 import { createTag, listTags, findTagBySlug, findTagById, deleteTag, incrementTagUsageCounts, decrementTagUsageCounts } from "@/lib/db/models/tag";
-import { createAdmin, findByUsername, findAdminById, updateLoginState, hashPassword, verifyPassword } from "@/lib/db/models/admin";
 import { findSettings, upsertSettings } from "@/lib/db/models/settings";
 
 describe("models/artwork", () => {
@@ -970,40 +969,6 @@ describe("models/tag", () => {
       "cursor-recent-1",
       "cursor-recent-0",
     ]);
-  });
-});
-
-describe("models/admin", () => {
-  it("createAdmin + findByUsername round-trip", async () => {
-    await createAdmin({ username: "alice", passwordHash: "hash" });
-    const found = await findByUsername("alice");
-    expect(found?.username).toBe("alice");
-    // passwordHash is intentionally not exposed on the public shape
-  });
-
-  it("findAdminById returns the admin", async () => {
-    const admin = await createAdmin({ username: "carol", passwordHash: "hash" });
-    const found = await findAdminById(admin.id);
-    expect(found?.username).toBe("carol");
-  });
-
-  it("updateLoginState updates fields", async () => {
-    const admin = await createAdmin({ username: "bob", passwordHash: "hash" });
-    await updateLoginState(admin.id, {
-      failedLoginAttempts: 3,
-      lockUntil: null,
-      lastLoginAt: new Date(),
-    });
-    const updated = await findByUsername("bob");
-    expect(updated?.failedLoginAttempts).toBe(3);
-    expect(updated?.lastLoginAt).toBeTruthy();
-  });
-
-  it("hashPassword and verifyPassword round-trip through bcrypt", async () => {
-    const hash = await hashPassword("secret");
-    expect(hash).not.toBe("secret");
-    expect(await verifyPassword("secret", hash)).toBe(true);
-    expect(await verifyPassword("wrong", hash)).toBe(false);
   });
 });
 

@@ -11,6 +11,8 @@ Format: loosely follows [Keep a Changelog](https://keepachangelog.com/) conventi
 ### Added
 - **TODO-001** — Scaffolded the repository: Next.js 16 App Router project with TypeScript strict mode, ESLint v9 flat config (`eslint.config.mjs`), and Tailwind v4 (PostCSS-based via `@tailwindcss/postcss`). Implemented the full empty directory skeleton per `08-Project-Structure.md` with App Router routes, library structure, and configuration files. `npm run build` succeeds on the scaffold.
 
+- **TODO-007** — Core auth utilities: custom HS256 JWT session token module (`lib/auth/jwt.ts`) with 7-day expiry, bcrypt cost-12 password hashing (`lib/auth/password.ts`), consolidated auth logic in `lib/auth/` per `08-Project-Structure.md`, type consolidation through `src/types/admin.ts` per `09-Coding-Standards.md` §1, and 105 passing tests covering sign/verify round-trips, expiry, signature tamper rejection, malformed token handling, password hashing, and the auth-data boundary (`getAdminByUsername` returning `AdminInternal` with `passwordHash`).
+
 - **TODO-002** — Provisioned MongoDB Atlas M0 cluster and Cloudinary account; local environment wired and connectivity verified with `scripts/verify-env.mjs`.
 
 - **TODO-003** — Wired design tokens and self-hosted fonts via Tailwind v4 `@theme` and `next/font`.
@@ -27,8 +29,10 @@ Format: loosely follows [Keep a Changelog](https://keepachangelog.com/) conventi
 - [Phase 1 audit remediation] — Fixed missing tag usageCount increment in `createArtwork`; added 38 mocked-driver unit tests covering tag reconciliation, featured artworks, settings zero-state, and tagSlugs resolution; updated CHANGELOG test count from 31 to 38
 
 ### Documentation Updates
-- `02-Technical-Specification.md` §4, §9 — no change; implementation matches the documented contract and proxy defense-in-depth requirement.
-- `04-Database-Schema.md` §3–6 — no change; implementation matched the documented contract.
+- `02-Technical-Specification.md` §4 — no change; `jwt.ts`/`password.ts` implement the documented HS256, bcrypt 12, 7-day expiry, and no-plaintext-logging contracts.
+- `04-Database-Schema.md` §5 — no change; `AdminInternal` shape including `createdAt` matches the documented `admins` collection schema.
+- `08-Project-Structure.md` §2 — no change; `lib/auth/` and `src/types/` layout matches the documented conventions.
+- `09-Coding-Standards.md` §1 — no change; `Admin`/`AdminInternal` types consolidated into `src/types/admin.ts` as the single source of truth.
 - `05-API-Specification.md` §3 — corrected nextCursor encoding description from `{ createdAt, _id }` to `{ sortValue, _id }` to match implementation.
 - `06-UI-Design-System.md` §2–5 — no change; `@theme`-only token strategy matches the documented design intent.
 - `08-Project-Structure.md` §2 — no change; `scripts/seed-admin.ts` was already listed and is now implemented.

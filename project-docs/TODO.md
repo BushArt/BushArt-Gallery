@@ -133,17 +133,6 @@ Status: Pending Audit
 
 ### Phase 2 — Authentication
 
-#### TODO-007 — Core auth utilities
-**Status:** Not Started · **Est. time:** 2h · **Depends on:** TODO-001
-**Spec reference:** `02-Technical-Specification.md` §4
-
-**Success conditions:**
-- `lib/auth/jwt.ts` signs/verifies HS256 tokens with the documented 7-day expiry
-- Password hashing uses bcrypt, cost factor 12; no plaintext password is ever logged
-
-**Tests:** Unit tests for sign/verify round-trip, expiry handling, and tampered-token rejection.
-**Notes / Results:** _(none yet)_
-
 #### TODO-008 — Admin seed script + brute-force lockout
 **Status:** Not Started · **Est. time:** 2h · **Depends on:** TODO-005, TODO-007
 **Spec reference:** `02-Technical-Specification.md` §9, `04-Database-Schema.md` §5

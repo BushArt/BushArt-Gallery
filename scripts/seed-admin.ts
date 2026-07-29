@@ -11,7 +11,8 @@
  * Env:   MONGODB_URI, INITIAL_ADMIN_USERNAME, INITIAL_ADMIN_PASSWORD must be set.
  */
 
-import { hashPassword, findByUsername, createAdmin } from "@/lib/db/models/admin";
+import { hashPassword } from "@/lib/auth/password";
+import { findByUsername, createAdmin } from "@/lib/db/models/admin";
 import { getDb } from "@/lib/db/mongodb";
 
 const RAW_URI = process.env.MONGODB_URI;

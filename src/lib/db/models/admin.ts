@@ -1,6 +1,7 @@
 import { ObjectId } from "mongodb";
 import { getDb } from "@/lib/db/mongodb";
-import bcrypt from "bcryptjs";
+import { Admin, AdminInternal } from "@/types/admin";
+
 // ── Internal MongoDB document shapes ──────────────────────────────────────
 
 interface AdminDoc {
@@ -21,17 +22,7 @@ function collection() {
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
-/** Public-safe admin shape (no secret material). */
-export type AdminPublic = {
-  id: string;
-  username: string;
-  failedLoginAttempts: number;
-  lockUntil: Date | null;
-  lastLoginAt: Date | null;
-  createdAt: Date;
-};
-
-function docToAdmin(doc: AdminDoc): AdminPublic {
+function docToAdmin(doc: AdminDoc): Admin {
   return {
     id: doc._id.toHexString(),
     username: doc.username,
@@ -53,7 +44,7 @@ function docToAdmin(doc: AdminDoc): AdminPublic {
 export async function createAdmin(data: {
   username: string;
   passwordHash: string;
-}): Promise<AdminPublic> {
+}): Promise<Admin> {
   const doc: AdminDoc = {
     _id: new ObjectId(),
     username: data.username,
@@ -72,14 +63,6 @@ export async function createAdmin(data: {
  * Internal admin shape with passwordHash — used only by auth internals,
  * never exposed via the API layer.
  */
-export interface AdminInternal {
-  id: string;
-  username: string;
-  passwordHash: string;
-  failedLoginAttempts: number;
-  lockUntil: Date | null;
-  lastLoginAt: Date | null;
-}
 
 function docToAdminInternal(doc: AdminDoc): AdminInternal {
   return {
@@ -89,6 +72,7 @@ function docToAdminInternal(doc: AdminDoc): AdminInternal {
     failedLoginAttempts: doc.failedLoginAttempts,
     lockUntil: doc.lockUntil,
     lastLoginAt: doc.lastLoginAt,
+    createdAt: doc.createdAt,
   };
 }
 
@@ -111,7 +95,7 @@ export async function getAdminByUsername(username: string): Promise<AdminInterna
  * @param username - Admin username.
  * @returns The admin, or null.
  */
-export async function findByUsername(username: string): Promise<AdminPublic | null> {
+export async function findByUsername(username: string): Promise<Admin | null> {
   const col = await collection();
   const doc = await col.findOne({ username });
   return doc ? docToAdmin(doc) : null;
@@ -123,7 +107,7 @@ export async function findByUsername(username: string): Promise<AdminPublic | nu
  * @param id - 24-character hex string.
  * @returns The admin, or null.
  */
-export async function findAdminById(id: string): Promise<AdminPublic | null> {
+export async function findAdminById(id: string): Promise<Admin | null> {
   const col = await collection();
   const doc = await col.findOne({ _id: new ObjectId(id) });
   return doc ? docToAdmin(doc) : null;
@@ -145,21 +129,4 @@ export async function updateLoginState(
 ): Promise<void> {
   const col = await collection();
   await col.updateOne({ _id: new ObjectId(id) }, { $set: data });
-}
-
-/**
- * Hash a plaintext password using bcrypt, cost factor 12.
- */
-export async function hashPassword(password: string): Promise<string> {
-  return bcrypt.hash(password, 12);
-}
-
-/**
- * Verify a plaintext password against a stored hash.
- */
-export async function verifyPassword(
-  password: string,
-  hash: string,
-): Promise<boolean> {
-  return bcrypt.compare(password, hash);
 }
