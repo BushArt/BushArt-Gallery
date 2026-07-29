@@ -31,6 +31,17 @@ export const AuthMeResponseSchema = z.union([
   UnauthenticatedResponseSchema,
 ]);
 
+export const ErrorEnvelopeSchema = z.object({
+  error: z.object({
+    code: z.string(),
+    message: z.string(),
+    details: z.record(z.string(), z.unknown()).default({}),
+  }),
+});
+
+export const AuthErrorEnvelopeSchema = ErrorEnvelopeSchema;
+
 export type LoginRequest = z.infer<typeof LoginRequestSchema>;
 export type AdminProfile = z.infer<typeof AdminProfileSchema>;
 export type AuthMeResponse = z.infer<typeof AuthMeResponseSchema>;
+export type ErrorEnvelope = z.infer<typeof ErrorEnvelopeSchema>;

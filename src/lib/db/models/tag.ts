@@ -113,7 +113,7 @@ export async function decrementTagUsageCounts(ids: string[]): Promise<void> {
   if (ids.length === 0) return;
   const col = await collection();
   await col.updateMany(
-    { _id: { $in: ids.map((id) => new ObjectId(id)) } },
+    { _id: { $in: ids.map((id) => new ObjectId(id)) }, usageCount: { $gt: 0 } },
     { $inc: { usageCount: -1 } },
   );
 }
@@ -124,19 +124,26 @@ export async function decrementTagUsageCounts(ids: string[]): Promise<void> {
  * @param id - 24-character hex string.
  * @returns True if the tag existed and was deleted, false otherwise.
  */
+/**
+ * Cascade-pull a tag id from all artwork tagIds arrays.
+ *
+ * The MongoDB driver type for `$pull` has a known gap with ObjectId values;
+ * this cast is isolated to the helper and kept out of the public API surface.
+ */
+async function pullTagFromArtworks(tagId: ObjectId): Promise<void> {
+  const artworksCol = await getDb().then((db) => db.collection("artworks"));
+  await artworksCol.updateMany(
+    { tagIds: tagId },
+    { $pull: { tagIds: tagId } } as any,
+  );
+}
+
 export async function deleteTag(id: string): Promise<boolean> {
   const col = await collection();
   const tagDoc = await col.findOneAndDelete({ _id: new ObjectId(id) });
   if (!tagDoc) return false;
 
-  // Cascade: pull the tag id from every artwork's tagIds array
-  const artworksCol = await getDb().then((db) => db.collection<any>("artworks"));
-  await artworksCol.updateMany(
-    { tagIds: tagDoc._id },
-    // The MongoDB driver type for $pull has a known gap with ObjectId comparison;
-    // the cast is scoped to the operand level only.
-    { $pull: { tagIds: tagDoc._id } } as any,
-  );
+  await pullTagFromArtworks(tagDoc._id);
 
   return true;
 }

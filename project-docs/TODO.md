@@ -127,11 +127,9 @@ Below it, each finding is logged as it surfaces:
 - [Checklist item] <what was found> — <resolution or "unresolved">
 ### Notes / Results
 
-(log audit findings here as they surface; erased only per the Close-Out rule above)
-
 Status: Pending Audit
 
-### Phase 1 — Data Layer
+### [Done] Phase 1 — Data Layer
 
 ### Phase 2 — Authentication
 

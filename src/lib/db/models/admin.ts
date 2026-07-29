@@ -1,8 +1,6 @@
 import { ObjectId } from "mongodb";
 import { getDb } from "@/lib/db/mongodb";
 import bcrypt from "bcryptjs";
-import type { Admin, AdminInternal } from "@/types/admin";
-
 // ── Internal MongoDB document shapes ──────────────────────────────────────
 
 interface AdminDoc {
@@ -23,11 +21,20 @@ function collection() {
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
-function docToAdmin(doc: AdminDoc): AdminInternal {
+/** Public-safe admin shape (no secret material). */
+export type AdminPublic = {
+  id: string;
+  username: string;
+  failedLoginAttempts: number;
+  lockUntil: Date | null;
+  lastLoginAt: Date | null;
+  createdAt: Date;
+};
+
+function docToAdmin(doc: AdminDoc): AdminPublic {
   return {
     id: doc._id.toHexString(),
     username: doc.username,
-    passwordHash: doc.passwordHash,
     failedLoginAttempts: doc.failedLoginAttempts,
     lockUntil: doc.lockUntil,
     lastLoginAt: doc.lastLoginAt,
@@ -46,7 +53,7 @@ function docToAdmin(doc: AdminDoc): AdminInternal {
 export async function createAdmin(data: {
   username: string;
   passwordHash: string;
-}): Promise<AdminInternal> {
+}): Promise<AdminPublic> {
   const doc: AdminDoc = {
     _id: new ObjectId(),
     username: data.username,
@@ -62,12 +69,49 @@ export async function createAdmin(data: {
 }
 
 /**
- * Find an admin by username.
+ * Internal admin shape with passwordHash — used only by auth internals,
+ * never exposed via the API layer.
+ */
+export interface AdminInternal {
+  id: string;
+  username: string;
+  passwordHash: string;
+  failedLoginAttempts: number;
+  lockUntil: Date | null;
+  lastLoginAt: Date | null;
+}
+
+function docToAdminInternal(doc: AdminDoc): AdminInternal {
+  return {
+    id: doc._id.toHexString(),
+    username: doc.username,
+    passwordHash: doc.passwordHash,
+    failedLoginAttempts: doc.failedLoginAttempts,
+    lockUntil: doc.lockUntil,
+    lastLoginAt: doc.lastLoginAt,
+  };
+}
+
+/**
+ * Find an admin by username — returns the full document including passwordHash.
+ * INTERNAL USE ONLY. Never call this from the API layer.
+ *
+ * @param username - Admin username.
+ * @returns The admin with passwordHash, or null.
+ */
+export async function getAdminByUsername(username: string): Promise<AdminInternal | null> {
+  const col = await collection();
+  const doc = await col.findOne({ username });
+  return doc ? docToAdminInternal(doc) : null;
+}
+
+/**
+ * Find an admin by username (public-safe — no passwordHash).
  *
  * @param username - Admin username.
  * @returns The admin, or null.
  */
-export async function findByUsername(username: string): Promise<AdminInternal | null> {
+export async function findByUsername(username: string): Promise<AdminPublic | null> {
   const col = await collection();
   const doc = await col.findOne({ username });
   return doc ? docToAdmin(doc) : null;
@@ -79,7 +123,7 @@ export async function findByUsername(username: string): Promise<AdminInternal | 
  * @param id - 24-character hex string.
  * @returns The admin, or null.
  */
-export async function findAdminById(id: string): Promise<AdminInternal | null> {
+export async function findAdminById(id: string): Promise<AdminPublic | null> {
   const col = await collection();
   const doc = await col.findOne({ _id: new ObjectId(id) });
   return doc ? docToAdmin(doc) : null;

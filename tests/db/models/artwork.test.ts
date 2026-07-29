@@ -107,6 +107,9 @@ function createMockCollection<T extends { _id: ObjectId }>() {
         const matchesNsfw = filter.nsfw === undefined || d.nsfw === filter.nsfw;
         if (!matchesNsfw) return false;
 
+        const matchesFeatured = filter.featured === undefined || d.featured === filter.featured;
+        if (!matchesFeatured) return false;
+
         const matchesType = !filter.type || d.type === filter.type;
         if (!matchesType) return false;
 
@@ -305,6 +308,45 @@ describe("models/artwork", () => {
   it("findFeaturedArtworks returns empty array when none featured", async () => {
     const result = await findFeaturedArtworks();
     expect(result).toEqual([]);
+  });
+
+  it("findFeaturedArtworks returns only featured artworks with tagSlugs", async () => {
+    const featuredTag = await createTag({ name: "Featured", slug: "featured" });
+    const otherTag = await createTag({ name: "Other", slug: "other" });
+
+    await createArtwork({
+      slug: "featured-art",
+      title: "Featured",
+      description: null,
+      medium: "Oil",
+      type: "personal",
+      nsfw: false,
+      featured: true,
+      featuredOrder: 1,
+      images: [{ publicId: "x", url: "https://example.com/x.jpg", width: 100, height: 100, order: 0 }],
+      timelapse: null,
+      tagIds: [featuredTag.id, otherTag.id],
+      completionDate: new Date("2024-01-01"),
+    });
+    await createArtwork({
+      slug: "non-featured",
+      title: "Not Featured",
+      description: null,
+      medium: "Oil",
+      type: "personal",
+      nsfw: false,
+      featured: false,
+      featuredOrder: null,
+      images: [{ publicId: "y", url: "https://example.com/y.jpg", width: 100, height: 100, order: 0 }],
+      timelapse: null,
+      tagIds: [otherTag.id],
+      completionDate: new Date("2024-02-01"),
+    });
+
+    const result = await findFeaturedArtworks();
+    expect(result).toHaveLength(1);
+    expect(result[0].slug).toBe("featured-art");
+    expect(result[0].tagSlugs).toEqual(["featured", "other"]);
   });
 
   it("updateArtwork returns updated artwork on success", async () => {
@@ -583,7 +625,7 @@ describe("models/artwork", () => {
       featuredOrder: null,
       images: [{ publicId: "x", url: "https://example.com/x.jpg", width: 1, height: 1, order: 0 }],
       timelapse: null,
-      tagIds: [oid(tagA.id)],
+      tagIds: [tagA.id],
       completionDate: new Date("2024-01-01"),
     });
     await createArtwork({
@@ -597,7 +639,7 @@ describe("models/artwork", () => {
       featuredOrder: null,
       images: [{ publicId: "x", url: "https://example.com/x.jpg", width: 1, height: 1, order: 0 }],
       timelapse: null,
-      tagIds: [oid(tagB.id)],
+      tagIds: [tagB.id],
       completionDate: new Date("2024-02-01"),
     });
     await createArtwork({
@@ -611,7 +653,7 @@ describe("models/artwork", () => {
       featuredOrder: null,
       images: [{ publicId: "x", url: "https://example.com/x.jpg", width: 1, height: 1, order: 0 }],
       timelapse: null,
-      tagIds: [oid(tagA.id), oid(tagB.id)],
+      tagIds: [tagA.id, tagB.id],
       completionDate: new Date("2024-03-01"),
     });
 
@@ -641,6 +683,119 @@ describe("models/artwork", () => {
     expect(result.items).toHaveLength(0);
     expect(result.hasMore).toBe(false);
     expect(result.nextCursor).toBeNull();
+  });
+
+  it("listArtworks tag filter resolves tagSlugs", async () => {
+    const tagA = await createTag({ name: "Landscape", slug: "landscape" });
+    const tagB = await createTag({ name: "Portrait", slug: "portrait" });
+
+    await createArtwork({
+      slug: "tagged-art",
+      title: "Tagged",
+      description: null,
+      medium: "Oil",
+      type: "personal",
+      nsfw: false,
+      featured: false,
+      featuredOrder: null,
+      images: [{ publicId: "x", url: "https://example.com/x.jpg", width: 1, height: 1, order: 0 }],
+      timelapse: null,
+      tagIds: [tagA.id, tagB.id],
+      completionDate: new Date("2024-01-01"),
+    });
+
+    const result = await listArtworks({ tags: ["landscape", "portrait"] });
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0].tagSlugs).toEqual(["landscape", "portrait"]);
+  });
+});
+
+describe("models/artwork — tag reconciliation", () => {
+  it("updateArtwork with new tagIds increments tag usage counts", async () => {
+    const tagA = await createTag({ name: "Old", slug: "old" });
+    const tagB = await createTag({ name: "New", slug: "new" });
+
+    const created = await createArtwork({
+      slug: "reconcile-add",
+      title: "Reconcile",
+      description: null,
+      medium: "Oil",
+      type: "personal",
+      nsfw: false,
+      featured: false,
+      featuredOrder: null,
+      images: [{ publicId: "x", url: "https://example.com/x.jpg", width: 1, height: 1, order: 0 }],
+      timelapse: null,
+      tagIds: [tagA.id],
+      completionDate: new Date("2024-01-01"),
+    });
+
+    // Verify initial counts
+    expect((await findTagById(tagA.id))?.usageCount).toBe(1);
+    expect((await findTagById(tagB.id))?.usageCount).toBe(0);
+
+    // Update with different tags
+    await updateArtwork(created.id, { tagIds: [tagB.id] });
+
+    // Verify counts updated
+    expect((await findTagById(tagA.id))?.usageCount).toBe(0);
+    expect((await findTagById(tagB.id))?.usageCount).toBe(1);
+  });
+
+  it("updateArtwork with removed tagIds decrements tag usage counts", async () => {
+    const tagA = await createTag({ name: "Keep", slug: "keep" });
+    const tagB = await createTag({ name: "Remove", slug: "remove" });
+
+    const created = await createArtwork({
+      slug: "reconcile-remove",
+      title: "Reconcile",
+      description: null,
+      medium: "Oil",
+      type: "personal",
+      nsfw: false,
+      featured: false,
+      featuredOrder: null,
+      images: [{ publicId: "x", url: "https://example.com/x.jpg", width: 1, height: 1, order: 0 }],
+      timelapse: null,
+      tagIds: [tagA.id, tagB.id],
+      completionDate: new Date("2024-01-01"),
+    });
+
+    // Verify initial counts
+    expect((await findTagById(tagA.id))?.usageCount).toBe(1);
+    expect((await findTagById(tagB.id))?.usageCount).toBe(1);
+
+    // Update, removing one tag
+    await updateArtwork(created.id, { tagIds: [tagA.id] });
+
+    // Verify counts updated
+    expect((await findTagById(tagA.id))?.usageCount).toBe(1);
+    expect((await findTagById(tagB.id))?.usageCount).toBe(0);
+  });
+
+  it("updateArtwork without changing tagIds does not affect usage counts", async () => {
+    const tagA = await createTag({ name: "Stable", slug: "stable" });
+
+    const created = await createArtwork({
+      slug: "reconcile-stable",
+      title: "Reconcile",
+      description: null,
+      medium: "Oil",
+      type: "personal",
+      nsfw: false,
+      featured: false,
+      featuredOrder: null,
+      images: [{ publicId: "x", url: "https://example.com/x.jpg", width: 1, height: 1, order: 0 }],
+      timelapse: null,
+      tagIds: [tagA.id],
+      completionDate: new Date("2024-01-01"),
+    });
+
+    // Update title only (no tagIds provided)
+    await updateArtwork(created.id, { title: "Updated Title" });
+
+    // Verify count unchanged
+    expect((await findTagById(tagA.id))?.usageCount).toBe(1);
   });
 });
 
@@ -690,7 +845,7 @@ describe("models/tag", () => {
       featuredOrder: null,
       images: [{ publicId: "x", url: "https://example.com/x.jpg", width: 1, height: 1, order: 0 }],
       timelapse: null,
-      tagIds: [oid(tag.id)],
+      tagIds: [tag.id],
       completionDate: new Date(),
     });
 
@@ -823,7 +978,7 @@ describe("models/admin", () => {
     await createAdmin({ username: "alice", passwordHash: "hash" });
     const found = await findByUsername("alice");
     expect(found?.username).toBe("alice");
-    expect(found?.passwordHash).toBe("hash");
+    // passwordHash is intentionally not exposed on the public shape
   });
 
   it("findAdminById returns the admin", async () => {
@@ -858,6 +1013,11 @@ describe("models/settings", () => {
     expect(found).toBeNull();
   });
 
+  it("findSettings returns null before any upsert (zero-state)", async () => {
+    const found = await findSettings();
+    expect(found).toBeNull();
+  });
+
   it("findSettings returns existing settings", async () => {
     await upsertSettings({
       artistName: "Bush",
@@ -886,5 +1046,26 @@ describe("models/settings", () => {
     expect(updated.tagline).toBe("Original tagline");
     expect(updated.socialLinks).toHaveLength(1);
     expect(updated.contactEmail).toBe("bush@example.com");
+  });
+
+  it("upsertSettings creates document when none exists (zero-state)", async () => {
+    // Ensure clean state
+    const before = await findSettings();
+    expect(before).toBeNull();
+
+    const created = await upsertSettings({
+      artistName: "Bush",
+      tagline: "First settings",
+      socialLinks: [],
+      contactEmail: null,
+    });
+
+    expect(created).toBeDefined();
+    expect(created.artistName).toBe("Bush");
+    expect(created.tagline).toBe("First settings");
+
+    // Verify persisted
+    const after = await findSettings();
+    expect(after?.artistName).toBe("Bush");
   });
 });

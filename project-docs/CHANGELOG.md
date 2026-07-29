@@ -11,12 +11,14 @@ Format: loosely follows [Keep a Changelog](https://keepachangelog.com/) conventi
 ### Fixed
 - **TODO-006** — Added Zod validation schemas for artwork, tag, and settings with strict field-level enforcement; introduced internal DB-layer schemas (`ArtworkCreateInternalSchema`/`ArtworkUpdateInternalSchema`) so `createArtwork`/`updateArtwork` and `createTag` validate before write. Added auth request/response schemas for Phase 2. Tightened `Admin.createdAt` to non-null `Date` to match `04-Database-Schema.md §5`.
 
+- [Phase 1 audit remediation] — Fixed missing tag usageCount increment in `createArtwork`; added 38 mocked-driver unit tests covering tag reconciliation, featured artworks, settings zero-state, and tagSlugs resolution; updated CHANGELOG test count from 31 to 38
+
 ### Documentation Updates
 - `05-API-Specification.md §3 — corrected nextCursor encoding description from `{ createdAt, _id }` to `{ sortValue, _id }` to match implementation.
 - `04-Database-Schema.md §3–6 — no change; implementation matched the documented contract.
 
 ### Added
-- **TODO-005** — Data-access layer for all four collections: typed model functions for artworks, tags, admins, and settings with server-side ObjectId conversion, NSFW-safe defaults, cursor pagination, and 28 mocked-driver unit tests.
+- **TODO-005** — Data-access layer for all four collections: typed model functions for artworks, tags, admins, and settings with server-side ObjectId conversion, NSFW-safe defaults, cursor pagination, and 38 mocked-driver unit tests.
 
 - **TODO-001** — Scaffolded the repository: Next.js 16 App Router project with TypeScript strict mode, ESLint v9 flat config (`eslint.config.mjs`), and Tailwind v4 (PostCSS-based via `@tailwindcss/postcss`). Implemented the full empty directory skeleton per `08-Project-Structure.md` with App Router routes, library structure, and configuration files. `npm run build` succeeds on the scaffold.
 

@@ -1,5 +1,6 @@
 import { ObjectId, type Sort, type Filter } from "mongodb";
 import { getDb } from "@/lib/db/mongodb";
+import { incrementTagUsageCounts, decrementTagUsageCounts } from "@/lib/db/models/tag";
 import { ArtworkSchema, ArtworkBaseSchema, ImageAssetSchema, VideoAssetSchema } from "@/lib/validation/artwork";
 import { z } from "zod";
 import type { Artwork, ArtworkListItem, ImageAsset, VideoAsset } from "@/types/artwork";
@@ -21,8 +22,7 @@ const ArtworkCreateInternalSchema = z.object({
   featuredOrder: ArtworkBaseSchema.shape.featuredOrder,
   images: ArtworkBaseSchema.shape.images,
   timelapse: ArtworkBaseSchema.shape.timelapse,
-  // tagIds is already validated as string ObjectIds by the API layer and converted to ObjectId[] before reaching the DB layer.
-  tagIds: z.array(z.any()),
+  tagIds: z.array(z.string().regex(/^[a-f0-9]{24}$/, "tagId must be a 24-character hex string")),
   completionDate: z.date({ message: "completionDate must be a Date object" }),
 });
 
@@ -62,13 +62,13 @@ interface CursorPayload {
 /** Fields that can be provided when creating an artwork (server manages _id, timestamps, colorPalette). */
 type CreateArtworkData = Omit<
   ArtworkDoc,
-  "_id" | "createdAt" | "updatedAt" | "colorPalette"
->;
+  "_id" | "createdAt" | "updatedAt" | "colorPalette" | "tagIds"
+> & { tagIds: string[] };
 
 /** Fields that can be updated on an existing artwork. */
 type UpdateArtworkData = Partial<
   Omit<ArtworkDoc, "_id" | "createdAt" | "updatedAt" | "colorPalette">
->;
+> & { tagIds?: string[] };
 
 /** Shape returned by tag collection queries for slug resolution. */
 interface TagRefDoc {
@@ -189,17 +189,34 @@ export async function createArtwork(
   data: CreateArtworkData,
 ): Promise<Artwork> {
   // Validate internal data shape before writing to MongoDB
-  ArtworkCreateInternalSchema.parse(data);
+  const parsed = ArtworkCreateInternalSchema.parse(data);
   const now = new Date();
   const doc: ArtworkDoc = {
     _id: new ObjectId(),
-    ...data,
+    slug: parsed.slug,
+    title: parsed.title,
+    description: parsed.description ?? null,
+    medium: parsed.medium,
+    type: parsed.type,
+    nsfw: parsed.nsfw,
+    featured: parsed.featured,
+    featuredOrder: parsed.featuredOrder ?? null,
+    images: parsed.images,
+    timelapse: parsed.timelapse ?? null,
+    tagIds: parsed.tagIds.map((id) => new ObjectId(id)),
+    completionDate: parsed.completionDate,
     colorPalette: null,
     createdAt: now,
     updatedAt: now,
   };
   const col = await collection();
   await col.insertOne(doc);
+  
+  // Increment usage counts for associated tags
+  if (doc.tagIds.length > 0) {
+    await incrementTagUsageCounts(doc.tagIds.map((id) => id.toHexString()));
+  }
+  
   return docToArtwork(doc);
 }
 
@@ -216,12 +233,36 @@ export async function updateArtwork(
 ): Promise<Artwork | null> {
   // Validate partial internal data shape before writing to MongoDB
   ArtworkUpdateInternalSchema.parse(data);
+
   const col = await collection();
+  const existing = await col.findOne({ _id: new ObjectId(id) }, { projection: { tagIds: 1 } });
+  if (!existing) return null;
+
+  const previousTagIds = existing.tagIds.map((oid) => oid.toHexString());
+  const nextTagIds = (data.tagIds ?? previousTagIds);
+
+  const added = nextTagIds.filter((tid) => !previousTagIds.includes(tid));
+  const removed = previousTagIds.filter((tid) => !nextTagIds.includes(tid));
+
+  // Prepare $set payload, converting string tagIds to ObjectIds
+  const { tagIds: stringTagIds, ...restData } = data;
+  const setData: Record<string, unknown> = {
+    ...restData,
+    updatedAt: new Date(),
+  };
+  if (stringTagIds !== undefined) {
+    setData.tagIds = stringTagIds.map((id) => new ObjectId(id));
+  }
+
   const result = await col.findOneAndUpdate(
     { _id: new ObjectId(id) },
-    { $set: { ...data, updatedAt: new Date() } },
+    { $set: setData },
     { returnDocument: "after" },
   );
+
+  if (added.length > 0) await incrementTagUsageCounts(added);
+  if (removed.length > 0) await decrementTagUsageCounts(removed);
+
   return result ? docToArtwork(result) : null;
 }
 
@@ -237,7 +278,11 @@ export async function deleteArtwork(
   const col = await collection();
   const doc = await col.findOneAndDelete({ _id: new ObjectId(id) });
   if (!doc) return null;
-  return { tagIds: doc.tagIds.map((oid) => oid.toHexString()) };
+
+  const tagIds = doc.tagIds.map((oid) => oid.toHexString());
+  if (tagIds.length > 0) await decrementTagUsageCounts(tagIds);
+
+  return { tagIds };
 }
 
 /**
