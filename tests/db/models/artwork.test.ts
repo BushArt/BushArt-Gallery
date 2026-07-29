@@ -735,7 +735,7 @@ describe("models/artwork — tag reconciliation", () => {
     expect((await findTagById(tagB.id))?.usageCount).toBe(0);
 
     // Update with different tags
-    await updateArtwork(created.id, { tagIds: [tagB.id] });
+    await updateArtwork(created.id, { tagIds: [tagB.id] } as any);
 
     // Verify counts updated
     expect((await findTagById(tagA.id))?.usageCount).toBe(0);
@@ -766,7 +766,7 @@ describe("models/artwork — tag reconciliation", () => {
     expect((await findTagById(tagB.id))?.usageCount).toBe(1);
 
     // Update, removing one tag
-    await updateArtwork(created.id, { tagIds: [tagA.id] });
+    await updateArtwork(created.id, { tagIds: [tagA.id] } as any);
 
     // Verify counts updated
     expect((await findTagById(tagA.id))?.usageCount).toBe(1);
