@@ -8,7 +8,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint src/ tests/",
     "format": "prettier --write .",
     "db:setup": "node scripts/db-setup.mjs",
     "seed:admin": "npx tsx scripts/seed-admin.ts",
@@ -36,6 +36,7 @@
     "eslint-config-prettier": "^10.0.0",
     "prettier": "^3.4.0",
     "tailwindcss": "^4.0.0",
+    "tsx": "^4.0.0",
     "typescript": "^5.7.0",
     "vitest": "^3.0.0"
   }

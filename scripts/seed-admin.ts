@@ -34,8 +34,8 @@ if (!RAW_PASSWORD) {
   process.exit(1);
 }
 
-const USERNAME: string = RAW_USERNAME;
-const PASSWORD: string = RAW_PASSWORD;
+const USERNAME = RAW_USERNAME;
+const PASSWORD = RAW_PASSWORD;
 
 async function main() {
   // Ensure DB connection is initialized
