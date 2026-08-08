@@ -1,3 +1,4 @@
+// TODO-016 — placeholder; hero section implementation pending
 export default function HomePage() {
   return (
     <main>

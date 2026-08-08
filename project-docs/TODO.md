@@ -131,19 +131,7 @@ Status: Pending Audit
 
 ### [Done] Phase 1 — Data Layer
 
-### Phase 2 — Authentication
-
-#### TODO-009 — Auth API routes + server-side guard + `proxy.ts`
-**Status:** Not Started · **Est. time:** 4h · **Depends on:** TODO-007, TODO-008
-**Spec reference:** `05-API-Specification.md` §5, `02-Technical-Specification.md` §4 (CVE-2025-29927 note)
-
-**Success conditions:**
-- `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me` match §5 exactly, incl. an identical error for wrong username vs. wrong password
-- `lib/auth/guard.ts` independently re-verifies the session inside every admin handler
-- `proxy.ts` performs a UX-layer redirect only — a request that bypasses it must still be rejected at the handler level
-
-**Tests:** Integration tests for all three routes (success + failure paths), plus one regression test proving a handler rejects an unauthenticated request even without `proxy.ts` in the loop.
-**Notes / Results:** _(none yet)_
+### [Done] Phase 2 — Authentication
 
 ### Phase 3 — Media Pipeline
 

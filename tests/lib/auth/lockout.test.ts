@@ -176,3 +176,63 @@ describe("auth/lockout — constants", () => {
     expect(LOCK_DURATION_MS).toBe(900000);
   });
 });
+
+describe("auth/lockout — concurrent state transitions", () => {
+  it("handles three simultaneous failed attempts from a clean state", () => {
+    // Simulate three concurrent failed login attempts
+    let state: { failedLoginAttempts: number; lockUntil: Date | null } = { failedLoginAttempts: 0, lockUntil: null };
+    const now = new Date("2026-01-01T12:00:00Z");
+
+    // First attempt
+    state = recordFailedAttempt(state, now);
+    expect(state.failedLoginAttempts).toBe(1);
+    expect(state.lockUntil).toBeNull();
+
+    // Second concurrent attempt
+    state = recordFailedAttempt(state, now);
+    expect(state.failedLoginAttempts).toBe(2);
+    expect(state.lockUntil).toBeNull();
+
+    // Third concurrent attempt
+    state = recordFailedAttempt(state, now);
+    expect(state.failedLoginAttempts).toBe(3);
+    expect(state.lockUntil).toBeNull();
+  });
+
+  it("handles mixed successful and failed attempts maintaining correct state", () => {
+    // Two failures
+    let state: { failedLoginAttempts: number; lockUntil: Date | null } = { failedLoginAttempts: 0, lockUntil: null };
+    const now = new Date("2026-01-01T12:00:00Z");
+    state = recordFailedAttempt(state, now);
+    state = recordFailedAttempt(state, now);
+    expect(state.failedLoginAttempts).toBe(2);
+    expect(state.lockUntil).toBeNull();
+
+    // Successful login resets
+    const successState = recordSuccessfulLogin(now);
+    state = { failedLoginAttempts: successState.failedLoginAttempts, lockUntil: successState.lockUntil };
+    expect(state.failedLoginAttempts).toBe(0);
+    expect(state.lockUntil).toBeNull();
+
+    // Two more failures after reset
+    state = recordFailedAttempt(state, now);
+    state = recordFailedAttempt(state, now);
+    expect(state.failedLoginAttempts).toBe(2);
+    expect(state.lockUntil).toBeNull();
+  });
+
+  it("preserves lockUntil during concurrent failures while locked", () => {
+    const lockUntil = new Date("2026-01-01T12:10:00Z");
+    let state: { failedLoginAttempts: number; lockUntil: Date | null } = { failedLoginAttempts: 5, lockUntil };
+
+    // Multiple attempts while locked
+    const now = new Date("2026-01-01T12:05:00Z");
+    state = recordFailedAttempt(state, now);
+    expect(state.failedLoginAttempts).toBe(6);
+    expect(state.lockUntil).toEqual(lockUntil);
+
+    state = recordFailedAttempt(state, now);
+    expect(state.failedLoginAttempts).toBe(7);
+    expect(state.lockUntil).toEqual(lockUntil);
+  });
+});

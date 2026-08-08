@@ -8,7 +8,7 @@ export interface TokenPayload {
   username: string;
 }
 
-const TOKEN_EXPIRY_SECONDS = 60 * 60 * 24 * 7; // 7 days
+export const TOKEN_EXPIRY_SECONDS = 60 * 60 * 24 * 7; // 7 days
 
 function base64urlEncode(input: Buffer | string): string {
   return Buffer.from(input).toString("base64url");

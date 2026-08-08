@@ -94,4 +94,38 @@ describe("jwt", () => {
       }
     });
   });
+
+  describe("payload manipulation rejection", () => {
+    it("rejects token with tampered id field", () => {
+      const token = signToken(basePayload);
+      const [header, payload, signature] = token.split(".");
+      const decoded = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
+      decoded.id = "tampered-id";
+      const forgedPayload = Buffer.from(JSON.stringify(decoded)).toString("base64url");
+      const forgedToken = `${header}.${forgedPayload}.${signature}`;
+      expect(verifyToken(forgedToken)).toBeNull();
+    });
+
+    it("rejects token with tampered username field", () => {
+      const token = signToken(basePayload);
+      const [header, payload, signature] = token.split(".");
+      const decoded = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
+      decoded.username = "tampered-user";
+      const forgedPayload = Buffer.from(JSON.stringify(decoded)).toString("base64url");
+      const forgedToken = `${header}.${forgedPayload}.${signature}`;
+      expect(verifyToken(forgedToken)).toBeNull();
+    });
+  });
+
+  describe("expiry boundary", () => {
+    it("returns null when exp equals current time (token just expired)", () => {
+      const token = signToken(basePayload);
+      const [header, payload, signature] = token.split(".");
+      const decoded = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
+      decoded.exp = Math.floor(Date.now() / 1000);
+      const forgedPayload = Buffer.from(JSON.stringify(decoded)).toString("base64url");
+      const expiredToken = `${header}.${forgedPayload}.${signature}`;
+      expect(verifyToken(expiredToken)).toBeNull();
+    });
+  });
 });

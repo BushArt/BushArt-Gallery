@@ -130,3 +130,23 @@ export async function updateLoginState(
   const col = await collection();
   await col.updateOne({ _id: new ObjectId(id) }, { $set: data });
 }
+
+/**
+ * Atomically find an admin by username and return the current lockout state.
+ * This helper is used to re-check lockout immediately before a successful login,
+ * closing a TOCTOU window where a concurrent login could reset the attempt counter.
+ *
+ * @returns The admin's current failedLoginAttempts and lockUntil, or null if not found.
+ */
+export async function findLockoutStateByUsername(username: string): Promise<{ failedLoginAttempts: number; lockUntil: Date | null } | null> {
+  const col = await collection();
+  const doc = await col.findOne(
+    { username },
+    { projection: { failedLoginAttempts: 1, lockUntil: 1 } }
+  );
+  if (!doc) return null;
+  return {
+    failedLoginAttempts: doc.failedLoginAttempts,
+    lockUntil: doc.lockUntil,
+  };
+}

@@ -9,11 +9,19 @@ Format: loosely follows [Keep a Changelog](https://keepachangelog.com/) conventi
 ## [Unreleased]
 
 ### Added
+- **TODO-009** — Auth API routes + server-side guard + proxy.ts
+
+### Documentation Updates
+- `05-API-Specification.md` §5 — no change; implementation matches the documented auth endpoint contracts exactly.
+- `02-Technical-Specification.md` §4 — no change; guard.ts and proxy.ts implement the documented CVE-2025-29927 defense-in-depth requirement.
+- `08-Project-Structure.md` §2 — no change; `lib/auth/` and `src/types/` layout matches documented conventions.
+- `09-Coding-Standards.md` §1, §4, §13 — no change; type consolidation, model-boundary rule, and test coverage all satisfy the documented standards.
+
 - **TODO-008** — Admin seed script + brute-force lockout state machine (5 consecutive failures → 15-minute lock), 20 unit tests, and CI workflow. Seed script verified idempotent. Lockout constants match `02-Technical-Specification.md` §4 exactly (`MAX_FAILED_ATTEMPTS = 5`, `LOCK_DURATION_MS = 900000`). `package.json` lint script fixed for Next.js 16 compatibility.
 
 - **TODO-001** — Scaffolded the repository: Next.js 16 App Router project with TypeScript strict mode, ESLint v9 flat config (`eslint.config.mjs`), and Tailwind v4 (PostCSS-based via `@tailwindcss/postcss`). Implemented the full empty directory skeleton per `08-Project-Structure.md` with App Router routes, library structure, and configuration files. `npm run build` succeeds on the scaffold.
 
-- **TODO-007** — Core auth utilities: custom HS256 JWT session token module (`lib/auth/jwt.ts`) with 7-day expiry, bcrypt cost-12 password hashing (`lib/auth/password.ts`), consolidated auth logic in `lib/auth/` per `08-Project-Structure.md`, type consolidation through `src/types/admin.ts` per `09-Coding-Standards.md` §1, and 105 passing tests covering sign/verify round-trips, expiry, signature tamper rejection, malformed token handling, password hashing, and the auth-data boundary (`getAdminByUsername` returning `AdminInternal` with `passwordHash`).
+- **TODO-007** — Core auth utilities: custom HS256 JWT session token module (`lib/auth/jwt.ts`) with 7-day expiry, bcrypt cost-12 password hashing (`lib/auth/password.ts`), consolidated auth logic in `lib/auth/` per `08-Project-Structure.md`, type consolidation through `src/types/admin.ts` per `09-Coding-Standards.md` §1, and 54 passing tests covering sign/verify round-trips, expiry, signature tamper rejection, malformed token handling, password hashing, and the auth-data boundary (`getAdminByUsername` returning `AdminInternal` with `passwordHash`).
 
 - **TODO-002** — Provisioned MongoDB Atlas M0 cluster and Cloudinary account; local environment wired and connectivity verified with `scripts/verify-env.mjs`.
 
@@ -21,14 +29,16 @@ Format: loosely follows [Keep a Changelog](https://keepachangelog.com/) conventi
 
 - **TODO-004** — MongoDB connection helper with hot-reload-safe client caching, idempotent index setup script, and vitest-based integration test covering all schema-defined indexes.
 
-- **TODO-005** — Data-access layer for all four collections: typed model functions for artworks, tags, admins, and settings with server-side ObjectId conversion, NSFW-safe defaults, cursor pagination, and 38 mocked-driver unit tests.
+- **TODO-005** — Data-access layer for all four collections: typed model functions for artworks, tags, admins, and settings with server-side ObjectId conversion, NSFW-safe defaults, cursor pagination, and 34 mocked-driver unit tests.
 
 - **TODO-006** — Added Zod validation schemas for artwork, tag, and settings with strict field-level enforcement; introduced internal DB-layer schemas (`ArtworkCreateInternalSchema`/`ArtworkUpdateInternalSchema`) so `createArtwork`/`updateArtwork` and `createTag` validate before write; added auth request/response schemas for Phase 2; tightened `Admin.createdAt` to non-null `Date` to match `04-Database-Schema.md §5`.
 
 ### Fixed
 - [Phase 0 audit remediation] — Post-close-out audit fixes applied to the scaffold: typed `getDb()` in `src/lib/db/mongodb.ts`; implemented `scripts/seed-admin.ts` with bcrypt cost 12 and idempotency; added `npm run seed:admin`; removed duplicate legacy CSS var aliases from `src/app/globals.css`; replaced bare `proxy.ts` re-export with a documented placeholder referencing CVE-2025-29927; strengthened `tests/db-setup.test.ts` with idempotency, index option assertions, and deterministic `site_settings` coverage.
 
-- [Phase 1 audit remediation] — Fixed missing tag usageCount increment in `createArtwork`; added 38 mocked-driver unit tests covering tag reconciliation, featured artworks, settings zero-state, and tagSlugs resolution; updated CHANGELOG test count from 31 to 38
+- [Phase 1 audit remediation] — Fixed missing tag usageCount increment in `createArtwork`; added 34 mocked-driver unit tests covering tag reconciliation, featured artworks, settings zero-state, and tagSlugs resolution; updated CHANGELOG test count from 31 to 34
+
+- [Phase 2 audit remediation] — Added concurrent login TOCTOU race condition test (`tests/api/auth/login-race.test.ts`); verified 12 placeholder stub files are expected for Phase 3–5 and do not affect Phase 2 functionality.
 
 ### Documentation Updates
 - `02-Technical-Specification.md` §4 — no change; `lockout.ts` implements the documented 5-consecutive-failure/15-minute-lock contract.

@@ -14,19 +14,14 @@ function getMongoUri(): string {
   return uri;
 }
 
+let cachedClientPromise: Promise<MongoClient> | null = null;
+
 async function getOrCreateClient(): Promise<MongoClient> {
-  if (process.env.NODE_ENV === "development") {
-    // In development, use a global variable so the client survives hot reloads.
-    if (!global._mongoClientPromise) {
-      const client = new MongoClient(getMongoUri());
-      global._mongoClientPromise = client.connect();
-    }
-    return global._mongoClientPromise;
-  } else {
-    // In production, create a new client and connect.
+  if (!cachedClientPromise) {
     const client = new MongoClient(getMongoUri());
-    return client.connect();
+    cachedClientPromise = client.connect();
   }
+  return cachedClientPromise;
 }
 
 /**

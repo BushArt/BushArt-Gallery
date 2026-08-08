@@ -260,10 +260,12 @@ export async function updateArtwork(
     { returnDocument: "after" },
   );
 
+  if (!result) return null;
+
   if (added.length > 0) await incrementTagUsageCounts(added);
   if (removed.length > 0) await decrementTagUsageCounts(removed);
 
-  return result ? docToArtwork(result) : null;
+  return docToArtwork(result);
 }
 
 /**
@@ -439,6 +441,7 @@ export async function findFeaturedArtworks(): Promise<ArtworkListItem[]> {
     .find({ featured: true, nsfw: false })
     .project<ProjectedArtworkDoc>(ARTWORK_PROJECTION)
     .sort({ featuredOrder: 1 })
+    .limit(4)
     .toArray();
 
   // Batch-resolve tag slugs

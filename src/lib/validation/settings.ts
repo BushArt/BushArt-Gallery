@@ -15,7 +15,7 @@ export const SiteSettingsSchema = z.object({
   socialLinks: z.array(SocialLinkSchema),
   contactEmail: z.string().email().optional().nullable(),
   contactUrl: z.string().url().optional().nullable(),
-  updatedAt: z.string().refine((v) => !isNaN(Date.parse(v)), "updatedAt must be a valid date").optional(),
+  updatedAt: z.string().refine((v) => v === undefined || v === null || !isNaN(Date.parse(v)), "updatedAt must be a valid date").optional(),
 });
 
 export type SiteSettings = z.infer<typeof SiteSettingsSchema>;

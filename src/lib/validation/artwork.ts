@@ -43,8 +43,8 @@ export const ArtworkBaseSchema = z.object({
   tagIds: z.array(z.string()),
   completionDate: z.string().refine((v) => !isNaN(Date.parse(v)), "completionDate must be a valid date"),
   colorPalette: z.array(z.string()).optional().nullable(),
-  createdAt: z.string().refine((v) => !isNaN(Date.parse(v)), "createdAt must be a valid date").optional(),
-  updatedAt: z.string().refine((v) => !isNaN(Date.parse(v)), "updatedAt must be a valid date").optional(),
+  createdAt: z.string().refine((v) => v === undefined || v === null || !isNaN(Date.parse(v)), "createdAt must be a valid date").optional(),
+  updatedAt: z.string().refine((v) => v === undefined || v === null || !isNaN(Date.parse(v)), "updatedAt must be a valid date").optional(),
 });
 
 export const ArtworkSchema = ArtworkBaseSchema
