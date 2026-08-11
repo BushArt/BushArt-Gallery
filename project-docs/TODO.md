@@ -135,17 +135,6 @@ Status: Pending Audit
 
 ### Phase 3 — Media Pipeline
 
-#### TODO-010 — Cloudinary client + signed upload signature endpoint
-**Status:** Not Started · **Est. time:** 2h · **Depends on:** TODO-002, TODO-009
-**Spec reference:** `02-Technical-Specification.md` §6, `05-API-Specification.md` §6
-
-**Success conditions:**
-- `POST /api/upload/signature` requires a valid admin session and returns a correctly signed, time-boxed signature
-- `CLOUDINARY_API_SECRET` never appears in any client-visible response
-
-**Tests:** Integration test asserting an unauthenticated call is rejected and an authenticated call returns a valid signature shape.
-**Notes / Results:** _(none yet)_
-
 #### TODO-011 — Transformation URL helper module
 **Status:** Not Started · **Est. time:** 2h · **Depends on:** TODO-010
 **Spec reference:** `03-System-Architecture.md` §5, `12-Decision-Log.md` ADR-008

@@ -10,8 +10,13 @@ Format: loosely follows [Keep a Changelog](https://keepachangelog.com/) conventi
 
 ### Added
 - **TODO-009** — Auth API routes + server-side guard + proxy.ts
+- **TODO-010** — Cloudinary v2 client configuration (`lib/cloudinary/client.ts`) with deferred env-var validation, scoped upload-signature helper (`lib/cloudinary/signature.ts`) enforcing the `bushart/` folder namespace, and `POST /api/upload/signature` Route Handler returning time-boxed HMAC signatures. Admin session enforced via `requireAdmin`; `CLOUDINARY_API_SECRET` never leaves the server. 12 integration tests + 10 unit tests; 180 passing total.
 
 ### Documentation Updates
+- `02-Technical-Specification.md` §6 — no change; implementation matched the documented media pipeline and direct-upload contract.
+- `03-System-Architecture.md` §4 — no change; signed-upload flow implementation matches the documented direct-to-Cloudinary architecture.
+- `05-API-Specification.md` §6 — no change; request/response shape, error envelope, and auth requirement match the documented contract exactly.
+- `09-Coding-Standards.md` §13 — no change; test coverage for the Cloudinary module and upload signature route satisfies the documented risk-weighted philosophy.
 - `05-API-Specification.md` §5 — no change; implementation matches the documented auth endpoint contracts exactly.
 - `02-Technical-Specification.md` §4 — no change; guard.ts and proxy.ts implement the documented CVE-2025-29927 defense-in-depth requirement.
 - `08-Project-Structure.md` §2 — no change; `lib/auth/` and `src/types/` layout matches documented conventions.
