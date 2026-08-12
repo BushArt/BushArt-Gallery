@@ -127,7 +127,15 @@ Below it, each finding is logged as it surfaces:
 - [Checklist item] <what was found> — <resolution or "unresolved">
 ### Notes / Results
 
-Status: Pending Audit
+Status: Pass
+
+- [Regression check] npm test: 193 passed / 8 skipped — matches CHANGELOG baseline; no regressions
+- [Regression check] Final suite: 231 passed / 8 skipped — no regressions vs 193 baseline (Phase 4 complete)
+- [Regression check] Post-audit-fix suite: 242 passed / 8 skipped — +11 tests; no regressions vs 231 pre-fix baseline
+- [Bug sweep] Phase 3 auth/upload/transform routes reviewed — no blocking defects found
+- [Incomplete work] slugify, Cloudinary destroy, duplicate-tag guard — resolved in Phase 4 Step 0
+- [Integration gaps] lib/db models (artwork, tag, settings) sufficient for §4–§9 contracts; routes wired
+- [Convention deviations] none blocking; admin handlers will use requireAdmin per guard.ts
 
 ### [Done] Phase 1 — Data Layer
 
@@ -135,47 +143,7 @@ Status: Pending Audit
 
 ### [Done] Phase 3 — Media Pipeline
 
-### Phase 4 — Core API
-
-#### TODO-012 — Public artwork read endpoints
-**Status:** Not Started · **Est. time:** 5h · **Depends on:** TODO-005, TODO-006, TODO-011
-**Spec reference:** `05-API-Specification.md` §4.1–4.3
-
-**Success conditions:**
-- `GET /api/artworks` (filters, cursor pagination, 24 default/60 max limit), `GET /api/artworks/:slug`, and `GET /api/artworks/:slug/download` all match §4 exactly, incl. NSFW default-exclude behavior and the 302 `fl_attachment` redirect
-
-**Tests:** Integration tests for filter combinations, cursor stability under a concurrent insert, and the download redirect target.
-**Notes / Results:** _(none yet)_
-
-#### TODO-013 — Admin artwork write endpoints
-**Status:** Not Started · **Est. time:** 5h · **Depends on:** TODO-009, TODO-012
-**Spec reference:** `05-API-Specification.md` §7
-
-**Success conditions:**
-- `POST`/`PATCH`/`DELETE` on `/api/artworks[/:id]` match §7 exactly, incl. tag `usageCount` reconciliation on create/edit/delete and Cloudinary `destroy` calls on delete
-
-**Tests:** Integration test that edits `tagIds` and asserts `usageCount` updates correctly on both the added and removed tag.
-**Notes / Results:** _(none yet)_
-
-#### TODO-014 — Tags API
-**Status:** Not Started · **Est. time:** 2h · **Depends on:** TODO-005, TODO-006, TODO-009
-**Spec reference:** `05-API-Specification.md` §8, `04-Database-Schema.md` §4
-
-**Success conditions:**
-- Create/list/cascading-delete all match spec; a case-insensitive duplicate name returns `409`
-
-**Tests:** Integration test proving cascading delete pulls the tag from every referencing artwork in one operation.
-**Notes / Results:** _(none yet)_
-
-#### TODO-015 — Settings API
-**Status:** Not Started · **Est. time:** 2h · **Depends on:** TODO-005, TODO-006, TODO-009
-**Spec reference:** `05-API-Specification.md` §9, `04-Database-Schema.md` §6
-
-**Success conditions:**
-- `GET`/`PATCH /api/settings` operate correctly against the singleton document, including the very first `PATCH` before any settings document exists yet
-
-**Tests:** Integration test covering that zero-state case specifically.
-**Notes / Results:** _(none yet)_
+### [Done] Phase 4 — Core API
 
 ### Phase 5 — Public Gallery UI
 

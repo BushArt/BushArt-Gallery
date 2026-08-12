@@ -9,12 +9,25 @@ Format: loosely follows [Keep a Changelog](https://keepachangelog.com/) conventi
 ## [Unreleased]
 
 ### Added
+- **TODO-015** — Settings API: `GET`/`PATCH /api/settings` against the singleton `site_settings` document, including zero-state first PATCH via `upsertSettings`, admin auth on PATCH, and public response mapping that strips internal image `url` fields per §4.5. 7 route integration tests; 242 passing total.
+
+- **TODO-014** — Tags API: `GET`/`POST /api/tags` and `DELETE /api/tags/:id` with case-insensitive duplicate-name and slug-collision `409 CONFLICT`, cascading delete (pull tag from artworks before removing tag document), and `slugify` utility for tag creation. 8 route integration tests + 3 slugify unit tests; 242 passing total.
+
+- **TODO-013** — Admin artwork write endpoints: `POST`/`PATCH`/`DELETE /api/artworks[/:id]` with `requireAdmin`, tag `usageCount` reconciliation, merged featured/featuredOrder PATCH validation, Cloudinary `destroyAssets` before Mongo delete (503 + record preserved on destroy failure), and `lib/cloudinary/destroy.ts`. 16 route integration tests + model reconciliation/delete coverage; 242 passing total.
+
+- **TODO-012** — Public artwork read endpoints: `GET /api/artworks` (filters, cursor pagination, default limit 24/max 60, NSFW default-exclude), `GET /api/artworks/:slug` (full detail with resolved tags, NSFW included per §4.2 implementation note), and `GET /api/artworks/:slug/download` (302 redirect via `fl_attachment`). Tag AND filter returns empty page when any requested slug is missing. 13 route integration tests + model pagination/tag-filter coverage; 242 passing total.
+
 - **TODO-011** — Cloudinary transformation URL helper module (`lib/cloudinary/transformations.ts`) as the single source of truth for grid/list/popup/fullscreen/download presets, with `f_auto,q_auto` on display contexts and `fl_attachment` for original-quality downloads. Extracted browser-safe `cloudName.ts` (reads `CLOUDINARY_CLOUD_NAME` with `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` fallback) so client components can build URLs without importing the SDK; added `server-only` guards on `client.ts` and `signature.ts`. Supports image and video (`resourceType`) for timelapse downloads. 13 unit tests; 193 passing total.
 
 - **TODO-009** — Auth API routes + server-side guard + proxy.ts
 - **TODO-010** — Cloudinary v2 client configuration (`lib/cloudinary/client.ts`) with deferred env-var validation, scoped upload-signature helper (`lib/cloudinary/signature.ts`) enforcing the `bushart/` folder namespace, and `POST /api/upload/signature` Route Handler returning time-boxed HMAC signatures. Admin session enforced via `requireAdmin`; `CLOUDINARY_API_SECRET` never leaves the server. 12 integration tests + 10 unit tests; 180 passing total.
 
 ### Documentation Updates
+- `08-Project-Structure.md` §1, §3 — added `artworks/[id]/download/route.ts`, `lib/api/` helpers, `lib/cloudinary/destroy.ts`; documented Next.js single-segment constraint for slug GET vs ObjectId PATCH/DELETE on `artworks/[id]/`.
+- `05-API-Specification.md` §4–§9 — no change; implementation matches the documented endpoint contracts (including audit fixes for tag AND filter and delete ordering).
+- `04-Database-Schema.md` §4 — no change; cascading tag delete behavior matches documented pull-then-remove semantics.
+- `09-Coding-Standards.md` §13 — no change; 49 new Phase 4 route/model tests satisfy the documented risk-weighted philosophy (242 passing total).
+
 - `02-Technical-Specification.md` §9 — added `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` so client-side transformation URL building is documented alongside the server-side var.
 - `08-Project-Structure.md` §1 — added `cloudName.ts` to the `lib/cloudinary/` directory tree; marked `client.ts` as server-only.
 - `10-Deployment-Guide.md` §3–4 — documented that both cloud-name env vars must be set to the same value in local and Render environments.
@@ -47,6 +60,8 @@ Format: loosely follows [Keep a Changelog](https://keepachangelog.com/) conventi
 - **TODO-006** — Added Zod validation schemas for artwork, tag, and settings with strict field-level enforcement; introduced internal DB-layer schemas (`ArtworkCreateInternalSchema`/`ArtworkUpdateInternalSchema`) so `createArtwork`/`updateArtwork` and `createTag` validate before write; added auth request/response schemas for Phase 2; tightened `Admin.createdAt` to non-null `Date` to match `04-Database-Schema.md §5`.
 
 ### Fixed
+- [Phase 4 audit remediation] — Tag AND filter empty page when any requested slug is missing; DELETE artwork destroys Cloudinary media before Mongo delete (503 if destroy fails); PATCH featured/featuredOrder merged-state validation; tagIds ObjectId format + uniqueness validation; tag delete pull-before-remove order; settings GET strips image `url`; removed false-confidence route test; +11 tests (242 passing / 8 skipped total).
+
 - [Phase 0 audit remediation] — Post-close-out audit fixes applied to the scaffold: typed `getDb()` in `src/lib/db/mongodb.ts`; implemented `scripts/seed-admin.ts` with bcrypt cost 12 and idempotency; added `npm run seed:admin`; removed duplicate legacy CSS var aliases from `src/app/globals.css`; replaced bare `proxy.ts` re-export with a documented placeholder referencing CVE-2025-29927; strengthened `tests/db-setup.test.ts` with idempotency, index option assertions, and deterministic `site_settings` coverage.
 
 - [Phase 1 audit remediation] — Fixed missing tag usageCount increment in `createArtwork`; added 34 mocked-driver unit tests covering tag reconciliation, featured artworks, settings zero-state, and tagSlugs resolution; updated CHANGELOG test count from 31 to 34

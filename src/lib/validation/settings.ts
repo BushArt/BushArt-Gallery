@@ -20,3 +20,8 @@ export const SiteSettingsSchema = z.object({
 
 export type SiteSettings = z.infer<typeof SiteSettingsSchema>;
 export type SocialLink = z.infer<typeof SocialLinkSchema>;
+
+/** Partial update for PATCH /api/settings (05 §9.1) */
+export const SiteSettingsPatchSchema = SiteSettingsSchema.partial().omit({ updatedAt: true });
+
+export type SiteSettingsPatch = z.infer<typeof SiteSettingsPatchSchema>;

@@ -308,6 +308,15 @@ export async function findArtworkBySlug(
 }
 
 /**
+ * Look up a single artwork by MongoDB ObjectId hex string.
+ */
+export async function findArtworkById(id: string): Promise<Artwork | null> {
+  const col = await collection();
+  const doc = await col.findOne({ _id: new ObjectId(id) });
+  return doc ? docToArtwork(doc) : null;
+}
+
+/**
  * List artworks for the gallery feed with filtering, sorting, and cursor pagination.
  *
  * Supported filters: tags (AND match), year, medium, type, nsfw.
@@ -384,10 +393,13 @@ export async function listArtworks(params: {
       .project<TagRefDoc>({ _id: 1 })
       .toArray();
     const tagObjectIds = tagDocs.map((d) => d._id);
+    if (tagDocs.length !== params.tags.length) {
+      // AND semantics: every requested slug must exist — otherwise no artwork can match all.
+      return { items: [], nextCursor: null, hasMore: false };
+    }
     if (tagObjectIds.length > 0) {
       filter.tagIds = { $all: tagObjectIds };
     } else {
-      // None of the requested tags exist — return an empty page deterministically.
       return { items: [], nextCursor: null, hasMore: false };
     }
   }

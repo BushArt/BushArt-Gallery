@@ -29,7 +29,9 @@ bushart/
 │   │       ├── artworks/
 │   │       │   ├── route.ts               # GET (list), POST (create)
 │   │       │   └── [id]/
-│   │       │       └── route.ts           # PATCH, DELETE (by id)
+│   │       │       ├── route.ts           # GET (by slug), PATCH, DELETE (by ObjectId)
+│   │       │       └── download/
+│   │       │           └── route.ts       # GET (302 redirect to fl_attachment URL)
 │   │       ├── tags/
 │   │       │   ├── route.ts               # GET (list), POST (create)
 │   │       │   └── [id]/route.ts          # DELETE
@@ -81,11 +83,17 @@ bushart/
 │   │   │   ├── jwt.ts                     # Sign/verify session tokens
 │   │   │   ├── session.ts                 # Cookie read/write helpers
 │   │   │   └── guard.ts                   # Server-side "require admin" helper used by every protected route handler
+│   │   ├── api/
+│   │   │   ├── errors.ts                  # Shared error envelope helpers for Route Handlers
+│   │   │   ├── artwork-response.ts        # §4.2 detail response mapper
+│   │   │   ├── artwork-slug.ts            # Unique slug generation for POST /api/artworks
+│   │   │   └── settings-response.ts       # §4.5 public settings shape (strips internal fields)
 │   │   ├── cloudinary/
 │   │   │   ├── client.ts                  # SDK configuration (server-only)
 │   │   │   ├── cloudName.ts               # Browser/server-safe cloud name resolution
 │   │   │   ├── signature.ts               # Signed-upload parameter generation
-│   │   │   └── transformations.ts         # Single source of truth for every derived-size URL
+│   │   │   ├── transformations.ts         # Single source of truth for every derived-size URL
+│   │   │   └── destroy.ts                 # Cloudinary asset cleanup on artwork delete (server-only)
 │   │   ├── validation/
 │   │   │   ├── artwork.ts                 # Zod schemas, shared by client forms and Route Handlers
 │   │   │   ├── tag.ts
@@ -142,7 +150,7 @@ bushart/
 - **Files:** `PascalCase.tsx` for components, `camelCase.ts` for everything else (`lib/`, `hooks/`, `utils/`).
 - **Components:** one component per file; file name matches the exported component name exactly.
 - **Route Handlers:** always `route.ts`, per Next.js App Router convention — the directory path *is* the route.
-- **Route params:** `[slug]` for artworks (human-readable, SEO- and share-friendly), `[id]` for tag/artwork mutation routes where the raw `ObjectId` is the natural key and no public-facing readability requirement exists.
+- **Route params:** `[slug]` for artworks (human-readable, SEO- and share-friendly), `[id]` for tag/artwork mutation routes where the raw `ObjectId` is the natural key and no public-facing readability requirement exists. **Next.js constraint:** a single dynamic segment folder (`artworks/[id]/`) serves both GET-by-slug and PATCH/DELETE-by-ObjectId — the handler dispatches by HTTP method and validates the param format accordingly.
 
 ## 4. Feature Organization
 

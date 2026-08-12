@@ -32,6 +32,12 @@ function createMockCollection<T extends { _id: ObjectId }>() {
       if (idx === -1) return null;
       return docs.splice(idx, 1)[0];
     },
+    async deleteOne(filter: any) {
+      const idx = docs.findIndex((d: any) => d._id?.equals?.(filter._id) ?? false);
+      if (idx === -1) return { deletedCount: 0 };
+      docs.splice(idx, 1);
+      return { deletedCount: 1 };
+    },
     async findOneAndUpdate(filter: any, update: any, opts: any) {
       const idx = docs.findIndex((d: any) => d._id?.equals?.(filter._id) ?? false);
       if (idx === -1) return null;
@@ -302,6 +308,31 @@ describe("models/artwork", () => {
 
     const deleted = await deleteArtwork(created.id);
     expect(deleted?.tagIds).toEqual([]);
+  });
+
+  it("deleteArtwork decrements usageCount for referenced tags", async () => {
+    const tag = await createTag({ name: "DeleteMe", slug: "delete-me" });
+
+    const created = await createArtwork({
+      slug: "to-delete-with-tag",
+      title: "Delete",
+      description: null,
+      medium: "Oil",
+      type: "personal",
+      nsfw: false,
+      featured: false,
+      featuredOrder: null,
+      images: [{ publicId: "x", url: "https://example.com/x.jpg", width: 1, height: 1, order: 0 }],
+      timelapse: null,
+      tagIds: [tag.id],
+      completionDate: new Date(),
+    });
+
+    expect((await findTagById(tag.id))?.usageCount).toBe(1);
+
+    await deleteArtwork(created.id);
+
+    expect((await findTagById(tag.id))?.usageCount).toBe(0);
   });
 
   it("findFeaturedArtworks returns empty array when none featured", async () => {
@@ -679,6 +710,30 @@ describe("models/artwork", () => {
     });
 
     const result = await listArtworks({ tags: ["no-such-tag"] });
+    expect(result.items).toHaveLength(0);
+    expect(result.hasMore).toBe(false);
+    expect(result.nextCursor).toBeNull();
+  });
+
+  it("listArtworks returns empty page when only some requested tag slugs exist (AND semantics)", async () => {
+    const tagA = await createTag({ name: "Gouache", slug: "gouache" });
+
+    await createArtwork({
+      slug: "tagged-gouache",
+      title: "Tagged",
+      description: null,
+      medium: "Oil",
+      type: "personal",
+      nsfw: false,
+      featured: false,
+      featuredOrder: null,
+      images: [{ publicId: "x", url: "https://example.com/x.jpg", width: 1, height: 1, order: 0 }],
+      timelapse: null,
+      tagIds: [tagA.id],
+      completionDate: new Date("2024-01-01"),
+    });
+
+    const result = await listArtworks({ tags: ["gouache", "no-such-tag"] });
     expect(result.items).toHaveLength(0);
     expect(result.hasMore).toBe(false);
     expect(result.nextCursor).toBeNull();

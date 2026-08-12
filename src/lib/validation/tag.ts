@@ -11,3 +11,10 @@ export const TagSchema = z.object({
 });
 
 export type Tag = z.infer<typeof TagSchema>;
+
+/** Request body for POST /api/tags (05 §8.1) */
+export const TagCreateRequestSchema = z.object({
+  name: z.string().min(1, "name is required").max(40, "name must be <= 40 chars"),
+});
+
+export type TagCreateRequest = z.infer<typeof TagCreateRequestSchema>;

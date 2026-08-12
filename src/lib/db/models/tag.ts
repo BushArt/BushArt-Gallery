@@ -91,6 +91,40 @@ export async function findTagById(id: string): Promise<Tag | null> {
 }
 
 /**
+ * Find a tag by case-insensitive name match (for duplicate detection on create).
+ */
+export async function findTagByNameInsensitive(name: string): Promise<Tag | null> {
+  const col = await collection();
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const doc = await col.findOne({
+    name: { $regex: new RegExp(`^${escaped}$`, "i") },
+  });
+  return doc ? docToTag(doc) : null;
+}
+
+/**
+ * Fetch multiple tags by id in one query.
+ */
+export async function findTagsByIds(ids: string[]): Promise<Tag[]> {
+  if (ids.length === 0) return [];
+  const col = await collection();
+  const docs = await col
+    .find({ _id: { $in: ids.map((id) => new ObjectId(id)) } })
+    .toArray();
+  return docs.map(docToTag);
+}
+
+/**
+ * Verify every id references an existing tag; returns missing ids if any.
+ */
+export async function findMissingTagIds(ids: string[]): Promise<string[]> {
+  if (ids.length === 0) return [];
+  const found = await findTagsByIds(ids);
+  const foundSet = new Set(found.map((t) => t.id));
+  return ids.filter((id) => !foundSet.has(id));
+}
+
+/**
  * Increment usageCount for multiple tags by 1 each.
  *
  * @param ids - Array of 24-character hex strings.
@@ -140,10 +174,11 @@ async function pullTagFromArtworks(tagId: ObjectId): Promise<void> {
 
 export async function deleteTag(id: string): Promise<boolean> {
   const col = await collection();
-  const tagDoc = await col.findOneAndDelete({ _id: new ObjectId(id) });
+  const tagDoc = await col.findOne({ _id: new ObjectId(id) });
   if (!tagDoc) return false;
 
   await pullTagFromArtworks(tagDoc._id);
+  await col.deleteOne({ _id: tagDoc._id });
 
   return true;
 }
