@@ -32,7 +32,7 @@ The app runs at `http://localhost:3000`. Local development connects to the **sam
 ## 3. Cloudinary Setup
 
 1. Create a free Cloudinary account (Free plan: 25 monthly credits, pooled across storage/bandwidth/transformations — `02-Technical-Specification.md` §11).
-2. From the Cloudinary Dashboard, copy the **Cloud Name**, **API Key**, and **API Secret** into `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET`.
+2. From the Cloudinary Dashboard, copy the **Cloud Name**, **API Key**, and **API Secret** into `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET`. Set `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` to the same **Cloud Name** value — client components build transformation URLs via `lib/cloudinary/cloudName.ts` and only `NEXT_PUBLIC_*` variables are inlined into browser bundles.
 3. No upload preset needs to be created manually — BushArt uses **signed** uploads authorized per-request by `POST /api/upload/signature` (`05-API-Specification.md` §6), not a client-exposed unsigned preset, which keeps upload authorization tied to an active admin session rather than a shared static preset name.
 4. Recommended (not required): enable Cloudinary's usage-alert email notifications so the artist is warned before hitting the 25-credit monthly ceiling, rather than discovering it as a failed upload.
 
@@ -42,7 +42,8 @@ The app runs at `http://localhost:3000`. Local development connects to the **sam
 |---|---|---|
 | `MONGODB_URI` | `lib/db/mongodb.ts` | `mongodb+srv://user:pass@cluster0.xxxxx.mongodb.net/bushart` |
 | `JWT_SECRET` | `lib/auth/jwt.ts` | A long, random, generated string — never reused from another project |
-| `CLOUDINARY_CLOUD_NAME` | `lib/cloudinary/client.ts` | `bushart` |
+| `CLOUDINARY_CLOUD_NAME` | `lib/cloudinary/client.ts` (server-side SDK) | `bushart` |
+| `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` | `lib/cloudinary/cloudName.ts`, `lib/cloudinary/transformations.ts` (client-side transformation URLs) | `bushart` (must match `CLOUDINARY_CLOUD_NAME`) |
 | `CLOUDINARY_API_KEY` | `lib/cloudinary/client.ts`, `lib/cloudinary/signature.ts` | `142857396215` |
 | `CLOUDINARY_API_SECRET` | `lib/cloudinary/signature.ts` (server-only, never sent to the client) | — |
 | `NEXT_PUBLIC_SITE_URL` | Share links, Open Graph metadata | `https://bushart.example` |

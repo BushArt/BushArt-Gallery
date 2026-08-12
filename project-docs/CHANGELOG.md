@@ -9,11 +9,19 @@ Format: loosely follows [Keep a Changelog](https://keepachangelog.com/) conventi
 ## [Unreleased]
 
 ### Added
+- **TODO-011** — Cloudinary transformation URL helper module (`lib/cloudinary/transformations.ts`) as the single source of truth for grid/list/popup/fullscreen/download presets, with `f_auto,q_auto` on display contexts and `fl_attachment` for original-quality downloads. Extracted browser-safe `cloudName.ts` (reads `CLOUDINARY_CLOUD_NAME` with `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` fallback) so client components can build URLs without importing the SDK; added `server-only` guards on `client.ts` and `signature.ts`. Supports image and video (`resourceType`) for timelapse downloads. 13 unit tests; 193 passing total.
+
 - **TODO-009** — Auth API routes + server-side guard + proxy.ts
 - **TODO-010** — Cloudinary v2 client configuration (`lib/cloudinary/client.ts`) with deferred env-var validation, scoped upload-signature helper (`lib/cloudinary/signature.ts`) enforcing the `bushart/` folder namespace, and `POST /api/upload/signature` Route Handler returning time-boxed HMAC signatures. Admin session enforced via `requireAdmin`; `CLOUDINARY_API_SECRET` never leaves the server. 12 integration tests + 10 unit tests; 180 passing total.
 
 ### Documentation Updates
-- `02-Technical-Specification.md` §6 — no change; implementation matched the documented media pipeline and direct-upload contract.
+- `02-Technical-Specification.md` §9 — added `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` so client-side transformation URL building is documented alongside the server-side var.
+- `08-Project-Structure.md` §1 — added `cloudName.ts` to the `lib/cloudinary/` directory tree; marked `client.ts` as server-only.
+- `10-Deployment-Guide.md` §3–4 — documented that both cloud-name env vars must be set to the same value in local and Render environments.
+- `03-System-Architecture.md` §5 — no change; implementation matches the documented single-preset-map, on-demand URL transformation model (ADR-008).
+- `12-Decision-Log.md` ADR-008 — no change; implementation matches the documented on-demand transformation URL architecture.
+- `09-Coding-Standards.md` §13 — no change; 13 unit tests for the Cloudinary transformation and cloud-name modules satisfy the documented risk-weighted philosophy.
+
 - `03-System-Architecture.md` §4 — no change; signed-upload flow implementation matches the documented direct-to-Cloudinary architecture.
 - `05-API-Specification.md` §6 — no change; request/response shape, error envelope, and auth requirement match the documented contract exactly.
 - `09-Coding-Standards.md` §13 — no change; test coverage for the Cloudinary module and upload signature route satisfies the documented risk-weighted philosophy.

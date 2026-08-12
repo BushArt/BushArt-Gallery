@@ -86,7 +86,8 @@ Originals are retained at full resolution for the **Download** action, delivered
 |---|---|---|
 | `MONGODB_URI` | MongoDB Atlas connection string | Yes |
 | `JWT_SECRET` | Signing secret for session tokens | Yes |
-| `CLOUDINARY_CLOUD_NAME` | Cloudinary account identifier | Yes |
+| `CLOUDINARY_CLOUD_NAME` | Cloudinary account identifier (server-side) | Yes |
+| `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` | Cloudinary account identifier, inlined into browser bundles so client components can build transformation URLs (`lib/cloudinary/transformations.ts`) | Yes |
 | `CLOUDINARY_API_KEY` | Cloudinary API key (server-side only) | Yes |
 | `CLOUDINARY_API_SECRET` | Cloudinary API secret (server-side only, used to mint upload signatures) | Yes |
 | `NEXT_PUBLIC_SITE_URL` | Canonical absolute site URL, used for share links and metadata | Yes |

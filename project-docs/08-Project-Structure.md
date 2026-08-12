@@ -82,7 +82,8 @@ bushart/
 │   │   │   ├── session.ts                 # Cookie read/write helpers
 │   │   │   └── guard.ts                   # Server-side "require admin" helper used by every protected route handler
 │   │   ├── cloudinary/
-│   │   │   ├── client.ts                  # SDK configuration
+│   │   │   ├── client.ts                  # SDK configuration (server-only)
+│   │   │   ├── cloudName.ts               # Browser/server-safe cloud name resolution
 │   │   │   ├── signature.ts               # Signed-upload parameter generation
 │   │   │   └── transformations.ts         # Single source of truth for every derived-size URL
 │   │   ├── validation/

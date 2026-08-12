@@ -133,18 +133,7 @@ Status: Pending Audit
 
 ### [Done] Phase 2 — Authentication
 
-### Phase 3 — Media Pipeline
-
-#### TODO-011 — Transformation URL helper module
-**Status:** Not Started · **Est. time:** 2h · **Depends on:** TODO-010
-**Spec reference:** `03-System-Architecture.md` §5, `12-Decision-Log.md` ADR-008
-
-**Success conditions:**
-- `lib/cloudinary/transformations.ts` is the single place defining grid/list/popup/fullscreen/download URL parameters
-- `f_auto,q_auto` applied consistently everywhere per `02-Technical-Specification.md` §7; a new size later requires touching only this file
-
-**Tests:** Unit tests asserting each context produces the expected parameter string.
-**Notes / Results:** _(none yet)_
+### [Done] Phase 3 — Media Pipeline
 
 ### Phase 4 — Core API
 
