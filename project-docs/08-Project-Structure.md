@@ -41,13 +41,13 @@ bushart/
 │   │
 │   ├── components/
 │   │   ├── gallery/
+│   │   │   ├── GallerySection.tsx         # Client gallery shell (filters, feed, infinite scroll)
 │   │   │   ├── GalleryGrid.tsx
 │   │   │   ├── GalleryList.tsx
 │   │   │   ├── ArtworkCard.tsx
-│   │   │   ├── UploadCard.tsx             # Admin-only "add artwork" card
-│   │   │   ├── FilterBar.tsx
-│   │   │   ├── ViewModeToggle.tsx
-│   │   │   └── NsfwToggle.tsx
+│   │   │   ├── UploadCard.tsx             # Admin-only "add artwork" card (Phase 7)
+│   │   │   ├── FilterBar.tsx              # Includes NsfwToggle export
+│   │   │   └── ViewModeToggle.tsx
 │   │   ├── artwork/
 │   │   │   ├── ArtworkPopup.tsx
 │   │   │   ├── ArtworkEditForm.tsx

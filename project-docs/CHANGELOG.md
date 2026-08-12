@@ -9,6 +9,14 @@ Format: loosely follows [Keep a Changelog](https://keepachangelog.com/) conventi
 ## [Unreleased]
 
 ### Added
+- **TODO-019** — Infinite scroll and SketchReveal motion: `useInfiniteScroll` IntersectionObserver sentinel, cursor pagination via `useArtworks`, `SketchRevealImage` on gallery thumbnails with `prefers-reduced-motion` opacity fallback and load-error placeholder, retry button for retryable fetch failures, and stale-cursor race fix on filter refetch. 6 hook/UI component tests; 261 passing total.
+
+- **TODO-018** — URL-synced filter bar and NSFW toggle: `FilterBar`, `NsfwToggle`, and `useFilters` serialize tags/year/medium/type/nsfw/sort to URL search params, persist NSFW preference in `localStorage` (`bushart-nsfw`), debounce text inputs (300ms), and validate year input. 8 component/hook tests; 261 passing total.
+
+- **TODO-017** — Gallery grid and detailed list views: `GalleryGrid`, `GalleryList`, `ArtworkCard`, `ViewModeToggle`, and `GallerySection` client shell with grid/list toggle, NSFW/commission badges (icon + color), scroll preservation on mode switch, and shared feed via `useArtworks`. 3 component tests; 261 passing total.
+
+- **TODO-016** — Homepage hero section: `HeroSection` and `FeaturedArtwork` render banner, profile, artist name, bio, social links, contact button, and featured artworks from server-side `findSettings()` + `findFeaturedArtworks()` wrapped in Suspense. 2 component tests; 261 passing total.
+
 - **TODO-015** — Settings API: `GET`/`PATCH /api/settings` against the singleton `site_settings` document, including zero-state first PATCH via `upsertSettings`, admin auth on PATCH, and public response mapping that strips internal image `url` fields per §4.5. 7 route integration tests; 242 passing total.
 
 - **TODO-014** — Tags API: `GET`/`POST /api/tags` and `DELETE /api/tags/:id` with case-insensitive duplicate-name and slug-collision `409 CONFLICT`, cascading delete (pull tag from artworks before removing tag document), and `slugify` utility for tag creation. 8 route integration tests + 3 slugify unit tests; 242 passing total.
@@ -23,6 +31,23 @@ Format: loosely follows [Keep a Changelog](https://keepachangelog.com/) conventi
 - **TODO-010** — Cloudinary v2 client configuration (`lib/cloudinary/client.ts`) with deferred env-var validation, scoped upload-signature helper (`lib/cloudinary/signature.ts`) enforcing the `bushart/` folder namespace, and `POST /api/upload/signature` Route Handler returning time-boxed HMAC signatures. Admin session enforced via `requireAdmin`; `CLOUDINARY_API_SECRET` never leaves the server. 12 integration tests + 10 unit tests; 180 passing total.
 
 ### Documentation Updates
+- `08-Project-Structure.md` §1 — added `GallerySection.tsx`; noted `NsfwToggle` is exported from `FilterBar.tsx`; added `tests/components/` and `tests/hooks/` for jsdom component tests.
+- `03-System-Architecture.md` §6, §9, §10 — no change; infinite scroll, cursor pagination, and inline retry for retryable fetch failures match documented gallery rendering model (full error boundaries deferred to TODO-029).
+- `06-UI-Design-System.md` §14 — no change; `SketchRevealImage` implements the signature sketch-in reveal with reduced-motion opacity crossfade.
+- `09-Coding-Standards.md` §13 — updated; Vitest jsdom environment and 19 Phase 5 component/hook tests added per risk-weighted philosophy (261 passing total).
+
+- `08-Project-Structure.md` §1 — no change; `FilterBar.tsx` houses both filter controls and `NsfwToggle` export.
+- `03-System-Architecture.md` §7 — no change; server-driven URL-serialized filters and client-persisted NSFW preference sent as explicit query param match documented filtering model.
+- `07-User-Flows.md` Flows 1 & 5 — no change; browse and NSFW toggle flows implemented through gallery shell (artwork popup entry deferred to Phase 6).
+
+- `08-Project-Structure.md` §1, §4 — no change; gallery domain components implemented as documented; list view omits truncated description because `ArtworkListItem` API shape excludes description (documented limitation).
+- `06-UI-Design-System.md` §4, §8, §2.2 — no change; grid/list modes, badge accents, and accessible icon badges match documented card spec.
+
+- `08-Project-Structure.md` §1 — no change; `hero/` components implemented as documented.
+- `01-Product-Definition.md` §6 — no change; editable hero fields render from live settings + featured query.
+- `06-UI-Design-System.md` §4 — no change; mobile-first responsive hero layout matches documented breakpoints.
+- `03-System-Architecture.md` §6 — documented as-built hero Server Component pattern: settings via `findSettings()`, featured artworks via separate `findFeaturedArtworks()` DB query (not included in `GET /api/settings`).
+
 - `08-Project-Structure.md` §1, §3 — added `artworks/[id]/download/route.ts`, `lib/api/` helpers, `lib/cloudinary/destroy.ts`; documented Next.js single-segment constraint for slug GET vs ObjectId PATCH/DELETE on `artworks/[id]/`.
 - `05-API-Specification.md` §4–§9 — no change; implementation matches the documented endpoint contracts (including audit fixes for tag AND filter and delete ordering).
 - `04-Database-Schema.md` §4 — no change; cascading tag delete behavior matches documented pull-then-remove semantics.
@@ -60,6 +85,8 @@ Format: loosely follows [Keep a Changelog](https://keepachangelog.com/) conventi
 - **TODO-006** — Added Zod validation schemas for artwork, tag, and settings with strict field-level enforcement; introduced internal DB-layer schemas (`ArtworkCreateInternalSchema`/`ArtworkUpdateInternalSchema`) so `createArtwork`/`updateArtwork` and `createTag` validate before write; added auth request/response schemas for Phase 2; tightened `Admin.createdAt` to non-null `Date` to match `04-Database-Schema.md §5`.
 
 ### Fixed
+- [Phase 5 audit remediation] — Infinite-scroll stale-cursor race on filter change; year NaN validation; useFilters URL/localStorage integration tests; retry button for retryable fetch failures; debounced filter inputs; SketchReveal load-error fallback; +10 tests (261 passing / 8 skipped total).
+
 - [Phase 4 audit remediation] — Tag AND filter empty page when any requested slug is missing; DELETE artwork destroys Cloudinary media before Mongo delete (503 if destroy fails); PATCH featured/featuredOrder merged-state validation; tagIds ObjectId format + uniqueness validation; tag delete pull-before-remove order; settings GET strips image `url`; removed false-confidence route test; +11 tests (242 passing / 8 skipped total).
 
 - [Phase 0 audit remediation] — Post-close-out audit fixes applied to the scaffold: typed `getDb()` in `src/lib/db/mongodb.ts`; implemented `scripts/seed-admin.ts` with bcrypt cost 12 and idempotency; added `npm run seed:admin`; removed duplicate legacy CSS var aliases from `src/app/globals.css`; replaced bare `proxy.ts` re-export with a documented placeholder referencing CVE-2025-29927; strengthened `tests/db-setup.test.ts` with idempotency, index option assertions, and deterministic `site_settings` coverage.

@@ -127,15 +127,7 @@ Below it, each finding is logged as it surfaces:
 - [Checklist item] <what was found> — <resolution or "unresolved">
 ### Notes / Results
 
-Status: Pass
-
-- [Regression check] npm test: 193 passed / 8 skipped — matches CHANGELOG baseline; no regressions
-- [Regression check] Final suite: 231 passed / 8 skipped — no regressions vs 193 baseline (Phase 4 complete)
-- [Regression check] Post-audit-fix suite: 242 passed / 8 skipped — +11 tests; no regressions vs 231 pre-fix baseline
-- [Bug sweep] Phase 3 auth/upload/transform routes reviewed — no blocking defects found
-- [Incomplete work] slugify, Cloudinary destroy, duplicate-tag guard — resolved in Phase 4 Step 0
-- [Integration gaps] lib/db models (artwork, tag, settings) sufficient for §4–§9 contracts; routes wired
-- [Convention deviations] none blocking; admin handlers will use requireAdmin per guard.ts
+Status: Pending Audit
 
 ### [Done] Phase 1 — Data Layer
 
@@ -145,51 +137,7 @@ Status: Pass
 
 ### [Done] Phase 4 — Core API
 
-### Phase 5 — Public Gallery UI
-
-#### TODO-016 — Root layout + hero section
-**Status:** Not Started · **Est. time:** 4h · **Depends on:** TODO-003, TODO-015
-**Spec reference:** `06-UI-Design-System.md` §8, `01-Product-Definition.md` §6
-
-**Success conditions:**
-- Banner, profile picture, artist name, bio, social links, contact button, and featured artwork all render from live `GET /api/settings` + featured-artwork data
-- Mobile-first; matches breakpoints in `06` §4
-
-**Tests:** Component test asserting the hero renders correctly with both a populated and an empty settings object.
-**Notes / Results:** _(none yet)_
-
-#### TODO-017 — Gallery grid + detailed list views
-**Status:** Not Started · **Est. time:** 6h · **Depends on:** TODO-012, TODO-016
-**Spec reference:** `06-UI-Design-System.md` §4 & §8
-
-**Success conditions:**
-- Both view modes render from the same feed data; switching modes preserves scroll position and active filters
-- NSFW/commission badges use the three-accent palette from `06` §2.2 — color is never the only signal
-
-**Tests:** Component test for card rendering in both modes, using commission/NSFW/plain artwork fixtures.
-**Notes / Results:** _(none yet)_
-
-#### TODO-018 — Filter bar + NSFW toggle (URL-synced)
-**Status:** Not Started · **Est. time:** 4h · **Depends on:** TODO-012, TODO-017
-**Spec reference:** `03-System-Architecture.md` §7, `07-User-Flows.md` Flows 1 & 5
-
-**Success conditions:**
-- Active filters serialize to URL search params and reproduce the same view on load
-- NSFW preference persists client-side and is sent as an explicit query param on every request
-
-**Tests:** Component test asserting a filter change updates both the URL and the fired API query.
-**Notes / Results:** _(none yet)_
-
-#### TODO-019 — Infinite scroll + SketchReveal signature motion
-**Status:** Not Started · **Est. time:** 5h · **Depends on:** TODO-017
-**Spec reference:** `03-System-Architecture.md` §6 & §9, `06-UI-Design-System.md` §14
-
-**Success conditions:**
-- `IntersectionObserver` sentinel correctly fetches the next cursor page
-- `SketchReveal` plays on thumbnail lazy-load-in and falls back to an opacity crossfade under `prefers-reduced-motion`
-
-**Tests:** Component test asserting reduced-motion preference disables the trace animation.
-**Notes / Results:** _(none yet)_
+### [Done] Phase 5 — Public Gallery UI
 
 ### Phase 6 — Artwork Detail & Sharing
 

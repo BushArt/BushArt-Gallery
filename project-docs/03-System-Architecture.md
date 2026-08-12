@@ -119,7 +119,7 @@ Each derived size is a **URL, not a file** — `lib/cloudinary/transformations.t
 
 ## 6. Gallery Rendering
 
-The homepage renders the hero (`06-UI-Design-System.md`) followed by the gallery feed. The feed itself is a client component that:
+The homepage renders the hero (`06-UI-Design-System.md`) followed by the gallery feed. The hero is a Server Component that loads site settings and featured artworks via `findSettings()` and `findFeaturedArtworks()` (wrapped in Suspense); featured pieces are not included in `GET /api/settings` — they are a separate DB query, not a stored foreign key (`04-Database-Schema.md` §3). The feed itself is a client component that:
 
 1. Requests the first page of `GET /api/artworks` on mount, respecting any filters encoded in the URL's search params (so a filtered, shared link reproduces the same view for the next visitor).
 2. Renders results in either grid or detailed-list mode (a local view-mode toggle, not server state).
