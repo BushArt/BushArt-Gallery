@@ -108,7 +108,7 @@ export function FilterBar({ filters, tags, onFiltersChange, className }: FilterB
           placeholder="Year"
           value={yearInput}
           onChange={(e) => handleYearChange(e.target.value)}
-          className="w-20 rounded-sm border border-ink-700 bg-ink-900 px-2 py-1 text-paper-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-brass"
+          className="w-20 rounded-sm border border-ink-700 bg-ink-900 px-2 py-1 text-paper-100 placeholder:text-paper-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-brass"
           data-testid="filter-year"
         />
       </label>
@@ -120,7 +120,7 @@ export function FilterBar({ filters, tags, onFiltersChange, className }: FilterB
           placeholder="Medium"
           value={mediumInput}
           onChange={(e) => handleMediumChange(e.target.value)}
-          className="w-28 rounded-sm border border-ink-700 bg-ink-900 px-2 py-1 text-paper-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-brass"
+          className="w-28 rounded-sm border border-ink-700 bg-ink-900 px-2 py-1 text-paper-100 placeholder:text-paper-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-brass"
           data-testid="filter-medium"
         />
       </label>

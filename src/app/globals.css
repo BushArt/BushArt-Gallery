@@ -92,6 +92,24 @@
     font-family: var(--font-inter);
   }
 
+  /* Form controls — 06-UI-Design-System.md §10 */
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    color-scheme: dark;
+  }
+
+  input[type="number"] {
+    appearance: textfield;
+    -moz-appearance: textfield;
+  }
+
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
   .sr-only {
     position: absolute;
     width: 1px;

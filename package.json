@@ -5,15 +5,15 @@
   "description": "BushArt — Digital Sketchbook & Gallery. A minimalist, dark-themed digital art portfolio and CMS.",
   "type": "module",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "dev": "node --use-system-ca ./node_modules/next/dist/bin/next dev",
+    "build": "node --use-system-ca ./node_modules/next/dist/bin/next build",
+    "start": "node --use-system-ca ./node_modules/next/dist/bin/next start",
     "lint": "eslint src/ tests/",
     "format": "prettier --write .",
-    "db:setup": "node scripts/db-setup.mjs",
-    "seed:admin": "npx tsx scripts/seed-admin.ts",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "db:setup": "node --use-system-ca scripts/db-setup.mjs",
+    "seed:admin": "node --use-system-ca ./node_modules/tsx/dist/cli.mjs scripts/seed-admin.ts",
+    "test": "node --use-system-ca ./node_modules/vitest/vitest.mjs run",
+    "test:watch": "node --use-system-ca ./node_modules/vitest/vitest.mjs"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

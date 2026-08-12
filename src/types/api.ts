@@ -28,5 +28,7 @@ export interface ArtworkListResponse {
   hasMore: boolean;
 }
 
-/** GET /api/tags response (05 §8) */
-export type TagListResponse = Tag[];
+/** GET /api/tags response (05 §4.4) */
+export interface TagListResponse {
+  items: Tag[];
+}

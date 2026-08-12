@@ -5,6 +5,7 @@ import { useArtworks } from "@/hooks/useArtworks";
 import { useFilters } from "@/hooks/useFilters";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 import type { TagListResponse } from "@/types/api";
+import type { Tag } from "@/types/tag";
 import type { ViewMode } from "./ArtworkCard";
 import { FilterBar, NsfwToggle } from "./FilterBar";
 import { GalleryGrid } from "./GalleryGrid";
@@ -21,7 +22,7 @@ function readViewMode(): ViewMode {
 function GallerySectionInner() {
   const { filters, setFilters } = useFilters();
   const [viewMode, setViewModeState] = useState<ViewMode>(() => readViewMode());
-  const [tags, setTags] = useState<TagListResponse>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
   const { items, isLoading, isLoadingMore, error, isRetryable, hasMore, loadMore, refresh } =
     useArtworks({
       filters,
@@ -35,8 +36,8 @@ function GallerySectionInner() {
 
   useEffect(() => {
     void fetch("/api/tags")
-      .then((res) => (res.ok ? res.json() : []))
-      .then((data: TagListResponse) => setTags(data))
+      .then((res) => (res.ok ? res.json() : { items: [] }))
+      .then((data: TagListResponse) => setTags(data.items))
       .catch(() => setTags([]));
   }, []);
 

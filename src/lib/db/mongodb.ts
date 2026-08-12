@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { MongoClient, Db } from "mongodb";
 
 declare global {
@@ -41,6 +42,8 @@ export async function getClient(): Promise<MongoClient> {
  *   specified in `MONGODB_URI` (or `"bushart"` if none is present in the URI).
  */
 export async function getDb(dbName?: string): Promise<Db> {
+  // Opt into dynamic rendering before MongoDB I/O (driver uses Date internally).
+  await connection();
   const client = await getClient();
   return client.db(dbName);
 }
