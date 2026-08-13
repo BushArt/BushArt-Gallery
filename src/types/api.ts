@@ -45,6 +45,7 @@ export interface ArtworkDetailResponse {
   completionDate: string;
   images: {
     publicId: string;
+    url?: string;
     width: number;
     height: number;
     order: number;
@@ -56,4 +57,6 @@ export interface ArtworkDetailResponse {
     height: number;
   } | null;
   tags: { id: string; name: string; slug: string }[];
+  featured: boolean;
+  featuredOrder: number | null;
 }

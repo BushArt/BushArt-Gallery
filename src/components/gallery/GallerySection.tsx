@@ -1,7 +1,8 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { Suspense, useCallback, useEffect, useImperativeHandle, useMemo, useState, useSyncExternalStore, type RefObject } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { useAdminShell } from "@/components/admin/AdminShell";
 import { useArtworks } from "@/hooks/useArtworks";
 import { useFilters } from "@/hooks/useFilters";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
@@ -11,6 +12,7 @@ import type { ViewMode } from "./ArtworkCard";
 import { FilterBar, NsfwToggle } from "./FilterBar";
 import { GalleryGrid } from "./GalleryGrid";
 import { GalleryList } from "./GalleryList";
+import { UploadCard } from "./UploadCard";
 import { ViewModeToggle } from "./ViewModeToggle";
 
 const VIEW_MODE_KEY = "bushart-view-mode";
@@ -33,7 +35,8 @@ function subscribeViewMode(onStoreChange: () => void): () => void {
   };
 }
 
-function GallerySectionInner() {
+function GallerySectionInner({ refreshRef }: { refreshRef?: RefObject<(() => void) | null> }) {
+  const { openUpload } = useAdminShell();
   const { filters, setFilters } = useFilters();
   const filtersKey = useMemo(() => JSON.stringify(filters), [filters]);
   const prefersReducedMotion = useReducedMotion();
@@ -82,6 +85,8 @@ function GallerySectionInner() {
     }
   }, [appendFailed, refresh, retryLoadMore]);
 
+  useImperativeHandle(refreshRef, () => refresh, [refresh]);
+
   return (
     <section className="mx-auto max-w-[1400px] px-4 pb-24 pt-8" aria-label="Gallery">
       <div className="sticky top-0 z-20 -mx-4 bg-ink-950/95 px-4 backdrop-blur-sm">
@@ -127,7 +132,7 @@ function GallerySectionInner() {
       </div>
 
       <AnimatePresence mode="wait">
-        {!isLoading && items.length > 0 && (
+        {!isLoading && !error && (items.length > 0 || viewMode === "grid") && (
           <motion.div
             key={filtersKey}
             className="mt-6"
@@ -137,7 +142,7 @@ function GallerySectionInner() {
             transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
           >
             {viewMode === "grid" ? (
-              <GalleryGrid items={items} />
+              <GalleryGrid items={items} leadingSlot={<UploadCard onClick={openUpload} />} />
             ) : (
               <GalleryList items={items} />
             )}
@@ -156,10 +161,14 @@ function GallerySectionInner() {
   );
 }
 
-export function GallerySection() {
+export function GallerySection({
+  refreshRef,
+}: {
+  refreshRef?: RefObject<(() => void) | null>;
+}) {
   return (
     <Suspense fallback={<p className="py-12 text-center text-paper-500">Loading gallery…</p>}>
-      <GallerySectionInner />
+      <GallerySectionInner refreshRef={refreshRef} />
     </Suspense>
   );
 }

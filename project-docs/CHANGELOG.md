@@ -9,6 +9,18 @@ Format: loosely follows [Keep a Changelog](https://keepachangelog.com/) conventi
 ## [Unreleased]
 
 ### Added
+- **TODO-023** — Admin login surface: `AuthProvider`, `useAuth`, `LoginModal`, `AdminFooter` (footer glyph + `Shift+Alt+L`), root `Providers` wrapper in `layout.tsx` (Suspense for PPR), and E2E login/lockout/edit-after-login coverage. 352 passing / 8 skipped; E2E 19.
+
+- **TODO-024** — Upload flow: `UploadCard`, `UploadDialog`, `TagPicker`, client `uploadClient.ts`, gallery refresh via `AdminShell`, empty-gallery and list-mode upload entry points, and E2E upload with inline tag create + post-upload gallery refresh assertion. 352 passing / 8 skipped; E2E 19.
+
+- **TODO-025** — Edit artwork flow: `ArtworkEditForm` with metadata, image add/remove, optional timelapse swap, admin Edit toggle in `ArtworkPopup`, and `featuredDirty` PATCH (featured fields omitted unless explicitly changed). Component + E2E coverage. 352 passing / 8 skipped; E2E 19.
+
+- **TODO-026** — Tag management UI: `TagManager` with usage counts, two-step delete confirmation, and admin toolbar entry. 352 passing / 8 skipped; E2E 19.
+
+- **TODO-027** — Homepage/hero editor: `HomepageEditor` with in-place edit for all hero fields (including contact, social links, and empty-state affordances), Cloudinary banner/profile upload, and component tests. 352 passing / 8 skipped; E2E 19.
+
+- **TODO-028** — Featured artwork management: `featured`/`featuredOrder` in detail response, edit-form toggle with required `featuredOrder`, and homepage featured strip synced via `router.refresh()`. 352 passing / 8 skipped; E2E 19.
+
 - **TODO-020** — Intercepting-route artwork modal and full-page fallback: `@modal/(.)artwork/[slug]` client interception, `/artwork/[slug]` server fallback, shared `ArtworkPopup` via `HomePageShell` extraction, `ArtworkModalClient`, `useArtwork` hook, Playwright bootstrap (`playwright.config.ts`, `scripts/seed-e2e.ts`), CI `e2e` job, and 6 E2E tests covering both entry paths plus Esc/fullscreen, NSFW, download, and share. 3 Modal tests + route wiring; 275 passing / 8 skipped total.
 
 - **TODO-021** — ArtworkPopup and FullscreenViewer: image sequence, timelapse toggle with fullscreen entry, metadata placard, tag pills, sketch-in modal frame, NSFW interstitial (`07` Flow 5), swipe navigation, accessible modal/focus trap, and explicit absence of any related-artwork module. 7 component tests (ArtworkPopup, FullscreenViewer, Modal); 275 passing / 8 skipped total.
@@ -37,6 +49,12 @@ Format: loosely follows [Keep a Changelog](https://keepachangelog.com/) conventi
 - **TODO-010** — Cloudinary v2 client configuration (`lib/cloudinary/client.ts`) with deferred env-var validation, scoped upload-signature helper (`lib/cloudinary/signature.ts`) enforcing the `bushart/` folder namespace, and `POST /api/upload/signature` Route Handler returning time-boxed HMAC signatures. Admin session enforced via `requireAdmin`; `CLOUDINARY_API_SECRET` never leaves the server. 12 integration tests + 10 unit tests; 180 passing total.
 
 ### Documentation Updates
+- `08-Project-Structure.md` §1 — expanded `components/admin/` tree (`Providers`, `AuthProvider`, `AdminShell`, `AdminFooter`, `AdminOverlays`, `TagPicker`), `HomePageClient.tsx`, and `lib/cloudinary/uploadClient.ts`; noted root layout `Providers` + Suspense for shared auth across homepage and artwork modal routes.
+- `06-UI-Design-System.md` §12 — no change; hidden login glyph, keyboard shortcut, and admin chrome match the documented spec.
+- `07-User-Flows.md` Flows 6–11 — no change; login, upload, edit, tag management, hero edit, and featured flows implemented as documented.
+- `05-API-Specification.md` §4.2 — documented as-built inclusion of `featured`, `featuredOrder`, and image `url` in artwork detail response (admin edit PATCH requires urls for unchanged images).
+- `03-System-Architecture.md` §6 — documented as-built single client auth tree at root layout for modal and homepage parity.
+
 - `03-System-Architecture.md` §6 — no change; intercepting parallel routes with shared `ArtworkPopup` and Suspense boundaries match the documented shareable-modal architecture (ADR-005).
 - `08-Project-Structure.md` §1 — added `HomePageShell.tsx`, `ArtworkModalClient.tsx`, `useArtwork.ts`, `playwright.config.ts`, `scripts/seed-e2e.ts`, and `tests/e2e/` for Phase 6 modal/E2E layout.
 - `12-Decision-Log.md` ADR-005 — no change; implementation matches the documented intercepting-route + fallback pattern.
@@ -102,6 +120,8 @@ Format: loosely follows [Keep a Changelog](https://keepachangelog.com/) conventi
 - **TODO-006** — Added Zod validation schemas for artwork, tag, and settings with strict field-level enforcement; introduced internal DB-layer schemas (`ArtworkCreateInternalSchema`/`ArtworkUpdateInternalSchema`) so `createArtwork`/`updateArtwork` and `createTag` validate before write; added auth request/response schemas for Phase 2; tightened `Admin.createdAt` to non-null `Date` to match `04-Database-Schema.md §5`.
 
 ### Fixed
+- [Phase 7 audit remediation] — Unified auth context (single root `Providers`), safe featured PATCH on metadata-only edits, empty-gallery upload entry, complete hero editor fields, image/timelapse edit in edit form, tag-create error surfacing, and gallery refresh E2E assertion. 352 Vitest / 19 E2E passing.
+
 - [Phase 6 audit remediation] — 22 post-implementation findings remediated: modal Esc/fullscreen stacking and a11y, download sorted-index contract, useArtwork abort/slug guard, timelapse fullscreen entry, sketch-in frame, card prefetch, generateMetadata, swipe nav, E2E/CI hardening, and Playwright artifact gitignore. 275 Vitest / 6 E2E passing.
 
 - [Phase 5 audit remediation] — Infinite-scroll stale-cursor race on filter change; year NaN validation; useFilters URL/localStorage integration tests; retry button for retryable fetch failures; debounced filter inputs; SketchReveal load-error fallback; +10 tests (261 passing / 8 skipped total).

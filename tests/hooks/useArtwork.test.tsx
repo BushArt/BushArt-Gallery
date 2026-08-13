@@ -13,9 +13,11 @@ const detail: ArtworkDetailResponse = {
   type: "personal",
   nsfw: false,
   completionDate: "2026-01-01T00:00:00.000Z",
-  images: [{ publicId: "img", width: 100, height: 100, order: 0 }],
+  images: [{ publicId: "img", url: "https://cdn.example.com/img", width: 100, height: 100, order: 0 }],
   timelapse: null,
   tags: [],
+  featured: false,
+  featuredOrder: null,
 };
 
 describe("useArtwork", () => {

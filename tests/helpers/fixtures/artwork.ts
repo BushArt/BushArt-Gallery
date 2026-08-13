@@ -1,4 +1,5 @@
 import { ObjectId } from "mongodb";
+import type { Artwork } from "@/types/artwork";
 
 /** Fixed IDs shared across API tests — stable for mocked route assertions. */
 export const artworkId = new ObjectId().toHexString();
@@ -13,14 +14,14 @@ export const validImage = {
   order: 0,
 };
 
-export function makeBaseArtwork(overrides: Record<string, unknown> = {}) {
+export function makeBaseArtwork(overrides: Partial<Artwork> = {}): Artwork {
   return {
     id: artworkId,
     slug: "moth-study",
     title: "Moth Study",
     description: "Desc",
     medium: "Gouache",
-    type: "personal" as const,
+    type: "personal",
     nsfw: false,
     completionDate: "2024-03-01T00:00:00.000Z",
     images: [validImage],
@@ -28,8 +29,8 @@ export function makeBaseArtwork(overrides: Record<string, unknown> = {}) {
     tagIds: [tagA],
     featured: false,
     featuredOrder: null,
-    createdAt: new Date("2024-03-01"),
-    updatedAt: new Date("2024-03-01"),
+    createdAt: "2024-03-01T00:00:00.000Z",
+    updatedAt: "2024-03-01T00:00:00.000Z",
     ...overrides,
   };
 }

@@ -14,12 +14,13 @@ export function toArtworkDetailResponse(artwork: Artwork, tags: Tag[]) {
     completionDate: artwork.completionDate,
     images: [...artwork.images]
       .sort((a, b) => a.order - b.order)
-      .map(({ publicId, width, height, order }) => ({
-      publicId,
-      width,
-      height,
-      order,
-    })),
+      .map(({ publicId, url, width, height, order }) => ({
+        publicId,
+        url,
+        width,
+        height,
+        order,
+      })),
     timelapse: artwork.timelapse
       ? {
           publicId: artwork.timelapse.publicId,
@@ -29,5 +30,7 @@ export function toArtworkDetailResponse(artwork: Artwork, tags: Tag[]) {
         }
       : null,
     tags: tags.map(({ id, name, slug }) => ({ id, name, slug })),
+    featured: artwork.featured,
+    featuredOrder: artwork.featuredOrder ?? null,
   };
 }

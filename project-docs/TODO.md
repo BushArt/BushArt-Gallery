@@ -141,74 +141,7 @@ Status: Pending Audit
 
 ### [Done] Phase 6 — Artwork Detail & Sharing
 
-### Phase 7 — Admin Experience
-
-#### TODO-023 — Hidden login entry point + LoginModal + useAuth
-**Status:** Not Started · **Est. time:** 4h · **Depends on:** TODO-009, TODO-016
-**Spec reference:** `06-UI-Design-System.md` §12, `07-User-Flows.md` Flow 6
-
-**Success conditions:**
-- Footer glyph (~30% opacity, full on hover/focus) and `Shift+Alt+L` both open the login modal
-- `useAuth` reflects session state on every load via `GET /api/auth/me`; lockout error surfaces inline per `05` §5.1
-
-**Tests:** E2E test for the full login flow, including a locked-account attempt.
-**Notes / Results:** _(none yet)_
-
-#### TODO-024 — Upload flow (UploadCard → UploadDialog → Cloudinary → create)
-**Status:** Not Started · **Est. time:** 8h · **Depends on:** TODO-010, TODO-011, TODO-013, TODO-023
-**Spec reference:** `07-User-Flows.md` Flow 7, `03-System-Architecture.md` §4
-
-**Success conditions:**
-- Admin-only UploadCard is the first gallery card, and only when authenticated
-- Single flow supports multi-image + optional timelapse + full metadata + existing/new tag selection
-- A fresh upload appears in the gallery immediately with no manual refresh
-- End-to-end completes in under 2 minutes for a standard single-image upload (`01-Product-Definition.md` §11 success metric)
-
-**Tests:** E2E test for the complete upload flow, including creating a new tag inline.
-**Notes / Results:** _(none yet)_
-
-#### TODO-025 — Edit artwork flow
-**Status:** Not Started · **Est. time:** 4h · **Depends on:** TODO-013, TODO-024
-**Spec reference:** `07-User-Flows.md` Flow 8
-
-**Success conditions:**
-- Popup switches to a pre-filled edit state for admins only
-- Save round-trips through `PATCH /api/artworks/:id` and reflects immediately
-
-**Tests:** Component test asserting edit controls are absent for non-admin sessions.
-**Notes / Results:** _(none yet)_
-
-#### TODO-026 — Tag management UI
-**Status:** Not Started · **Est. time:** 3h · **Depends on:** TODO-014, TODO-023
-**Spec reference:** `07-User-Flows.md` Flow 9
-
-**Success conditions:**
-- Dedicated view lists tags with usage counts
-- Deletion requires a UI confirmation step before calling the API (the API itself has none, per `05` §8.2)
-
-**Tests:** Component test asserting delete requires confirmation before firing the API call.
-**Notes / Results:** _(none yet)_
-
-#### TODO-027 — Homepage/hero editor
-**Status:** Not Started · **Est. time:** 4h · **Depends on:** TODO-015, TODO-016, TODO-023
-**Spec reference:** `07-User-Flows.md` Flow 10
-
-**Success conditions:**
-- Every hero field is editable in place for admins, saved via `PATCH /api/settings`, and visible to all visitors immediately after save
-
-**Tests:** Component test for the in-place edit → save → re-render cycle.
-**Notes / Results:** _(none yet)_
-
-#### TODO-028 — Featured artwork management UI
-**Status:** Not Started · **Est. time:** 3h · **Depends on:** TODO-013, TODO-025
-**Spec reference:** `07-User-Flows.md` Flow 11
-
-**Success conditions:**
-- Toggling `featured` and setting `featuredOrder` updates the homepage featured section immediately
-- No separate `/feature` endpoint is used — folded into the general `PATCH`, per `12-Decision-Log.md`
-
-**Tests:** Component test asserting `featuredOrder` is required in the UI whenever `featured` is toggled on.
-**Notes / Results:** _(none yet)_
+### [Done] Phase 7 — Admin Experience
 
 ### Phase 8 — Hardening
 

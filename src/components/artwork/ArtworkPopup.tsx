@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { getTransformationUrl } from "@/lib/cloudinary/transformations";
 import { formatCompletionDate } from "@/lib/utils/formatDate";
 import { useArtwork } from "@/hooks/useArtwork";
+import { useAuth } from "@/hooks/useAuth";
 import { NSFW_STORAGE_KEY } from "@/hooks/useFilters";
 import { NSFW_PREFERENCE_CHANGED } from "@/lib/utils/nsfwEvents";
 import type { ArtworkDetailResponse } from "@/types/api";
@@ -16,6 +17,7 @@ import { SketchReveal, SketchRevealImage } from "@/components/ui/SketchReveal";
 import { TagPill } from "@/components/ui/TagPill";
 import { DownloadButton } from "./DownloadButton";
 import { ShareButton } from "./ShareButton";
+import { ArtworkEditForm } from "./ArtworkEditForm";
 import { FullscreenViewer, type FullscreenMediaItem } from "./FullscreenViewer";
 
 interface ArtworkPopupProps {
@@ -85,6 +87,8 @@ export function ArtworkPopupLoadingShell({ closeMode = "back" }: { closeMode?: "
 export function ArtworkPopup({ slug, initialData = null, closeMode = "back" }: ArtworkPopupProps) {
   const router = useRouter();
   const titleId = useId();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const [isEditing, setIsEditing] = useState(false);
 
   const handleClose = useCallback(() => {
     if (closeMode === "home") {
@@ -98,7 +102,7 @@ export function ArtworkPopup({ slug, initialData = null, closeMode = "back" }: A
     }
   }, [router, closeMode]);
 
-  const { artwork, isLoading, error } = useArtwork({ slug, initialData });
+  const { artwork, isLoading, error, refresh } = useArtwork({ slug, initialData });
   const [nsfwPreference, setNsfwPreference] = useState<"include" | "exclude">(
     readNsfwPreferenceFromStorage,
   );
@@ -208,9 +212,28 @@ export function ArtworkPopup({ slug, initialData = null, closeMode = "back" }: A
               onConfirm={() => setNsfwConfirmed(true)}
               onCancel={handleClose}
             />
+          ) : isEditing && artwork ? (
+            <ArtworkEditForm
+              artwork={artwork}
+              onSave={() => {
+                refresh();
+                setIsEditing(false);
+                router.refresh();
+              }}
+              onCancel={() => setIsEditing(false)}
+            />
           ) : (
             <>
               <div className="flex items-center justify-end gap-1 border-b border-ink-800 px-4 py-3">
+                {!authLoading && isAuthenticated && (
+                  <Button
+                    variant="secondary"
+                    onClick={() => setIsEditing(true)}
+                    data-testid="artwork-edit-button"
+                  >
+                    Edit
+                  </Button>
+                )}
                 <DownloadButton
                   slug={artwork.slug}
                   imageIndex={mediaIndex}

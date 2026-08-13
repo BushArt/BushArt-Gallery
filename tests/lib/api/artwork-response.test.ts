@@ -26,8 +26,8 @@ const artwork: Artwork = {
   tagIds: ["65b1b1b1b1b1b1b1b1b1b1b1"],
   featured: false,
   featuredOrder: null,
-  createdAt: new Date(),
-  updatedAt: new Date(),
+  createdAt: "2024-03-01T00:00:00.000Z",
+  updatedAt: "2024-03-01T00:00:00.000Z",
 };
 
 const tags: Tag[] = [
@@ -36,7 +36,7 @@ const tags: Tag[] = [
     name: "Nature",
     slug: "nature",
     usageCount: 1,
-    createdAt: new Date(),
+    createdAt: "2024-01-01T00:00:00.000Z",
   },
 ];
 
@@ -49,12 +49,21 @@ describe("toArtworkDetailResponse", () => {
     expect(result.tags).toEqual([{ id: tags[0].id, name: "Nature", slug: "nature" }]);
   });
 
-  it("sorts images by order and strips url fields", () => {
+  it("sorts images by order and includes url fields", () => {
     const result = toArtworkDetailResponse(artwork, tags);
     expect(result.images).toEqual([
-      { publicId: "bushart/a", width: 200, height: 200, order: 0 },
-      { publicId: "bushart/b", width: 100, height: 100, order: 1 },
+      { publicId: "bushart/a", url: "https://x/a", width: 200, height: 200, order: 0 },
+      { publicId: "bushart/b", url: "https://x/b", width: 100, height: 100, order: 1 },
     ]);
+  });
+
+  it("includes featured metadata", () => {
+    const result = toArtworkDetailResponse(
+      { ...artwork, featured: true, featuredOrder: 2 },
+      tags,
+    );
+    expect(result.featured).toBe(true);
+    expect(result.featuredOrder).toBe(2);
   });
 
   it("includes timelapse metadata without url", () => {

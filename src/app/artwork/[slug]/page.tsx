@@ -7,9 +7,9 @@ import { findArtworkBySlug } from "@/lib/db/models/artwork";
 import { findTagsByIds } from "@/lib/db/models/tag";
 import { HomePageShell } from "@/components/home/HomePageShell";
 import {
-  ArtworkPopup,
   ArtworkPopupLoadingShell,
 } from "@/components/artwork/ArtworkPopup";
+import { ArtworkPopupWithAuth } from "@/components/artwork/ArtworkPopupWithAuth";
 
 interface ArtworkPageProps {
   params: Promise<{ slug: string }>;
@@ -53,7 +53,7 @@ async function ArtworkPopupLoader({ slug }: { slug: string }) {
   const tags = await findTagsByIds(artwork.tagIds);
   const initialData = toArtworkDetailResponse(artwork, tags);
 
-  return <ArtworkPopup slug={slug} initialData={initialData} closeMode="home" />;
+  return <ArtworkPopupWithAuth slug={slug} initialData={initialData} closeMode="home" />;
 }
 
 async function ArtworkPageContent({ params }: ArtworkPageProps) {

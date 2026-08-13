@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Fraunces, Inter, IBM_Plex_Mono } from "next/font/google";
+import { Providers } from "@/components/admin/Providers";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -36,8 +38,12 @@ export default function RootLayout({
       <body
         className={`${fraunces.variable} ${inter.variable} ${ibmPlexMono.variable}`}
       >
-        {children}
-        {modal}
+        <Suspense fallback={null}>
+          <Providers>
+            {children}
+            {modal}
+          </Providers>
+        </Suspense>
       </body>
     </html>
   );

@@ -3,7 +3,6 @@ import { toPublicSettingsResponse } from "@/lib/api/settings-response";
 import type { SiteSettings } from "@/types/settings";
 
 const fullSettings: SiteSettings = {
-  id: "settings-1",
   artistName: "Bush",
   tagline: "Digital art",
   biography: "Bio text",
@@ -12,17 +11,19 @@ const fullSettings: SiteSettings = {
     url: "https://res.cloudinary.com/test/profile",
     width: 400,
     height: 400,
+    order: 0,
   },
   bannerImage: {
     publicId: "bushart/banner",
     url: "https://res.cloudinary.com/test/banner",
     width: 1200,
     height: 400,
+    order: 0,
   },
   socialLinks: [{ platform: "instagram", url: "https://instagram.com/bush" }],
   contactEmail: "bush@example.com",
   contactUrl: null,
-  updatedAt: new Date(),
+  updatedAt: "2026-01-01T00:00:00.000Z",
 };
 
 describe("toPublicSettingsResponse", () => {
@@ -72,7 +73,7 @@ describe("toPublicSettingsResponse", () => {
       socialLinks: undefined,
       contactEmail: undefined,
       contactUrl: undefined,
-    });
+    } as unknown as SiteSettings);
     expect(result.tagline).toBeNull();
     expect(result.biography).toBeNull();
     expect(result.profileImage).toBeNull();

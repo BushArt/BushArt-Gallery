@@ -10,7 +10,7 @@
 bushart/
 ├── src/
 │   ├── app/
-│   │   ├── layout.tsx                     # Root layout: fonts, providers, <html>/<body>
+│   │   ├── layout.tsx                     # Root layout: fonts, Providers (auth), Suspense, @modal slot
 │   │   ├── page.tsx                       # Homepage: delegates to HomePageShell
 │   │   ├── globals.css                    # Tailwind entry + CSS custom properties (design tokens)
 │   │   ├── @modal/                        # Parallel route slot for the artwork popup
@@ -49,17 +49,25 @@ bushart/
 │   │   │   ├── FilterBar.tsx              # Includes NsfwToggle export
 │   │   │   └── ViewModeToggle.tsx
 │   │   ├── home/
-│   │   │   └── HomePageShell.tsx          # Shared hero + gallery shell for `/` and artwork fallback
+│   │   │   ├── HomePageShell.tsx          # Shared hero + gallery shell for `/` and artwork fallback
+│   │   │   └── HomePageClient.tsx         # Admin shell, gallery refresh wiring, client homepage entry
 │   │   ├── artwork/
 │   │   │   ├── ArtworkPopup.tsx
+│   │   │   ├── ArtworkPopupWithAuth.tsx   # Re-export passthrough (auth from root Providers)
 │   │   │   ├── ArtworkModalClient.tsx     # Intercept-route client entry for @modal slot
 │   │   │   ├── ArtworkEditForm.tsx
 │   │   │   ├── FullscreenViewer.tsx
 │   │   │   ├── DownloadButton.tsx
 │   │   │   └── ShareButton.tsx
 │   │   ├── admin/
+│   │   │   ├── Providers.tsx              # Root AuthProvider + LoginModal (used in layout.tsx)
+│   │   │   ├── AuthProvider.tsx
+│   │   │   ├── AdminShell.tsx             # Admin toolbar + upload/tag overlays
+│   │   │   ├── AdminFooter.tsx            # Hidden login glyph + Shift+Alt+L
+│   │   │   ├── AdminOverlays.tsx
 │   │   │   ├── LoginModal.tsx
 │   │   │   ├── UploadDialog.tsx
+│   │   │   ├── TagPicker.tsx
 │   │   │   ├── TagManager.tsx
 │   │   │   └── HomepageEditor.tsx
 │   │   ├── hero/
@@ -95,6 +103,7 @@ bushart/
 │   │   │   ├── client.ts                  # SDK configuration (server-only)
 │   │   │   ├── cloudName.ts               # Browser/server-safe cloud name resolution
 │   │   │   ├── signature.ts               # Signed-upload parameter generation
+│   │   │   ├── uploadClient.ts            # Browser-side signed Cloudinary upload helper
 │   │   │   ├── transformations.ts         # Single source of truth for every derived-size URL
 │   │   │   └── destroy.ts                 # Cloudinary asset cleanup on artwork delete (server-only)
 │   │   ├── validation/

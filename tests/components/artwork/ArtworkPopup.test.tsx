@@ -41,7 +41,30 @@ vi.mock("@/hooks/useArtwork", () => ({
   useArtwork: vi.fn(),
 }));
 
+vi.mock("@/hooks/useAuth", () => ({
+  useAuth: vi.fn(),
+}));
+
 import { useArtwork } from "@/hooks/useArtwork";
+import { useAuth } from "@/hooks/useAuth";
+
+function mockAuth(overrides: Partial<ReturnType<typeof useAuth>> = {}) {
+  vi.mocked(useAuth).mockReturnValue({
+    user: null,
+    isAuthenticated: false,
+    isLoading: false,
+    loginModalOpen: false,
+    tagManagerOpen: false,
+    openLoginModal: vi.fn(),
+    closeLoginModal: vi.fn(),
+    openTagManager: vi.fn(),
+    closeTagManager: vi.fn(),
+    login: vi.fn(),
+    logout: vi.fn(),
+    refreshSession: vi.fn(),
+    ...overrides,
+  });
+}
 
 function makeArtwork(overrides: Partial<ArtworkDetailResponse> = {}): ArtworkDetailResponse {
   return {
@@ -53,12 +76,14 @@ function makeArtwork(overrides: Partial<ArtworkDetailResponse> = {}): ArtworkDet
     type: "personal",
     nsfw: false,
     completionDate: "2024-01-15T00:00:00.000Z",
-    images: [{ publicId: "img-1", width: 800, height: 600, order: 0 }],
+    images: [{ publicId: "img-1", url: "https://cdn.example.com/img-1", width: 800, height: 600, order: 0 }],
     timelapse: null,
     tags: [
       { id: "t1", name: "Sketch", slug: "sketch" },
       { id: "t2", name: "Ink", slug: "ink" },
     ],
+    featured: false,
+    featuredOrder: null,
     ...overrides,
   };
 }
@@ -66,6 +91,7 @@ function makeArtwork(overrides: Partial<ArtworkDetailResponse> = {}): ArtworkDet
 describe("ArtworkPopup", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockAuth();
     localStorage.setItem(NSFW_STORAGE_KEY, "include");
     vi.mocked(useArtwork).mockReturnValue({
       artwork: makeArtwork(),
@@ -73,6 +99,12 @@ describe("ArtworkPopup", () => {
       error: null,
       refresh: vi.fn(),
     });
+  });
+
+  it("does not show edit controls for non-admin sessions", () => {
+    mockAuth({ isAuthenticated: false, isLoading: false });
+    render(<ArtworkPopup slug="test-art" initialData={makeArtwork()} />);
+    expect(screen.queryByTestId("artwork-edit-button")).not.toBeInTheDocument();
   });
 
   it("does not render a related-artwork module when tags are present", () => {

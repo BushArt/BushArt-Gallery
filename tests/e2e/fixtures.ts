@@ -29,11 +29,13 @@ export const e2eDetail: ArtworkDetailResponse = {
   nsfw: false,
   completionDate: "2026-03-01T00:00:00.000Z",
   images: [
-    { publicId: "bushart/e2e/test-image", width: 800, height: 600, order: 0 },
-    { publicId: "bushart/e2e/test-image-2", width: 800, height: 600, order: 1 },
+    { publicId: "bushart/e2e/test-image", url: "https://cdn.example.com/test-image", width: 800, height: 600, order: 0 },
+    { publicId: "bushart/e2e/test-image-2", url: "https://cdn.example.com/test-image-2", width: 800, height: 600, order: 1 },
   ],
   timelapse: null,
   tags: [{ id: "65e2e2e2e2e2e2e2e2e2e2e2", name: "E2E Tag", slug: "e2e-tag" }],
+  featured: false,
+  featuredOrder: null,
 };
 
 export const e2eNsfwDetail: ArtworkDetailResponse = {
