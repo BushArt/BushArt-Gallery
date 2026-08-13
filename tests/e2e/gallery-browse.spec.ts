@@ -13,6 +13,11 @@ test.describe("Gallery browse", () => {
     await expect(page).toHaveURL(/type=commission/, { timeout: 10_000 });
   });
 
+  test("filter medium updates URL after debounce", async ({ page }) => {
+    await page.getByTestId("filter-medium").fill("Gouache");
+    await expect(page).toHaveURL(/medium=Gouache/, { timeout: 5_000 });
+  });
+
   test("view mode toggle switches grid to list without full reload", async ({ page }) => {
     await expect(page.getByTestId("gallery-grid")).toBeVisible();
     await page.getByRole("button", { name: "List" }).click();

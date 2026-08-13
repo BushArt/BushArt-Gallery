@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
+import { withSessionCookie } from "../../helpers";
 
 // ── Mocks ──────────────────────────────────────────────────────────────────
 
@@ -22,12 +23,10 @@ import { GET } from "@/app/api/auth/me/route";
 import { verifyToken } from "@/lib/auth/jwt";
 import { findByUsername } from "@/lib/db/models/admin";
 
-// ── Helpers ────────────────────────────────────────────────────────────────
-
 function createMeRequest(cookieValue?: string): NextRequest {
   const req = new NextRequest("http://localhost/api/auth/me", { method: "GET" });
   if (cookieValue !== undefined) {
-    req.cookies.set("bushart_session", cookieValue);
+    return withSessionCookie(req, cookieValue);
   }
   return req;
 }

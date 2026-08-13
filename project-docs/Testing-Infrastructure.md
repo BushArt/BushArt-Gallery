@@ -115,12 +115,11 @@ Authoritative repo layout: `08-Project-Structure.md`.
 ```mermaid
 flowchart LR
   subgraph testJob [Job: test]
-    lint[Lint]
     dbSetup[db:setup]
-    vitest[npm test]
+    lint[lint]
     cov[test:coverage]
     build[npm run build]
-    lint --> dbSetup --> vitest --> cov --> build
+    dbSetup --> lint --> cov --> build
   end
 
   subgraph e2eJob [Job: e2e]
@@ -132,7 +131,7 @@ flowchart LR
   testJob --> e2eJob
 ```
 
-Both jobs use a **MongoDB 7 service container**. The `test` job runs index integration tests and enforces the coverage gate; the `e2e` job seeds minimal artwork data then runs Playwright headlessly.
+Both jobs use a **MongoDB 7 service container**. The `test` job runs index integration tests and enforces the coverage gate via a single `npm run test:coverage` invocation; the `e2e` job seeds minimal artwork data then runs Playwright headlessly.
 
 Workflow: `.github/workflows/ci.yml`.
 
@@ -148,7 +147,7 @@ Per `09-Coding-Standards.md` §13, the following paths **MUST** maintain passing
 | `src/lib/db/models/artwork.ts` | Write paths affect data integrity |
 | `src/app/api/artworks/**` | Public read + admin write HTTP surface |
 
-Thresholds (global across included files): **85%** lines/statements/functions, **80%** branches. Adjust only when measured baseline genuinely cannot reach the bar without gaming.
+Thresholds (per included glob): **85%** lines/statements/functions, **80%** branches. Each glob (`src/lib/auth/**`, `src/lib/db/models/artwork.ts`, `src/app/api/artworks/**`) is enforced independently — one area cannot compensate for another.
 
 Run locally: `npm run test:coverage`.
 
@@ -182,6 +181,7 @@ Shared helpers in `tests/helpers/` reduce duplication across API tests. Prefer i
 | Lighthouse CI performance budget | TODO-041 |
 | Parallel E2E workers + flake policy | TODO-042 |
 | Admin CMS component tests | TODO-023–028 (per feature) |
+| Phase 11 advanced automation (MSW, schema contracts, visual regression, smoke, Lighthouse, parallel E2E) | TODO-037–042 |
 
 ---
 

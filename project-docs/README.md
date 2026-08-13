@@ -49,7 +49,10 @@ project-docs/
 ├── 10-Deployment-Guide.md        ← Local setup through to production
 ├── 11-Project-Roadmap.md         ← MVP through long-term milestones
 ├── 12-Decision-Log.md            ← Architecture Decision Records (ADRs)
-└── CHANGELOG.md                  ← Version history of this documentation
+├── CHANGELOG.md                  ← Version history of this documentation
+├── AGENT.md                      ← Operational entry point for contributors
+├── TODO.md                       ← Active build queue (non-authoritative staging)
+└── Testing-Infrastructure.md     ← Testing layers, CI, coverage policy
 ```
 
 ---

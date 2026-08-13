@@ -122,6 +122,14 @@ describe("GET /api/artworks/:slug/download", () => {
     expect(json.error.code).toBe("NOT_FOUND");
   });
 
+  it("returns 400 VALIDATION_ERROR for invalid query parameters", async () => {
+    const req = new NextRequest("http://localhost/api/artworks/moth-study/download?image=abc");
+    const res = await GET(req, { params: Promise.resolve({ id: "moth-study" }) });
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error.code).toBe("VALIDATION_ERROR");
+  });
+
   it("uses sorted order when images array is unsorted in MongoDB", async () => {
     vi.mocked(findArtworkBySlug).mockResolvedValue({
       ...artwork,

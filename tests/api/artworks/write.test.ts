@@ -5,6 +5,7 @@ import {
   tagA,
   tagB,
   validImage,
+  makeBaseArtwork,
   createJsonRequest,
 } from "../../helpers";
 
@@ -45,24 +46,12 @@ import {
 import { findMissingTagIds, findTagsByIds } from "@/lib/db/models/tag";
 import { destroyAssets } from "@/lib/cloudinary/destroy";
 
-const baseArtwork = {
-  id: artworkId,
-  slug: "moth-study",
-  title: "Moth Study",
-  description: "Desc",
-  medium: "Gouache",
-  type: "personal" as const,
-  nsfw: false,
-  featured: false,
-  featuredOrder: null,
-  images: [validImage],
-  timelapse: null,
-  tagIds: [tagA],
+const baseArtwork = makeBaseArtwork({
   completionDate: "2026-06-30T00:00:00.000Z",
   colorPalette: null,
   createdAt: "2026-06-01T00:00:00.000Z",
   updatedAt: "2026-06-01T00:00:00.000Z",
-};
+});
 
 describe("POST /api/artworks", () => {
   beforeEach(() => {
@@ -233,6 +222,50 @@ describe("PATCH /api/artworks/:id", () => {
     );
     expect(res.status).toBe(404);
   });
+
+  it("returns 404 when updateArtwork returns null", async () => {
+    vi.mocked(updateArtwork).mockResolvedValue(null);
+    const res = await PATCH(
+      createJsonRequest("PATCH", `http://localhost/api/artworks/${artworkId}`, { title: "New" }),
+      { params: Promise.resolve({ id: artworkId }) },
+    );
+    expect(res.status).toBe(404);
+  });
+
+  it("returns 400 when patch tagIds reference missing tags", async () => {
+    vi.mocked(findMissingTagIds).mockResolvedValue(["deadbeefdeadbeefdeadbeef"]);
+    const res = await PATCH(
+      createJsonRequest("PATCH", `http://localhost/api/artworks/${artworkId}`, {
+        tagIds: ["deadbeefdeadbeefdeadbeef"],
+      }),
+      { params: Promise.resolve({ id: artworkId }) },
+    );
+    expect(res.status).toBe(400);
+    expect(updateArtwork).not.toHaveBeenCalled();
+  });
+
+  it("clears featuredOrder when featured is set to false", async () => {
+    vi.mocked(findArtworkById).mockResolvedValue({
+      ...baseArtwork,
+      featured: true,
+      featuredOrder: 1,
+    });
+    vi.mocked(updateArtwork).mockResolvedValue({
+      ...baseArtwork,
+      featured: false,
+      featuredOrder: null,
+    });
+
+    const res = await PATCH(
+      createJsonRequest("PATCH", `http://localhost/api/artworks/${artworkId}`, { featured: false }),
+      { params: Promise.resolve({ id: artworkId }) },
+    );
+    expect(res.status).toBe(200);
+    expect(updateArtwork).toHaveBeenCalledWith(
+      artworkId,
+      expect.objectContaining({ featured: false, featuredOrder: null }),
+    );
+  });
 });
 
 describe("DELETE /api/artworks/:id", () => {
@@ -312,5 +345,24 @@ describe("DELETE /api/artworks/:id", () => {
       { params: Promise.resolve({ id: artworkId }) },
     );
     expect(res.status).toBe(404);
+  });
+
+  it("returns 400 for non-ObjectId id param", async () => {
+    const res = await DELETE(
+      new NextRequest("http://localhost/api/artworks/not-an-id", { method: "DELETE" }),
+      { params: Promise.resolve({ id: "not-an-id" }) },
+    );
+    expect(res.status).toBe(400);
+    expect(deleteArtwork).not.toHaveBeenCalled();
+  });
+
+  it("returns 404 when deleteArtwork returns null after destroy succeeds", async () => {
+    vi.mocked(deleteArtwork).mockResolvedValue(null);
+    const res = await DELETE(
+      new NextRequest(`http://localhost/api/artworks/${artworkId}`, { method: "DELETE" }),
+      { params: Promise.resolve({ id: artworkId }) },
+    );
+    expect(res.status).toBe(404);
+    expect(destroyAssets).toHaveBeenCalled();
   });
 });

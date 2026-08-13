@@ -1,5 +1,6 @@
 import { ObjectId } from "mongodb";
 
+/** Fixed IDs shared across API tests — stable for mocked route assertions. */
 export const artworkId = new ObjectId().toHexString();
 export const tagA = new ObjectId().toHexString();
 export const tagB = new ObjectId().toHexString();

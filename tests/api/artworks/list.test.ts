@@ -86,6 +86,14 @@ describe("GET /api/artworks", () => {
     expect(json.error.message).toBe("Invalid cursor");
   });
 
+  it("returns 500 INTERNAL_ERROR on unexpected listArtworks failure", async () => {
+    vi.mocked(listArtworks).mockRejectedValue(new Error("Database unavailable"));
+    const res = await GET(listRequest());
+    expect(res.status).toBe(500);
+    const json = await res.json();
+    expect(json.error.code).toBe("INTERNAL_ERROR");
+  });
+
   it("defaults nsfw to exclude per spec", async () => {
     await GET(listRequest());
     expect(listArtworks).toHaveBeenCalledWith(expect.objectContaining({ nsfw: "exclude" }));

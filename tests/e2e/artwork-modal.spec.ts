@@ -32,7 +32,14 @@ test.describe("Artwork modal entry paths", () => {
 test.describe("Artwork popup interactions", () => {
   test("Escape closes popup and returns to gallery URL", async ({ page }) => {
     await mockGalleryApis(page);
-    await page.goto(`/artwork/${E2E_SLUG}?nsfw=include`);
+    await page.goto("/?nsfw=include");
+
+    await expect(page.getByTestId("gallery-grid")).toBeVisible({ timeout: 15_000 });
+    const cardLink = page.getByRole("link", { name: new RegExp(E2E_TITLE) });
+    await Promise.all([
+      page.waitForURL(new RegExp(`/artwork/${E2E_SLUG}`), { timeout: 15_000 }),
+      cardLink.click(),
+    ]);
 
     await expect(page.getByTestId("artwork-popup")).toBeVisible({ timeout: 15_000 });
     await page.keyboard.press("Escape");

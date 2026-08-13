@@ -245,7 +245,7 @@ Status: Pending Audit
 - CI fails the build if `lib/auth/` or the `artworks` write paths lack passing test coverage — the one area flagged as required-before-ship, not optional
 
 **Tests:** This task *is* the test-infrastructure work — the tests themselves are written under TODO-007/008/013.
-**Notes / Results:** Coverage gate wired: `@vitest/coverage-v8@3.2.7`, `npm run test:coverage`, thresholds in `vitest.config.mts` (85% lines/statements/functions, 80% branches on `lib/auth/**`, artwork model write paths, `app/api/artworks/**`). CI `test` job runs MongoDB + `db:setup` + coverage step. See `Testing-Infrastructure.md`.
+**Notes / Results:** Coverage gate wired: `@vitest/coverage-v8@3.2.7`, `npm run test:coverage`, per-glob thresholds in `vitest.config.mts` (85% lines/statements/functions, 80% branches on `lib/auth/**`, artwork model write paths, `app/api/artworks/**` independently). CI `test` job runs MongoDB + `db:setup` + single coverage step. See `Testing-Infrastructure.md`.
 
 #### TODO-032 — Route Handler integration test suite
 **Status:** Not Started · **Est. time:** 6h · **Depends on:** TODO-012, TODO-013, TODO-014, TODO-015

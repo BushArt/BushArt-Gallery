@@ -106,4 +106,19 @@ describe("requireAdmin (guard.ts)", () => {
     expect(json.error.details.retryAfterSeconds).toBeGreaterThan(0);
   });
 
+  it("throws 401 UNAUTHENTICATED when admin account no longer exists", async () => {
+    vi.mocked(findByUsername).mockResolvedValueOnce(null);
+
+    const req = createGuardedRequest("valid-token");
+
+    const error = await requireAdmin(req).catch((e) => e);
+    if (!(error instanceof Response)) {
+      throw new Error("Expected Response");
+    }
+    expect(error.status).toBe(401);
+    const json = await error.json();
+    expect(json.error.code).toBe("UNAUTHENTICATED");
+    expect(json.error.message).toBe("No valid session");
+  });
+
 });
