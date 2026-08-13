@@ -13,6 +13,7 @@
     "db:setup": "node --use-system-ca scripts/db-setup.mjs",
     "seed:admin": "node --use-system-ca ./node_modules/tsx/dist/cli.mjs scripts/seed-admin.ts",
     "test": "node --use-system-ca ./node_modules/vitest/vitest.mjs run",
+    "test:coverage": "node --use-system-ca ./node_modules/vitest/vitest.mjs run --coverage",
     "test:watch": "node --use-system-ca ./node_modules/vitest/vitest.mjs",
     "test:e2e": "node --use-system-ca ./node_modules/playwright/cli.js test",
     "test:e2e:install": "node --use-system-ca ./node_modules/playwright/cli.js install chromium"
@@ -31,6 +32,7 @@
     "zod": "^3.24.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.51.0",
     "@tailwindcss/postcss": "^4.0.0",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.2",
@@ -39,12 +41,12 @@
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "@vitest/coverage-v8": "^3.2.7",
     "eslint": "^9.0.0",
     "eslint-config-next": "^16.2.10",
     "eslint-config-prettier": "^10.0.0",
     "jsdom": "^29.1.1",
     "prettier": "^3.4.0",
-    "@playwright/test": "^1.51.0",
     "tailwindcss": "^4.0.0",
     "tsx": "^4.0.0",
     "typescript": "^5.7.0",

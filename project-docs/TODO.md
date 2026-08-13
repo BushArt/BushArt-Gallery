@@ -245,7 +245,7 @@ Status: Pending Audit
 - CI fails the build if `lib/auth/` or the `artworks` write paths lack passing test coverage — the one area flagged as required-before-ship, not optional
 
 **Tests:** This task *is* the test-infrastructure work — the tests themselves are written under TODO-007/008/013.
-**Notes / Results:** _(none yet)_
+**Notes / Results:** Coverage gate wired: `@vitest/coverage-v8@3.2.7`, `npm run test:coverage`, thresholds in `vitest.config.mts` (85% lines/statements/functions, 80% branches on `lib/auth/**`, artwork model write paths, `app/api/artworks/**`). CI `test` job runs MongoDB + `db:setup` + coverage step. See `Testing-Infrastructure.md`.
 
 #### TODO-032 — Route Handler integration test suite
 **Status:** Not Started · **Est. time:** 6h · **Depends on:** TODO-012, TODO-013, TODO-014, TODO-015
@@ -299,6 +299,74 @@ Status: Pending Audit
 - A scheduled keep-alive ping configured to stay within Render's included monthly hours while avoiding the 15-minute sleep in practice
 
 **Tests:** None — operational configuration.
+**Notes / Results:** _(none yet)_
+
+### Phase 11 — Advanced Testing Infrastructure
+
+#### TODO-037 — MSW integration layer for hook/component tests
+**Status:** Not Started · **Est. time:** 4h · **Depends on:** None
+**Spec reference:** `Testing-Infrastructure.md` §8–§9, `09-Coding-Standards.md` §13
+
+**Success conditions:**
+- MSW server boots in Vitest jsdom setup and serves realistic `/api/**` sequences for hook tests without per-file Playwright-style route mocks
+- At least one hook test (`useArtworks` or `useFilters`) converted to the shared MSW pattern as a reference implementation
+
+**Tests:** This task is the test-infrastructure work.
+**Notes / Results:** _(none yet)_
+
+#### TODO-038 — Schema contract tests (Zod vs 04/05)
+**Status:** Not Started · **Est. time:** 3h · **Depends on:** None
+**Spec reference:** `04-Database-Schema.md`, `05-API-Specification.md`, `09-Coding-Standards.md` §13
+
+**Success conditions:**
+- Test suite asserts every field required by the API spec is accepted/rejected consistently by the matching Zod schema in `lib/validation/`
+- CI fails on deliberate schema/doc drift (field added to spec but missing from validator, or vice versa)
+
+**Tests:** This task is the test suite itself.
+**Notes / Results:** _(none yet)_
+
+#### TODO-039 — Playwright visual regression baseline
+**Status:** Not Started · **Est. time:** 4h · **Depends on:** TODO-033
+**Spec reference:** `Testing-Infrastructure.md` §2, `06-UI-Design-System.md`
+
+**Success conditions:**
+- Screenshot comparison configured for gallery grid and artwork modal in Playwright
+- Baseline images committed; CI fails on unintended visual diffs above a documented tolerance
+
+**Tests:** This task is the test suite itself.
+**Notes / Results:** _(none yet)_
+
+#### TODO-040 — Automated post-deploy smoke suite
+**Status:** Not Started · **Est. time:** 3h · **Depends on:** TODO-034
+**Spec reference:** `10-Deployment-Guide.md` §10, `Testing-Infrastructure.md` §6
+
+**Success conditions:**
+- Script or GitHub Action hits production (or staging) with HTTP checks for homepage, auth endpoint, and gallery API
+- Replaces the manual production checklist in TODO-034 for routine deploy verification
+
+**Tests:** This task is the smoke suite itself.
+**Notes / Results:** _(none yet)_
+
+#### TODO-041 — Lighthouse CI performance budget gate
+**Status:** Not Started · **Est. time:** 3h · **Depends on:** TODO-034
+**Spec reference:** `02-Technical-Specification.md` §13, `Testing-Infrastructure.md` §6
+
+**Success conditions:**
+- Lighthouse CI (or equivalent) runs against homepage in CI or post-deploy
+- Build fails when Initial JS payload or LCP exceeds the budget documented in `02` §13
+
+**Tests:** This task is the performance gate itself.
+**Notes / Results:** _(none yet)_
+
+#### TODO-042 — Parallel E2E workers + flake policy
+**Status:** Not Started · **Est. time:** 2h · **Depends on:** TODO-033
+**Spec reference:** `Testing-Infrastructure.md` §6, `playwright.config.ts`
+
+**Success conditions:**
+- Playwright `workers` increased beyond 1 once suite exceeds ~20 tests without flaky failures
+- Retry policy and trace-on-failure rules documented in `Testing-Infrastructure.md`
+
+**Tests:** None — infrastructure configuration.
 **Notes / Results:** _(none yet)_
 
 ---

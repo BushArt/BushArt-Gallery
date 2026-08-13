@@ -124,7 +124,11 @@ bushart/
 │   └── seed-e2e.ts                        # Minimal Playwright E2E seed data
 │
 ├── tests/
-│   ├── e2e/                               # Playwright specs (separate tsconfig; excluded from root)
+│   ├── helpers/                             # Shared fixtures and request builders
+│   ├── e2e/                                 # Playwright specs (separate tsconfig; excluded from root)
+│   ├── lib/                                 # Unit tests mirroring src/lib/
+│   ├── db/                                  # Model unit tests + db-setup integration
+│   ├── api/                                 # Route handler tests (mocked models)
 │   ├── components/                          # Vitest jsdom component tests
 │   └── hooks/                               # Vitest jsdom hook tests
 │

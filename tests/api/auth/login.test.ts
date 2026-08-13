@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 import { ObjectId } from "mongodb";
+import { createLoginRequest } from "../../helpers";
 
 // ── Mocks ──────────────────────────────────────────────────────────────────
 
@@ -44,16 +45,6 @@ import { POST } from "@/app/api/auth/login/route";
 import { getAdminByUsername, updateLoginState } from "@/lib/db/models/admin";
 import { verifyPassword } from "@/lib/auth/password";
 import { signToken } from "@/lib/auth/jwt";
-
-// ── Helpers ────────────────────────────────────────────────────────────────
-
-function createLoginRequest(body: unknown): NextRequest {
-  return new NextRequest("http://localhost/api/auth/login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-}
 
 function seedAdmin(overrides: Partial<any> = {}): any {
   const id = new ObjectId().toHexString();

@@ -32,6 +32,7 @@ All paths relative to `project-docs/`.
 | Implement a user-facing flow | `07-User-Flows.md` |
 | Decide where a new file belongs | `08-Project-Structure.md` |
 | Write any code at all | `09-Coding-Standards.md` |
+| Understand testing layers, CI, coverage | `Testing-Infrastructure.md` |
 | Touch deploy config or hosting | `10-Deployment-Guide.md` |
 | Decide if something is MVP or later | `11-Project-Roadmap.md` |
 | Understand *why* something was built this way | `12-Decision-Log.md` |

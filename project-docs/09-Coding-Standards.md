@@ -95,6 +95,8 @@ Given the Constitution's single-operator scale, testing effort is **risk-weighte
 
 It's acceptable for test coverage to grow incrementally post-MVP rather than being complete on day one — but `lib/auth/` and `lib/db/models/artwork.ts`'s write paths are the one area where tests are expected **before** a feature touching them is considered done, given how costly a silent bug there would be (Constitution: "long-term maintainability over short-term convenience").
 
+Operational detail — tooling, CI jobs, directory layout, coverage thresholds, and the gap backlog — lives in `Testing-Infrastructure.md`.
+
 ## 14. Git Commit Convention
 
 **Conventional Commits**, enforced by convention (and optionally a commit-lint hook, if the artist wants one — not required for a single-contributor repo):

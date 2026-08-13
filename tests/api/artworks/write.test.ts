@@ -1,6 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
-import { ObjectId } from "mongodb";
+import {
+  artworkId,
+  tagA,
+  tagB,
+  validImage,
+  createJsonRequest,
+} from "../../helpers";
 
 vi.mock("@/lib/auth/guard", () => ({
   requireAdmin: vi.fn(),
@@ -39,18 +45,6 @@ import {
 import { findMissingTagIds, findTagsByIds } from "@/lib/db/models/tag";
 import { destroyAssets } from "@/lib/cloudinary/destroy";
 
-const artworkId = new ObjectId().toHexString();
-const tagA = new ObjectId().toHexString();
-const tagB = new ObjectId().toHexString();
-
-const validImage = {
-  publicId: "bushart/artworks/moth/main",
-  url: "https://res.cloudinary.com/test/image/upload/main",
-  width: 100,
-  height: 100,
-  order: 0,
-};
-
 const baseArtwork = {
   id: artworkId,
   slug: "moth-study",
@@ -70,14 +64,6 @@ const baseArtwork = {
   updatedAt: "2026-06-01T00:00:00.000Z",
 };
 
-function jsonRequest(url: string, method: string, body?: unknown): NextRequest {
-  return new NextRequest(url, {
-    method,
-    headers: { "Content-Type": "application/json" },
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
-}
-
 describe("POST /api/artworks", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -94,7 +80,7 @@ describe("POST /api/artworks", () => {
       new Response(JSON.stringify({ error: { code: "UNAUTHENTICATED" } }), { status: 401 }),
     );
     const res = await POST(
-      jsonRequest("http://localhost/api/artworks", "POST", {
+      createJsonRequest("POST", "http://localhost/api/artworks", {
         title: "T",
         medium: "M",
         type: "personal",
@@ -121,7 +107,7 @@ describe("POST /api/artworks", () => {
 
   it("returns 400 for malformed tagIds", async () => {
     const res = await POST(
-      jsonRequest("http://localhost/api/artworks", "POST", {
+      createJsonRequest("POST", "http://localhost/api/artworks", {
         title: "Moth Study",
         medium: "Gouache",
         type: "personal",
@@ -138,7 +124,7 @@ describe("POST /api/artworks", () => {
 
   it("returns 201 with detail shape on success", async () => {
     const res = await POST(
-      jsonRequest("http://localhost/api/artworks", "POST", {
+      createJsonRequest("POST", "http://localhost/api/artworks", {
         title: "Moth Study",
         medium: "Gouache",
         type: "personal",
@@ -157,7 +143,7 @@ describe("POST /api/artworks", () => {
   it("returns 400 when tagIds reference missing tags", async () => {
     vi.mocked(findMissingTagIds).mockResolvedValue(["deadbeefdeadbeefdeadbeef"]);
     const res = await POST(
-      jsonRequest("http://localhost/api/artworks", "POST", {
+      createJsonRequest("POST", "http://localhost/api/artworks", {
         title: "Moth Study",
         medium: "Gouache",
         type: "personal",
@@ -190,7 +176,7 @@ describe("PATCH /api/artworks/:id", () => {
       new Response(JSON.stringify({ error: { code: "UNAUTHENTICATED" } }), { status: 401 }),
     );
     const res = await PATCH(
-      jsonRequest(`http://localhost/api/artworks/${artworkId}`, "PATCH", { title: "New" }),
+      createJsonRequest("PATCH", `http://localhost/api/artworks/${artworkId}`, { title: "New" }),
       { params: Promise.resolve({ id: artworkId }) },
     );
     expect(res.status).toBe(401);
@@ -210,7 +196,7 @@ describe("PATCH /api/artworks/:id", () => {
 
   it("returns 400 for non-ObjectId id param", async () => {
     const res = await PATCH(
-      jsonRequest("http://localhost/api/artworks/not-an-id", "PATCH", { title: "New" }),
+      createJsonRequest("PATCH", "http://localhost/api/artworks/not-an-id", { title: "New" }),
       { params: Promise.resolve({ id: "not-an-id" }) },
     );
     expect(res.status).toBe(400);
@@ -218,7 +204,7 @@ describe("PATCH /api/artworks/:id", () => {
 
   it("returns 400 when featured true without featuredOrder", async () => {
     const res = await PATCH(
-      jsonRequest(`http://localhost/api/artworks/${artworkId}`, "PATCH", { featured: true }),
+      createJsonRequest("PATCH", `http://localhost/api/artworks/${artworkId}`, { featured: true }),
       { params: Promise.resolve({ id: artworkId }) },
     );
     expect(res.status).toBe(400);
@@ -229,7 +215,7 @@ describe("PATCH /api/artworks/:id", () => {
 
   it("forwards tagIds to updateArtwork", async () => {
     const res = await PATCH(
-      jsonRequest(`http://localhost/api/artworks/${artworkId}`, "PATCH", { tagIds: [tagB] }),
+      createJsonRequest("PATCH", `http://localhost/api/artworks/${artworkId}`, { tagIds: [tagB] }),
       { params: Promise.resolve({ id: artworkId }) },
     );
     expect(res.status).toBe(200);
@@ -242,7 +228,7 @@ describe("PATCH /api/artworks/:id", () => {
   it("returns 404 when artwork not found", async () => {
     vi.mocked(findArtworkById).mockResolvedValue(null);
     const res = await PATCH(
-      jsonRequest(`http://localhost/api/artworks/${artworkId}`, "PATCH", { title: "New" }),
+      createJsonRequest("PATCH", `http://localhost/api/artworks/${artworkId}`, { title: "New" }),
       { params: Promise.resolve({ id: artworkId }) },
     );
     expect(res.status).toBe(404);
