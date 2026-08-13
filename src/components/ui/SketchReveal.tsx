@@ -5,6 +5,20 @@ import { motion, useReducedMotion } from "framer-motion";
 import { useCallback, useState, type ReactNode } from "react";
 import { Skeleton } from "./Skeleton";
 
+function SketchTraceOverlay({ loaded }: { loaded: boolean }) {
+  return (
+    <motion.span
+      className="pointer-events-none absolute inset-0 z-10 block [box-shadow:inset_0_0_0_1.5px_var(--color-accent-brass)]"
+      style={{ borderRadius: "inherit" }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: loaded ? 0 : 1 }}
+      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+      aria-hidden="true"
+      data-testid="sketch-trace"
+    />
+  );
+}
+
 interface SketchRevealProps {
   children: ReactNode;
   className?: string;
@@ -22,27 +36,7 @@ export function SketchReveal({ children, className, onReveal }: SketchRevealProp
 
   return (
     <div className={clsx("relative overflow-hidden", className)} data-testid="sketch-reveal">
-      {!loaded && !prefersReducedMotion && (
-        <svg
-          className="pointer-events-none absolute inset-0 z-10 h-full w-full"
-          aria-hidden="true"
-          data-testid="sketch-trace"
-        >
-          <motion.rect
-            x="1"
-            y="1"
-            width="calc(100% - 2px)"
-            height="calc(100% - 2px)"
-            rx="10"
-            fill="none"
-            stroke="var(--color-accent-brass)"
-            strokeWidth="1.5"
-            initial={{ pathLength: 0, opacity: 1 }}
-            animate={{ pathLength: loaded ? 1 : 0.85, opacity: loaded ? 0 : 1 }}
-            transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-          />
-        </svg>
-      )}
+      {!loaded && !prefersReducedMotion && <SketchTraceOverlay loaded={loaded} />}
 
       {!loaded && <Skeleton className="absolute inset-0" />}
 
@@ -87,27 +81,7 @@ export function SketchRevealImage({
 
   return (
     <div className={clsx("relative overflow-hidden", className)} data-testid="sketch-reveal">
-      {!loaded && !failed && !prefersReducedMotion && (
-        <svg
-          className="pointer-events-none absolute inset-0 z-10 h-full w-full"
-          aria-hidden="true"
-          data-testid="sketch-trace"
-        >
-          <motion.rect
-            x="1"
-            y="1"
-            width="calc(100% - 2px)"
-            height="calc(100% - 2px)"
-            rx="10"
-            fill="none"
-            stroke="var(--color-accent-brass)"
-            strokeWidth="1.5"
-            initial={{ pathLength: 0 }}
-            animate={{ pathLength: loaded ? 1 : 0.85, opacity: loaded ? 0 : 1 }}
-            transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-          />
-        </svg>
-      )}
+      {!loaded && !failed && !prefersReducedMotion && <SketchTraceOverlay loaded={loaded} />}
 
       {!loaded && !failed && <Skeleton className="absolute inset-0" />}
 

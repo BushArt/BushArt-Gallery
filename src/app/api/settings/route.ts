@@ -40,6 +40,19 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       );
     }
 
+    const existing = await findSettings();
+    if (
+      !existing &&
+      (!parsed.data.artistName || parsed.data.artistName.trim().length === 0)
+    ) {
+      return apiError(
+        400,
+        "VALIDATION_ERROR",
+        "artistName is required when creating site settings",
+        { field: "artistName" },
+      );
+    }
+
     const updated = await upsertSettings(parsed.data);
     return NextResponse.json(toPublicSettingsResponse(updated));
   } catch (error) {

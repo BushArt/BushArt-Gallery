@@ -6,6 +6,7 @@ type ErrorCode =
   | "FORBIDDEN"
   | "NOT_FOUND"
   | "CONFLICT"
+  | "LOCKED"
   | "INTERNAL_ERROR"
   | "SERVICE_UNAVAILABLE";
 

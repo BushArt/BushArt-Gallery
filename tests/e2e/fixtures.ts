@@ -15,6 +15,7 @@ export const e2eListItem: ArtworkListItem = {
   type: "personal",
   nsfw: false,
   coverImage: { publicId: "bushart/e2e/test-image", width: 800, height: 600 },
+  descriptionPreview: "Seeded artwork for Playwright E2E tests.",
   tagSlugs: ["e2e-tag"],
 };
 
@@ -27,9 +28,19 @@ export const e2eDetail: ArtworkDetailResponse = {
   type: "personal",
   nsfw: false,
   completionDate: "2026-03-01T00:00:00.000Z",
-  images: [{ publicId: "bushart/e2e/test-image", width: 800, height: 600, order: 0 }],
+  images: [
+    { publicId: "bushart/e2e/test-image", width: 800, height: 600, order: 0 },
+    { publicId: "bushart/e2e/test-image-2", width: 800, height: 600, order: 1 },
+  ],
   timelapse: null,
   tags: [{ id: "65e2e2e2e2e2e2e2e2e2e2e2", name: "E2E Tag", slug: "e2e-tag" }],
+};
+
+export const e2eNsfwDetail: ArtworkDetailResponse = {
+  ...e2eDetail,
+  slug: E2E_NSFW_SLUG,
+  title: "E2E NSFW Artwork",
+  nsfw: true,
 };
 
 export async function mockGalleryApis(page: Page) {

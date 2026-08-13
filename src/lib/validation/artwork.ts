@@ -90,22 +90,32 @@ export const ArtworkListItemSchema = ArtworkBaseSchema
     completionDate: true,
     images: true,
     tagIds: true,
+    description: true,
   })
-  .transform((val) => ({
-    id: val.id,
-    slug: val.slug,
-    title: val.title,
-    medium: val.medium,
-    type: val.type,
-    nsfw: val.nsfw,
-    completionDate: val.completionDate,
-    coverImage: {
-      publicId: val.images[0]?.publicId ?? "",
-      width: val.images[0]?.width ?? 0,
-      height: val.images[0]?.height ?? 0,
-    },
-    tagSlugs: [] as string[],
-  }));
+  .transform((val) => {
+    const sorted = [...val.images].sort((a, b) => a.order - b.order);
+    const cover = sorted[0];
+    return {
+      id: val.id,
+      slug: val.slug,
+      title: val.title,
+      medium: val.medium,
+      type: val.type,
+      nsfw: val.nsfw,
+      completionDate: val.completionDate,
+      coverImage: {
+        publicId: cover?.publicId ?? "",
+        width: cover?.width ?? 0,
+        height: cover?.height ?? 0,
+      },
+      descriptionPreview: val.description
+        ? val.description.length > 160
+          ? `${val.description.slice(0, 160).trimEnd()}…`
+          : val.description
+        : null,
+      tagSlugs: [] as string[],
+    };
+  });
 
 export type Artwork = z.infer<typeof ArtworkSchema>;
 export type ArtworkListItem = z.output<typeof ArtworkListItemSchema>;

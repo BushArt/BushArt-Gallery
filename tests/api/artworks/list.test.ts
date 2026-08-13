@@ -17,6 +17,7 @@ const sampleItem = {
   nsfw: false,
   completionDate: "2026-06-30T00:00:00.000Z",
   coverImage: { publicId: "bushart/artworks/moth/main", width: 100, height: 100 },
+  descriptionPreview: null,
   tagSlugs: ["gouache"],
 };
 

@@ -12,7 +12,9 @@ export function toArtworkDetailResponse(artwork: Artwork, tags: Tag[]) {
     type: artwork.type,
     nsfw: artwork.nsfw,
     completionDate: artwork.completionDate,
-    images: artwork.images.map(({ publicId, width, height, order }) => ({
+    images: [...artwork.images]
+      .sort((a, b) => a.order - b.order)
+      .map(({ publicId, width, height, order }) => ({
       publicId,
       width,
       height,

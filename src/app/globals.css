@@ -86,10 +86,38 @@
     --motion-deliberate: 450ms;
   }
 
+  html {
+    scrollbar-gutter: stable;
+  }
+
   body {
     background-color: var(--color-ink-950);
     color: var(--color-paper-100);
     font-family: var(--font-inter);
+  }
+
+  .bushart-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-ink-600) var(--color-ink-900);
+  }
+
+  .bushart-scroll::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .bushart-scroll::-webkit-scrollbar-track {
+    background: var(--color-ink-900);
+    border-radius: var(--radius-lg);
+  }
+
+  .bushart-scroll::-webkit-scrollbar-thumb {
+    background: var(--color-ink-600);
+    border-radius: var(--radius-full);
+    border: 2px solid var(--color-ink-900);
+  }
+
+  .bushart-scroll::-webkit-scrollbar-thumb:hover {
+    background: var(--color-ink-700);
   }
 
   /* Form controls — 06-UI-Design-System.md §10 */

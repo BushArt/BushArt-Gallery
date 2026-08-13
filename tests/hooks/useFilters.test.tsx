@@ -50,4 +50,21 @@ describe("useFilters", () => {
 
     expect(result.current.filters.nsfw).toBe("exclude");
   });
+
+  it("parses invalid year URL param as null", () => {
+    searchParams = new URLSearchParams("year=abc&nsfw=exclude");
+
+    const { result } = renderHook(() => useFilters());
+
+    expect(result.current.filters.year).toBeNull();
+  });
+
+  it("bootstraps NSFW from localStorage when URL has no nsfw param", () => {
+    localStorage.setItem(NSFW_STORAGE_KEY, "include");
+    searchParams = new URLSearchParams("");
+
+    renderHook(() => useFilters());
+
+    expect(replaceMock).toHaveBeenCalledWith("/?nsfw=include", { scroll: false });
+  });
 });

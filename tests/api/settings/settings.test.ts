@@ -97,6 +97,7 @@ describe("PATCH /api/settings", () => {
   });
 
   it("succeeds on zero-state first PATCH before any settings document exists", async () => {
+    vi.mocked(findSettings).mockResolvedValue(null);
     vi.mocked(upsertSettings).mockResolvedValue({
       artistName: "Bush",
       tagline: "New tagline",
@@ -121,6 +122,21 @@ describe("PATCH /api/settings", () => {
     expect(upsertSettings).toHaveBeenCalledWith(
       expect.objectContaining({ artistName: "Bush", tagline: "New tagline" }),
     );
+  });
+
+  it("returns 400 when first PATCH omits artistName on zero-state", async () => {
+    vi.mocked(findSettings).mockResolvedValue(null);
+    const req = new NextRequest("http://localhost/api/settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tagline: "New tagline", socialLinks: [] }),
+    });
+    const res = await PATCH(req);
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error.code).toBe("VALIDATION_ERROR");
+    expect(json.error.details.field).toBe("artistName");
+    expect(upsertSettings).not.toHaveBeenCalled();
   });
 
   it("returns 400 VALIDATION_ERROR for invalid JSON body", async () => {

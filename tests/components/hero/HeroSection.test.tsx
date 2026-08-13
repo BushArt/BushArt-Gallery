@@ -4,8 +4,19 @@ import { HeroSection } from "@/components/hero/HeroSection";
 import type { PublicSettingsResponse } from "@/types/api";
 import type { ArtworkListItem } from "@/types/artwork";
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ prefetch: vi.fn() }),
+}));
+
 vi.mock("@/lib/cloudinary/transformations", () => ({
   getTransformationUrl: (publicId: string) => `https://cdn.example.com/${publicId}`,
+}));
+
+vi.mock("@/components/ui/SketchReveal", () => ({
+  SketchRevealImage: ({ src, alt }: { src: string; alt: string }) => (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={src} alt={alt} />
+  ),
 }));
 
 const populatedSettings: PublicSettingsResponse = {
@@ -40,6 +51,7 @@ const featuredFixture: ArtworkListItem[] = [
     nsfw: false,
     completionDate: "2024-03-01T00:00:00.000Z",
     coverImage: { publicId: "art-1", width: 800, height: 600 },
+    descriptionPreview: null,
     tagSlugs: [],
   },
 ];

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback } from "react";
 import { getTransformationUrl } from "@/lib/cloudinary/transformations";
+import { cacheArtworkDetail } from "@/lib/utils/artworkDetailCache";
 import { formatCompletionDate } from "@/lib/utils/formatDate";
 import type { ArtworkListItem } from "@/types/artwork";
 import { Badge } from "@/components/ui/Badge";
@@ -27,7 +28,12 @@ export function ArtworkCard({ artwork, viewMode, description }: ArtworkCardProps
 
   const prefetchDetail = useCallback(() => {
     router.prefetch(href);
-    void fetch(`/api/artworks/${encodeURIComponent(artwork.slug)}`).catch(() => {});
+    void fetch(`/api/artworks/${encodeURIComponent(artwork.slug)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data) cacheArtworkDetail(data);
+      })
+      .catch(() => {});
   }, [artwork.slug, href, router]);
 
   if (viewMode === "list") {
@@ -66,7 +72,7 @@ export function ArtworkCard({ artwork, viewMode, description }: ArtworkCardProps
   }
 
   return (
-    <article className="group break-inside-avoid">
+    <article className="group">
       <Link
         href={href}
         onMouseEnter={prefetchDetail}

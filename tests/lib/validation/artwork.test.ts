@@ -233,7 +233,7 @@ describe("ArtworkListItemSchema", () => {
     ).not.toThrow();
   });
 
-  it("extracts coverImage from first image", () => {
+  it("extracts coverImage from lowest-order image", () => {
     const parsed = ArtworkListItemSchema.parse({
       id: "66a1f2b3c4d5e6f7a8b9c0d1",
       slug: "test-piece",
@@ -242,7 +242,15 @@ describe("ArtworkListItemSchema", () => {
       type: "personal",
       nsfw: false,
       completionDate: "2026-06-30T00:00:00.000Z",
+      description: "A".repeat(200),
       images: [
+        {
+          publicId: "bushart/artworks/test/second",
+          url: "https://res.cloudinary.com/bushart/image/upload/v1/second.jpg",
+          width: 500,
+          height: 500,
+          order: 1,
+        },
         {
           publicId: "bushart/artworks/test/main",
           url: "https://res.cloudinary.com/bushart/image/upload/v1/test.jpg",
@@ -254,7 +262,6 @@ describe("ArtworkListItemSchema", () => {
       tagIds: [],
     });
     expect(parsed.coverImage.publicId).toBe("bushart/artworks/test/main");
-    expect(parsed.coverImage.width).toBe(1000);
-    expect(parsed.coverImage.height).toBe(1200);
+    expect(parsed.descriptionPreview).toContain("…");
   });
 });

@@ -16,8 +16,14 @@ export async function destroyAssets(assets: DestroyAsset[]): Promise<void> {
 
   const cld = getCloudinary();
   await Promise.all(
-    assets.map(({ publicId, resourceType }) =>
-      cld.uploader.destroy(publicId, { resource_type: resourceType }),
-    ),
+    assets.map(async ({ publicId, resourceType }) => {
+      const result = await cld.uploader.destroy(publicId, { resource_type: resourceType });
+      if (result.result !== "ok" && result.result !== "not found") {
+        console.warn(
+          `Cloudinary destroy unexpected result for ${publicId} (${resourceType}):`,
+          result.result,
+        );
+      }
+    }),
   );
 }

@@ -10,7 +10,11 @@ export function GalleryList({ items }: GalleryListProps) {
     <ul className="flex flex-col gap-3" data-testid="gallery-list">
       {items.map((artwork) => (
         <li key={artwork.id}>
-          <ArtworkCard artwork={artwork} viewMode="list" />
+          <ArtworkCard
+            artwork={artwork}
+            viewMode="list"
+            description={artwork.descriptionPreview}
+          />
         </li>
       ))}
     </ul>

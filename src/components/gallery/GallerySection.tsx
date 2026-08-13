@@ -1,6 +1,7 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useArtworks } from "@/hooks/useArtworks";
 import { useFilters } from "@/hooks/useFilters";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
@@ -13,20 +14,45 @@ import { GalleryList } from "./GalleryList";
 import { ViewModeToggle } from "./ViewModeToggle";
 
 const VIEW_MODE_KEY = "bushart-view-mode";
+const VIEW_MODE_CHANGED = "bushart-view-mode-changed";
 
 function readViewMode(): ViewMode {
   if (typeof window === "undefined") return "grid";
   return sessionStorage.getItem(VIEW_MODE_KEY) === "list" ? "list" : "grid";
 }
 
+function subscribeViewMode(onStoreChange: () => void): () => void {
+  if (typeof window === "undefined") return () => {};
+
+  window.addEventListener(VIEW_MODE_CHANGED, onStoreChange);
+  window.addEventListener("storage", onStoreChange);
+
+  return () => {
+    window.removeEventListener(VIEW_MODE_CHANGED, onStoreChange);
+    window.removeEventListener("storage", onStoreChange);
+  };
+}
+
 function GallerySectionInner() {
   const { filters, setFilters } = useFilters();
-  const [viewMode, setViewModeState] = useState<ViewMode>(() => readViewMode());
+  const filtersKey = useMemo(() => JSON.stringify(filters), [filters]);
+  const prefersReducedMotion = useReducedMotion();
+  const viewMode = useSyncExternalStore(subscribeViewMode, readViewMode, (): ViewMode => "grid");
   const [tags, setTags] = useState<Tag[]>([]);
-  const { items, isLoading, isLoadingMore, error, isRetryable, hasMore, loadMore, refresh } =
-    useArtworks({
-      filters,
-    });
+  const {
+    items,
+    isLoading,
+    isLoadingMore,
+    error,
+    isRetryable,
+    hasMore,
+    loadMore,
+    refresh,
+    retryLoadMore,
+    appendFailed,
+  } = useArtworks({
+    filters,
+  });
 
   const { sentinelRef } = useInfiniteScroll({
     onLoadMore: loadMore,
@@ -44,9 +70,17 @@ function GallerySectionInner() {
   const setViewMode = useCallback((mode: ViewMode) => {
     const scrollY = window.scrollY;
     sessionStorage.setItem(VIEW_MODE_KEY, mode);
-    setViewModeState(mode);
+    window.dispatchEvent(new Event(VIEW_MODE_CHANGED));
     requestAnimationFrame(() => window.scrollTo({ top: scrollY }));
   }, []);
+
+  const handleRetry = useCallback(() => {
+    if (appendFailed) {
+      retryLoadMore();
+    } else {
+      refresh();
+    }
+  }, [appendFailed, refresh, retryLoadMore]);
 
   return (
     <section className="mx-auto max-w-[1400px] px-4 pb-24 pt-8" aria-label="Gallery">
@@ -65,43 +99,58 @@ function GallerySectionInner() {
         />
       </div>
 
-      {error && (
-        <div className="mt-8 text-center" role="alert">
-          <p className="text-body-md text-accent-ember">{error}</p>
-          {isRetryable && (
-            <button
-              type="button"
-              onClick={() => refresh()}
-              className="mt-3 rounded-md bg-ink-800 px-4 py-2 text-body-sm text-paper-100 transition-colors hover:bg-ink-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-brass"
-            >
-              Retry
-            </button>
-          )}
-        </div>
-      )}
+      <div aria-live="polite" aria-atomic="true">
+        {error && (
+          <div className="mt-8 text-center" role="alert">
+            <p className="text-body-md text-accent-ember">{error}</p>
+            {isRetryable && (
+              <button
+                type="button"
+                onClick={handleRetry}
+                className="mt-3 rounded-md bg-ink-800 px-4 py-2 text-body-sm text-paper-100 transition-colors hover:bg-ink-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-brass"
+              >
+                Retry
+              </button>
+            )}
+          </div>
+        )}
 
-      {isLoading && !error && (
-        <p className="mt-8 text-center text-body-md text-paper-500">Loading gallery…</p>
-      )}
+        {isLoading && !error && (
+          <p className="mt-8 text-center text-body-md text-paper-500">Loading gallery…</p>
+        )}
 
-      {!isLoading && !error && items.length === 0 && (
-        <p className="mt-8 text-center text-body-md text-paper-500">No artworks match these filters.</p>
-      )}
+        {!isLoading && !error && items.length === 0 && (
+          <p className="mt-8 text-center text-body-md text-paper-500">
+            No artworks match these filters.
+          </p>
+        )}
+      </div>
 
-      {!isLoading && items.length > 0 && (
-        <div className="mt-6">
-          {viewMode === "grid" ? (
-            <GalleryGrid items={items} />
-          ) : (
-            <GalleryList items={items} />
-          )}
-        </div>
-      )}
+      <AnimatePresence mode="wait">
+        {!isLoading && items.length > 0 && (
+          <motion.div
+            key={filtersKey}
+            className="mt-6"
+            initial={prefersReducedMotion ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={prefersReducedMotion ? undefined : { opacity: 0 }}
+            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+          >
+            {viewMode === "grid" ? (
+              <GalleryGrid items={items} />
+            ) : (
+              <GalleryList items={items} />
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div ref={sentinelRef} className="h-4" aria-hidden="true" />
 
       {isLoadingMore && (
-        <p className="mt-4 text-center text-body-sm text-paper-500">Loading more…</p>
+        <p className="mt-4 text-center text-body-sm text-paper-500" aria-live="polite">
+          Loading more…
+        </p>
       )}
     </section>
   );

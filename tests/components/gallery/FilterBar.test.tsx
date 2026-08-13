@@ -41,6 +41,21 @@ describe("FilterBar", () => {
     expect(onFiltersChange).toHaveBeenCalledWith({ year: 2023 });
   });
 
+  it("debounces medium filter and emits value after delay", () => {
+    const onFiltersChange = vi.fn();
+
+    render(
+      <FilterBar filters={baseFilters} tags={tags} onFiltersChange={onFiltersChange} />,
+    );
+
+    fireEvent.change(screen.getByTestId("filter-medium"), { target: { value: "Ink" } });
+    expect(onFiltersChange).not.toHaveBeenCalled();
+
+    vi.advanceTimersByTime(300);
+
+    expect(onFiltersChange).toHaveBeenCalledWith({ medium: "Ink" });
+  });
+
   it("parseYearInput rejects invalid values", () => {
     expect(parseYearInput("abc")).toBeNull();
     expect(parseYearInput("2023")).toBe(2023);

@@ -1,3 +1,5 @@
+"use client";
+
 import type { ArtworkListItem } from "@/types/artwork";
 import { ArtworkCard } from "./ArtworkCard";
 
@@ -8,13 +10,12 @@ interface GalleryGridProps {
 export function GalleryGrid({ items }: GalleryGridProps) {
   return (
     <div
-      className="columns-1 gap-4 sm:columns-2 lg:columns-3 xl:columns-4"
+      className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+      style={{ gridAutoFlow: "dense" }}
       data-testid="gallery-grid"
     >
       {items.map((artwork) => (
-        <div key={artwork.id} className="mb-4">
-          <ArtworkCard artwork={artwork} viewMode="grid" />
-        </div>
+        <ArtworkCard key={artwork.id} artwork={artwork} viewMode="grid" />
       ))}
     </div>
   );

@@ -1,12 +1,14 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Share2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
 interface ShareButtonProps {
   slug: string;
 }
+
+const CONFIRMATION_MS = 3000;
 
 function buildShareUrl(slug: string): string {
   const base =
@@ -17,6 +19,12 @@ function buildShareUrl(slug: string): string {
 
 export function ShareButton({ slug }: ShareButtonProps) {
   const [confirmation, setConfirmation] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!confirmation) return;
+    const timer = window.setTimeout(() => setConfirmation(null), CONFIRMATION_MS);
+    return () => window.clearTimeout(timer);
+  }, [confirmation]);
 
   const handleShare = useCallback(async () => {
     const url = buildShareUrl(slug);

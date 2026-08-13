@@ -110,6 +110,7 @@ interface ProjectedArtworkDoc {
   _id: ObjectId;
   slug: string;
   title: string;
+  description?: string | null;
   medium: string;
   type: "personal" | "commission";
   nsfw: boolean;
@@ -118,15 +119,31 @@ interface ProjectedArtworkDoc {
   tagIds: ObjectId[];
 }
 
+const LIST_DESCRIPTION_MAX = 160;
+
+function pickCoverImage(images: ImageAsset[]): ArtworkListItem["coverImage"] {
+  if (images.length === 0) {
+    return { publicId: "", width: 0, height: 0 };
+  }
+  const sorted = [...images].sort((a, b) => a.order - b.order);
+  const cover = sorted[0];
+  return {
+    publicId: cover.publicId,
+    width: cover.width,
+    height: cover.height,
+  };
+}
+
+function truncateListDescription(description: string | null | undefined): string | null {
+  if (!description?.trim()) return null;
+  if (description.length <= LIST_DESCRIPTION_MAX) return description;
+  return `${description.slice(0, LIST_DESCRIPTION_MAX).trimEnd()}…`;
+}
+
 function docToListItem(
   doc: ProjectedArtworkDoc,
   tagSlugs: string[],
 ): ArtworkListItem {
-  const cover = doc.images[0] ?? {
-    publicId: "",
-    width: 0,
-    height: 0,
-  };
   return {
     id: doc._id.toHexString(),
     slug: doc.slug,
@@ -135,12 +152,9 @@ function docToListItem(
     type: doc.type,
     nsfw: doc.nsfw,
     completionDate: doc.completionDate.toISOString(),
-    coverImage: {
-      publicId: cover.publicId,
-      width: cover.width,
-      height: cover.height,
-    },
-    tagSlugs,
+    coverImage: pickCoverImage(doc.images),
+    descriptionPreview: truncateListDescription(doc.description),
+    tagSlugs: tagSlugs.filter(Boolean),
   };
 }
 
@@ -171,11 +185,12 @@ const ARTWORK_PROJECTION = {
   _id: 1,
   slug: 1,
   title: 1,
+  description: 1,
   medium: 1,
   type: 1,
   nsfw: 1,
   completionDate: 1,
-  images: { $slice: 1 },
+  images: 1,
   tagIds: 1,
 } as const;
 

@@ -76,4 +76,38 @@ describe("GET /api/artworks/:slug", () => {
     const json = await res.json();
     expect(json.error.code).toBe("NOT_FOUND");
   });
+
+  it("returns images sorted by order ascending", async () => {
+    vi.mocked(findArtworkBySlug).mockResolvedValue({
+      ...artwork,
+      images: [
+        {
+          publicId: "bushart/artworks/moth/detail",
+          url: "https://example.com/detail.jpg",
+          width: 100,
+          height: 100,
+          order: 2,
+        },
+        {
+          publicId: "bushart/artworks/moth/main",
+          url: "https://example.com/main.jpg",
+          width: 100,
+          height: 100,
+          order: 0,
+        },
+        {
+          publicId: "bushart/artworks/moth/mid",
+          url: "https://example.com/mid.jpg",
+          width: 100,
+          height: 100,
+          order: 1,
+        },
+      ],
+    });
+
+    const req = new NextRequest("http://localhost/api/artworks/moth-study");
+    const res = await GET(req, { params: Promise.resolve({ id: "moth-study" }) });
+    const json = await res.json();
+    expect(json.images.map((img: { order: number }) => img.order)).toEqual([0, 1, 2]);
+  });
 });

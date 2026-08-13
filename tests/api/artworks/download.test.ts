@@ -114,6 +114,14 @@ describe("GET /api/artworks/:slug/download", () => {
     expect(res.status).toBe(404);
   });
 
+  it("returns 404 when image index is out of range", async () => {
+    const req = new NextRequest("http://localhost/api/artworks/moth-study/download?image=99");
+    const res = await GET(req, { params: Promise.resolve({ id: "moth-study" }) });
+    expect(res.status).toBe(404);
+    const json = await res.json();
+    expect(json.error.code).toBe("NOT_FOUND");
+  });
+
   it("uses sorted order when images array is unsorted in MongoDB", async () => {
     vi.mocked(findArtworkBySlug).mockResolvedValue({
       ...artwork,

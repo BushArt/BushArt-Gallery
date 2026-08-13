@@ -79,8 +79,8 @@ export function HeroSection({ settings, featuredArtworks }: HeroSectionProps) {
 
             {settings.socialLinks.length > 0 && (
               <ul className="flex flex-wrap gap-3">
-                {settings.socialLinks.map((link) => (
-                  <li key={link.url}>
+                {settings.socialLinks.map((link, index) => (
+                  <li key={`${link.platform}-${index}`}>
                     <a
                       href={link.url}
                       target="_blank"

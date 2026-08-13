@@ -4,6 +4,7 @@ import { findFeaturedArtworks } from "@/lib/db/models/artwork";
 import { findSettings } from "@/lib/db/models/settings";
 import { HeroSection } from "@/components/hero/HeroSection";
 import { GallerySection } from "@/components/gallery/GallerySection";
+import { SectionErrorBoundary } from "@/components/ui/SectionErrorBoundary";
 
 async function HeroLoader() {
   const [settings, featuredArtworks] = await Promise.all([
@@ -34,7 +35,9 @@ export function HomePageShell() {
       <Suspense fallback={<HeroFallback />}>
         <HeroLoader />
       </Suspense>
-      <GallerySection />
+      <SectionErrorBoundary fallbackLabel="The gallery failed to load.">
+        <GallerySection />
+      </SectionErrorBoundary>
     </main>
   );
 }

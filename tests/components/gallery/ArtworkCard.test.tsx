@@ -29,6 +29,7 @@ function makeArtwork(overrides: Partial<ArtworkListItem> & Pick<ArtworkListItem,
     medium: "Watercolor",
     completionDate: "2024-06-15T00:00:00.000Z",
     coverImage: { publicId: "cover-1", width: 600, height: 800 },
+    descriptionPreview: null,
     tagSlugs: [],
     ...overrides,
   };

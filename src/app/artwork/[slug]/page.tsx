@@ -53,7 +53,7 @@ async function ArtworkPopupLoader({ slug }: { slug: string }) {
   const tags = await findTagsByIds(artwork.tagIds);
   const initialData = toArtworkDetailResponse(artwork, tags);
 
-  return <ArtworkPopup slug={slug} initialData={initialData} />;
+  return <ArtworkPopup slug={slug} initialData={initialData} closeMode="home" />;
 }
 
 async function ArtworkPageContent({ params }: ArtworkPageProps) {
@@ -62,7 +62,7 @@ async function ArtworkPageContent({ params }: ArtworkPageProps) {
   return (
     <>
       <HomePageShell />
-      <Suspense fallback={<ArtworkPopupLoadingShell />}>
+      <Suspense fallback={<ArtworkPopupLoadingShell closeMode="home" />}>
         <ArtworkPopupLoader slug={slug} />
       </Suspense>
     </>

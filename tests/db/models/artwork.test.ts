@@ -1025,6 +1025,44 @@ describe("models/tag", () => {
       "cursor-recent-0",
     ]);
   });
+
+  it("listArtworks picks cover image with lowest order when stored unsorted", async () => {
+    await createArtwork({
+      slug: "cover-order-test",
+      title: "Cover Order",
+      description: "A long description for list preview truncation testing in the gallery feed.",
+      medium: "Ink",
+      type: "personal",
+      nsfw: false,
+      featured: false,
+      featuredOrder: null,
+      images: [
+        {
+          publicId: "bushart/cover/second",
+          url: "https://example.com/second.jpg",
+          width: 200,
+          height: 300,
+          order: 1,
+        },
+        {
+          publicId: "bushart/cover/first",
+          url: "https://example.com/first.jpg",
+          width: 400,
+          height: 500,
+          order: 0,
+        },
+      ],
+      timelapse: null,
+      tagIds: [],
+      completionDate: new Date("2024-06-01"),
+    });
+
+    const result = await listArtworks({});
+    const item = result.items.find((i) => i.slug === "cover-order-test");
+    expect(item?.coverImage.publicId).toBe("bushart/cover/first");
+    expect(item?.coverImage.width).toBe(400);
+    expect(item?.descriptionPreview).toContain("long description");
+  });
 });
 
 describe("models/settings", () => {

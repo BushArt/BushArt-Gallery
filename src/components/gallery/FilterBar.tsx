@@ -4,15 +4,10 @@ import clsx from "clsx";
 import { Eye, EyeOff } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { FilterState } from "@/hooks/useFilters";
+import { parseYearInput } from "@/lib/utils/parseYear";
 import type { Tag } from "@/types/tag";
 
 const DEBOUNCE_MS = 300;
-
-function parseYearInput(value: string): number | null {
-  if (!value.trim()) return null;
-  const n = Number(value);
-  return Number.isFinite(n) ? n : null;
-}
 
 interface FilterBarProps {
   filters: FilterState;
@@ -26,6 +21,15 @@ export function FilterBar({ filters, tags, onFiltersChange, className }: FilterB
   const [mediumInput, setMediumInput] = useState(filters.medium);
   const yearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mediumTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const yearInputRef = useRef(yearInput);
+  const mediumInputRef = useRef(mediumInput);
+  const onFiltersChangeRef = useRef(onFiltersChange);
+
+  useEffect(() => {
+    yearInputRef.current = yearInput;
+    mediumInputRef.current = mediumInput;
+    onFiltersChangeRef.current = onFiltersChange;
+  });
 
   useEffect(() => {
     // Sync URL-driven filter changes back into debounced inputs (e.g. tag toggle, back nav)
@@ -40,8 +44,16 @@ export function FilterBar({ filters, tags, onFiltersChange, className }: FilterB
 
   useEffect(() => {
     return () => {
-      if (yearTimerRef.current) clearTimeout(yearTimerRef.current);
-      if (mediumTimerRef.current) clearTimeout(mediumTimerRef.current);
+      if (yearTimerRef.current) {
+        clearTimeout(yearTimerRef.current);
+        yearTimerRef.current = null;
+        onFiltersChangeRef.current({ year: parseYearInput(yearInputRef.current) });
+      }
+      if (mediumTimerRef.current) {
+        clearTimeout(mediumTimerRef.current);
+        mediumTimerRef.current = null;
+        onFiltersChangeRef.current({ medium: mediumInputRef.current });
+      }
     };
   }, []);
 
@@ -190,4 +202,4 @@ export function NsfwToggle({ nsfw, onChange }: NsfwToggleProps) {
   );
 }
 
-export { parseYearInput };
+export { parseYearInput } from "@/lib/utils/parseYear";

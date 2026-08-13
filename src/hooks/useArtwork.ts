@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { getCachedArtworkDetail, cacheArtworkDetail } from "@/lib/utils/artworkDetailCache";
 import type { ArtworkDetailResponse } from "@/types/api";
 
 interface UseArtworkOptions {
@@ -30,7 +31,17 @@ async function loadArtwork(
   if (data.slug !== slug) {
     throw new DOMException("Stale artwork response", "AbortError");
   }
+  cacheArtworkDetail(data);
   return data;
+}
+
+function resolveInitialData(
+  slug: string,
+  initialData: ArtworkDetailResponse | null,
+): ArtworkDetailResponse | null {
+  if (initialData) return initialData;
+  const cached = getCachedArtworkDetail(slug);
+  return cached?.slug === slug ? cached : null;
 }
 
 export function useArtwork({
@@ -38,21 +49,24 @@ export function useArtwork({
   initialData = null,
   enabled = true,
 }: UseArtworkOptions): UseArtworkResult {
+  const seeded = resolveInitialData(slug, initialData);
   const [trackedSlug, setTrackedSlug] = useState(slug);
-  const [artwork, setArtwork] = useState<ArtworkDetailResponse | null>(initialData);
-  const [isLoading, setIsLoading] = useState(!initialData && enabled);
+  const [artwork, setArtwork] = useState<ArtworkDetailResponse | null>(seeded);
+  const [isLoading, setIsLoading] = useState(!seeded && enabled);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   if (slug !== trackedSlug) {
+    const nextSeeded = resolveInitialData(slug, initialData);
     setTrackedSlug(slug);
-    setArtwork(initialData);
+    setArtwork(nextSeeded);
     setError(null);
-    setIsLoading(!initialData && enabled);
+    setIsLoading(!nextSeeded && enabled);
   }
 
   useEffect(() => {
-    if (!enabled || initialData) return;
+    const resolved = resolveInitialData(slug, initialData);
+    if (!enabled || resolved) return;
 
     abortRef.current?.abort();
     const controller = new AbortController();

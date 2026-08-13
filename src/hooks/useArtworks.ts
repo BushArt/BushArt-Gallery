@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ArtworkListItem } from "@/types/artwork";
 import type { ArtworkListResponse } from "@/types/api";
 import type { FilterState } from "@/hooks/useFilters";
+import { filtersToSearchParams } from "@/lib/utils/filterParams";
 
 interface UseArtworksOptions {
   filters: FilterState;
@@ -17,20 +18,14 @@ interface UseArtworksResult {
   error: string | null;
   isRetryable: boolean;
   hasMore: boolean;
+  appendFailed: boolean;
   loadMore: () => void;
   refresh: () => void;
+  retryLoadMore: () => void;
 }
 
 function buildQueryString(filters: FilterState, cursor?: string): string {
-  const params = new URLSearchParams();
-  if (filters.tags.length > 0) params.set("tags", filters.tags.join(","));
-  if (filters.year) params.set("year", String(filters.year));
-  if (filters.medium) params.set("medium", filters.medium);
-  if (filters.type) params.set("type", filters.type);
-  params.set("nsfw", filters.nsfw);
-  if (filters.sort !== "recent") params.set("sort", filters.sort);
-  if (cursor) params.set("cursor", cursor);
-  return params.toString();
+  return filtersToSearchParams(filters, cursor).toString();
 }
 
 function isRetryableStatus(status: number): boolean {
@@ -45,6 +40,8 @@ export function useArtworks({ filters, enabled = true }: UseArtworksOptions): Us
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isRetryable, setIsRetryable] = useState(false);
+  const [appendFailed, setAppendFailed] = useState(false);
+  const lastAppendCursorRef = useRef<string | null>(null);
   const filtersKey = JSON.stringify(filters);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -56,12 +53,16 @@ export function useArtworks({ filters, enabled = true }: UseArtworksOptions): Us
 
       if (append) {
         setIsLoadingMore(true);
+        setAppendFailed(false);
+        lastAppendCursorRef.current = nextCursor ?? null;
       } else {
         setCursor(null);
         setHasMore(false);
         setIsLoading(true);
         setError(null);
         setIsRetryable(false);
+        setAppendFailed(false);
+        lastAppendCursorRef.current = null;
       }
 
       try {
@@ -71,6 +72,7 @@ export function useArtworks({ filters, enabled = true }: UseArtworksOptions): Us
           const body = await res.json().catch(() => ({}));
           const message = body?.error?.message ?? `Request failed (${res.status})`;
           setIsRetryable(isRetryableStatus(res.status));
+          if (append) setAppendFailed(true);
           throw new Error(message);
         }
         const data = (await res.json()) as ArtworkListResponse;
@@ -84,6 +86,7 @@ export function useArtworks({ filters, enabled = true }: UseArtworksOptions): Us
         setCursor(data.nextCursor);
         setHasMore(data.hasMore);
         setIsRetryable(false);
+        setAppendFailed(false);
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") return;
         if (err instanceof TypeError) {
@@ -101,7 +104,6 @@ export function useArtworks({ filters, enabled = true }: UseArtworksOptions): Us
 
   useEffect(() => {
     if (!enabled) return;
-    // Data fetch on filter change — intentional effect-driven load
     // eslint-disable-next-line react-hooks/set-state-in-effect -- standard fetch-on-deps pattern
     void fetchPage();
     return () => abortRef.current?.abort();
@@ -116,6 +118,16 @@ export function useArtworks({ filters, enabled = true }: UseArtworksOptions): Us
     void fetchPage();
   }, [fetchPage]);
 
+  const retryLoadMore = useCallback(() => {
+    const retryCursor = lastAppendCursorRef.current ?? cursor;
+    if (!retryCursor) {
+      refresh();
+      return;
+    }
+    setError(null);
+    void fetchPage(retryCursor, true);
+  }, [cursor, fetchPage, refresh]);
+
   return {
     items,
     isLoading,
@@ -123,8 +135,10 @@ export function useArtworks({ filters, enabled = true }: UseArtworksOptions): Us
     error,
     isRetryable,
     hasMore,
+    appendFailed,
     loadMore,
     refresh,
+    retryLoadMore,
   };
 }
 

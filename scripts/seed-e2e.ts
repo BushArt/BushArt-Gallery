@@ -52,6 +52,13 @@ async function main() {
             height: 600,
             order: 0,
           },
+          {
+            publicId: "bushart/e2e/test-image-2",
+            url: "https://res.cloudinary.com/demo/image/upload/sample.jpg",
+            width: 800,
+            height: 600,
+            order: 1,
+          },
         ],
         timelapse: null,
         tagIds: [E2E_TAG_ID],

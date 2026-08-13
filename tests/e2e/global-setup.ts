@@ -9,7 +9,9 @@ export default async function globalSetup() {
   }
 
   if (!process.env.MONGODB_URI) {
-    console.warn("MONGODB_URI not set — skipping E2E seed (direct URL test may fail)");
+    console.warn(
+      "E2E setup: MONGODB_URI is not set — skipping DB seed. Direct URL tests against real API will fail. See tests/e2e/README.md.",
+    );
     return;
   }
 

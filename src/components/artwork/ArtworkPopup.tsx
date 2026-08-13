@@ -8,6 +8,7 @@ import { getTransformationUrl } from "@/lib/cloudinary/transformations";
 import { formatCompletionDate } from "@/lib/utils/formatDate";
 import { useArtwork } from "@/hooks/useArtwork";
 import { NSFW_STORAGE_KEY } from "@/hooks/useFilters";
+import { NSFW_PREFERENCE_CHANGED } from "@/lib/utils/nsfwEvents";
 import type { ArtworkDetailResponse } from "@/types/api";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
@@ -20,6 +21,8 @@ import { FullscreenViewer, type FullscreenMediaItem } from "./FullscreenViewer";
 interface ArtworkPopupProps {
   slug: string;
   initialData?: ArtworkDetailResponse | null;
+  /** Full-page `/artwork/[slug]` visits should navigate home; intercepted modals use history back. */
+  closeMode?: "back" | "home";
 }
 
 function readNsfwPreferenceFromStorage(): "include" | "exclude" {
@@ -56,9 +59,22 @@ function NsfwInterstitial({
   );
 }
 
-export function ArtworkPopupLoadingShell() {
+export function ArtworkPopupLoadingShell({ closeMode = "back" }: { closeMode?: "back" | "home" }) {
+  const router = useRouter();
+  const handleClose = useCallback(() => {
+    if (closeMode === "home") {
+      router.push("/");
+      return;
+    }
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+    } else {
+      router.push("/");
+    }
+  }, [router, closeMode]);
+
   return (
-    <Modal onClose={() => {}} testId="artwork-modal">
+    <Modal onClose={handleClose} testId="artwork-modal">
       <div className="p-12 text-center text-body-md text-paper-500" data-testid="artwork-popup">
         Loading artwork…
       </div>
@@ -66,9 +82,22 @@ export function ArtworkPopupLoadingShell() {
   );
 }
 
-export function ArtworkPopup({ slug, initialData = null }: ArtworkPopupProps) {
+export function ArtworkPopup({ slug, initialData = null, closeMode = "back" }: ArtworkPopupProps) {
   const router = useRouter();
   const titleId = useId();
+
+  const handleClose = useCallback(() => {
+    if (closeMode === "home") {
+      router.push("/");
+      return;
+    }
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+    } else {
+      router.push("/");
+    }
+  }, [router, closeMode]);
+
   const { artwork, isLoading, error } = useArtwork({ slug, initialData });
   const [nsfwPreference, setNsfwPreference] = useState<"include" | "exclude">(
     readNsfwPreferenceFromStorage,
@@ -79,23 +108,29 @@ export function ArtworkPopup({ slug, initialData = null }: ArtworkPopupProps) {
   const [fullscreenOpen, setFullscreenOpen] = useState(false);
 
   useEffect(() => {
-    const handleStorage = (event: StorageEvent) => {
-      if (event.key === NSFW_STORAGE_KEY || event.key === null) {
-        setNsfwPreference(readNsfwPreferenceFromStorage());
+    const syncPreference = () => {
+      const next = readNsfwPreferenceFromStorage();
+      setNsfwPreference(next);
+      if (next === "exclude") {
+        setNsfwConfirmed(false);
       }
     };
 
-    window.addEventListener("storage", handleStorage);
-    return () => window.removeEventListener("storage", handleStorage);
-  }, []);
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === NSFW_STORAGE_KEY || event.key === null) {
+        syncPreference();
+      }
+    };
 
-  const handleClose = useCallback(() => {
-    if (typeof window !== "undefined" && window.history.length > 1) {
-      router.back();
-    } else {
-      router.push("/");
-    }
-  }, [router]);
+    const handleNsfwEvent = () => syncPreference();
+
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener(NSFW_PREFERENCE_CHANGED, handleNsfwEvent);
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener(NSFW_PREFERENCE_CHANGED, handleNsfwEvent);
+    };
+  }, []);
 
   const sortedImages = useMemo(
     () => (artwork ? [...artwork.images].sort((a, b) => a.order - b.order) : []),
@@ -138,7 +173,7 @@ export function ArtworkPopup({ slug, initialData = null }: ArtworkPopupProps) {
     : null;
 
   if (isLoading) {
-    return <ArtworkPopupLoadingShell />;
+    return <ArtworkPopupLoadingShell closeMode={closeMode} />;
   }
 
   if (error || !artwork) {
@@ -165,7 +200,6 @@ export function ArtworkPopup({ slug, initialData = null }: ArtworkPopupProps) {
         labelledBy={titleId}
         closeOnEscape={!fullscreenOpen}
         ariaHidden={fullscreenOpen}
-        sketchFrame
       >
         <div className="relative" data-testid="artwork-popup">
           {nsfwBlocked ? (

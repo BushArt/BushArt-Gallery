@@ -4,6 +4,7 @@ import clsx from "clsx";
 import { motion, useReducedMotion } from "framer-motion";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { useCallback, useEffect, useId, useRef } from "react";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 import { getTransformationUrl } from "@/lib/cloudinary/transformations";
 import { SketchRevealImage } from "@/components/ui/SketchReveal";
 
@@ -29,11 +30,13 @@ export function FullscreenViewer({
   onClose,
 }: FullscreenViewerProps) {
   const labelId = useId();
-  const closeRef = useRef<HTMLButtonElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const pointerStart = useRef<{ x: number; y: number } | null>(null);
   const prefersReducedMotion = useReducedMotion();
   const item = items[currentIndex];
   const hasMultiple = items.length > 1;
+
+  useFocusTrap(containerRef, { enabled: true, restoreFocus: false });
 
   const goPrev = useCallback(() => {
     onIndexChange((currentIndex - 1 + items.length) % items.length);
@@ -56,7 +59,6 @@ export function FullscreenViewer({
     };
 
     document.addEventListener("keydown", handleKeyDown, true);
-    closeRef.current?.focus();
 
     return () => {
       document.removeEventListener("keydown", handleKeyDown, true);
@@ -64,17 +66,26 @@ export function FullscreenViewer({
   }, [goNext, goPrev, hasMultiple, onClose]);
 
   const handlePointerDown = (event: React.PointerEvent) => {
-    if (prefersReducedMotion || !hasMultiple) return;
+    if (prefersReducedMotion) return;
     pointerStart.current = { x: event.clientX, y: event.clientY };
   };
 
   const handlePointerUp = (event: React.PointerEvent) => {
-    if (prefersReducedMotion || !hasMultiple || !pointerStart.current) return;
+    if (prefersReducedMotion || !pointerStart.current) return;
 
     const deltaX = event.clientX - pointerStart.current.x;
     const deltaY = event.clientY - pointerStart.current.y;
     pointerStart.current = null;
 
+    if (
+      Math.abs(deltaY) > SWIPE_THRESHOLD &&
+      Math.abs(deltaY) > Math.abs(deltaX)
+    ) {
+      onClose();
+      return;
+    }
+
+    if (!hasMultiple) return;
     if (Math.abs(deltaX) < SWIPE_THRESHOLD || Math.abs(deltaX) < Math.abs(deltaY)) return;
 
     if (deltaX > 0) goPrev();
@@ -91,10 +102,12 @@ export function FullscreenViewer({
 
   return (
     <motion.div
+      ref={containerRef}
       className="fixed inset-0 z-[60] flex items-center justify-center bg-ink-950/95"
       role="dialog"
       aria-modal="true"
       aria-labelledby={labelId}
+      tabIndex={-1}
       data-testid="fullscreen-viewer"
       initial={{ opacity: prefersReducedMotion ? 1 : 0 }}
       animate={{ opacity: 1 }}
@@ -112,7 +125,6 @@ export function FullscreenViewer({
       </p>
 
       <button
-        ref={closeRef}
         type="button"
         onClick={onClose}
         className="absolute right-4 top-4 z-10 rounded-md p-2 text-paper-100 transition-colors hover:bg-ink-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-brass"

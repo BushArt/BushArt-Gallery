@@ -8,7 +8,7 @@ import {
 // ── Mocks ──────────────────────────────────────────────────────────────────
 
 vi.mock("@/lib/cloudinary/cloudName", () => ({
-  cloudName: "test-cloud",
+  resolveCloudName: () => "test-cloud",
 }));
 
 // ── Tests ──────────────────────────────────────────────────────────────────
@@ -79,7 +79,7 @@ describe("getTransformationUrl", () => {
     // call time, so re-import the module against a fresh mock for this case.
     vi.resetModules();
     vi.doMock("@/lib/cloudinary/cloudName", () => ({
-      cloudName: undefined,
+      resolveCloudName: () => undefined,
     }));
 
     const { getTransformationUrl: getUrlWithoutCloudName } =

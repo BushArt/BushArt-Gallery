@@ -4,16 +4,18 @@
  * Server builds read CLOUDINARY_CLOUD_NAME (the canonical variable per
  * 02-Technical-Specification.md §9). Next.js only inlines NEXT_PUBLIC_*
  * variables into browser bundles, so the browser-visible
- * NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME is consulted as a fallback. Keeping this
- * in its own module lets transformations.ts build URLs on the client without
- * pulling in the server-only SDK client (which must stay server-only — it
- * reads the API secret).
+ * NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME is consulted as a fallback. next.config.ts
+ * also mirrors CLOUDINARY_CLOUD_NAME into NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+ * when only the server var is set.
  */
 
-function resolveCloudName(): string | undefined {
-  return process.env.CLOUDINARY_CLOUD_NAME ?? process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+export function resolveCloudName(): string | undefined {
+  return (
+    process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ?? process.env.CLOUDINARY_CLOUD_NAME
+  );
 }
 
-const cloudName = resolveCloudName();
-
-export { cloudName, resolveCloudName };
+/** Resolved at call time — do not cache at module scope for client bundles. */
+export function getCloudName(): string | undefined {
+  return resolveCloudName();
+}

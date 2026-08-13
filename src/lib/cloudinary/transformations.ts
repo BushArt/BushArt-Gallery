@@ -1,4 +1,4 @@
-import { cloudName } from "./cloudName";
+import { resolveCloudName } from "./cloudName";
 
 /**
  * Single source of truth for every derived-size Cloudinary URL.
@@ -45,8 +45,7 @@ export function getTransformationUrl(
   context: TransformationContext,
   resourceType: TransformationResourceType = "image",
 ): string {
-  const name =
-    process.env.CLOUDINARY_CLOUD_NAME ?? process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ?? cloudName;
+  const name = resolveCloudName();
 
   if (!name) {
     throw new Error(

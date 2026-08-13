@@ -157,4 +157,20 @@ describe("DELETE /api/tags/:id", () => {
     const res = await DELETE(req, { params: Promise.resolve({ id: tagId }) });
     expect(res.status).toBe(404);
   });
+
+  it("returns 401 when not authenticated", async () => {
+    vi.mocked(requireAdmin).mockRejectedValue(
+      new Response(JSON.stringify({ error: { code: "UNAUTHENTICATED" } }), { status: 401 }),
+    );
+    const req = new NextRequest(`http://localhost/api/tags/${tagId}`, { method: "DELETE" });
+    const res = await DELETE(req, { params: Promise.resolve({ id: tagId }) });
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 400 for invalid ObjectId", async () => {
+    const req = new NextRequest("http://localhost/api/tags/not-valid", { method: "DELETE" });
+    const res = await DELETE(req, { params: Promise.resolve({ id: "not-valid" }) });
+    expect(res.status).toBe(400);
+    expect(deleteTag).not.toHaveBeenCalled();
+  });
 });
