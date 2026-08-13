@@ -32,3 +32,28 @@ export interface ArtworkListResponse {
 export interface TagListResponse {
   items: Tag[];
 }
+
+/** GET /api/artworks/:slug detail response (05 §4.2) */
+export interface ArtworkDetailResponse {
+  id: string;
+  slug: string;
+  title: string;
+  description: string | null;
+  medium: string;
+  type: "personal" | "commission";
+  nsfw: boolean;
+  completionDate: string;
+  images: {
+    publicId: string;
+    width: number;
+    height: number;
+    order: number;
+  }[];
+  timelapse: {
+    publicId: string;
+    durationSeconds: number;
+    width: number;
+    height: number;
+  } | null;
+  tags: { id: string; name: string; slug: string }[];
+}

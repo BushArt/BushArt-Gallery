@@ -2,6 +2,8 @@
 
 import clsx from "clsx";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useCallback } from "react";
 import { getTransformationUrl } from "@/lib/cloudinary/transformations";
 import { formatCompletionDate } from "@/lib/utils/formatDate";
 import type { ArtworkListItem } from "@/types/artwork";
@@ -17,15 +19,24 @@ interface ArtworkCardProps {
 }
 
 export function ArtworkCard({ artwork, viewMode, description }: ArtworkCardProps) {
+  const router = useRouter();
   const context = viewMode === "grid" ? "grid" : "list";
   const thumbUrl = getTransformationUrl(artwork.coverImage.publicId, context);
   const dateLabel = formatCompletionDate(artwork.completionDate);
+  const href = `/artwork/${artwork.slug}`;
+
+  const prefetchDetail = useCallback(() => {
+    router.prefetch(href);
+    void fetch(`/api/artworks/${encodeURIComponent(artwork.slug)}`).catch(() => {});
+  }, [artwork.slug, href, router]);
 
   if (viewMode === "list") {
     return (
       <article className="group">
         <Link
-          href={`/artwork/${artwork.slug}`}
+          href={href}
+          onMouseEnter={prefetchDetail}
+          onFocus={prefetchDetail}
           className="flex gap-4 rounded-md bg-ink-900 p-3 transition-colors hover:bg-ink-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-brass sm:gap-6"
           aria-label={`${artwork.title}, ${artwork.medium}, ${dateLabel}`}
         >
@@ -57,7 +68,9 @@ export function ArtworkCard({ artwork, viewMode, description }: ArtworkCardProps
   return (
     <article className="group break-inside-avoid">
       <Link
-        href={`/artwork/${artwork.slug}`}
+        href={href}
+        onMouseEnter={prefetchDetail}
+        onFocus={prefetchDetail}
         className="relative block overflow-hidden rounded-md bg-ink-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-brass"
         aria-label={`${artwork.title}, ${artwork.medium}, ${dateLabel}`}
       >

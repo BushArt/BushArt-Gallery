@@ -13,7 +13,9 @@
     "db:setup": "node --use-system-ca scripts/db-setup.mjs",
     "seed:admin": "node --use-system-ca ./node_modules/tsx/dist/cli.mjs scripts/seed-admin.ts",
     "test": "node --use-system-ca ./node_modules/vitest/vitest.mjs run",
-    "test:watch": "node --use-system-ca ./node_modules/vitest/vitest.mjs"
+    "test:watch": "node --use-system-ca ./node_modules/vitest/vitest.mjs",
+    "test:e2e": "node --use-system-ca ./node_modules/playwright/cli.js test",
+    "test:e2e:install": "node --use-system-ca ./node_modules/playwright/cli.js install chromium"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -42,6 +44,7 @@
     "eslint-config-prettier": "^10.0.0",
     "jsdom": "^29.1.1",
     "prettier": "^3.4.0",
+    "@playwright/test": "^1.51.0",
     "tailwindcss": "^4.0.0",
     "tsx": "^4.0.0",
     "typescript": "^5.7.0",

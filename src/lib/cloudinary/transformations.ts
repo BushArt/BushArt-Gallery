@@ -45,14 +45,17 @@ export function getTransformationUrl(
   context: TransformationContext,
   resourceType: TransformationResourceType = "image",
 ): string {
-  if (!cloudName) {
+  const name =
+    process.env.CLOUDINARY_CLOUD_NAME ?? process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ?? cloudName;
+
+  if (!name) {
     throw new Error(
       "Missing Cloudinary cloud name. Set CLOUDINARY_CLOUD_NAME (server) or NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME (client).",
     );
   }
 
   const transformation = PRESETS[context];
-  return `https://res.cloudinary.com/${cloudName}/${resourceType}/upload/${transformation}/${publicId}`;
+  return `https://res.cloudinary.com/${name}/${resourceType}/upload/${transformation}/${publicId}`;
 }
 
 /**

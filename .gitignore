@@ -34,5 +34,10 @@ npm-debug.log*
 # Test coverage
 coverage/
 
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+
 # Misc
 # .pre-commit-config.yaml

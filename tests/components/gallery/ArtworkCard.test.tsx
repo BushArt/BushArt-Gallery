@@ -3,6 +3,13 @@ import { describe, expect, it, vi } from "vitest";
 import { ArtworkCard } from "@/components/gallery/ArtworkCard";
 import type { ArtworkListItem } from "@/types/artwork";
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    prefetch: vi.fn(),
+    push: vi.fn(),
+  }),
+}));
+
 vi.mock("@/lib/cloudinary/transformations", () => ({
   getTransformationUrl: (publicId: string) => `https://cdn.example.com/${publicId}`,
 }));

@@ -1,4 +1,10 @@
-// TODO-020 — placeholder; artwork modal implementation pending
-export default function ArtworkModal() {
-  return null;
+import { Suspense } from "react";
+import { ArtworkModalClient } from "@/components/artwork/ArtworkModalClient";
+
+export default function ArtworkModalPage() {
+  return (
+    <Suspense fallback={null}>
+      <ArtworkModalClient />
+    </Suspense>
+  );
 }

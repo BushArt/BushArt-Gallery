@@ -113,4 +113,35 @@ describe("GET /api/artworks/:slug/download", () => {
     const res = await GET(req, { params: Promise.resolve({ id: "moth-study" }) });
     expect(res.status).toBe(404);
   });
+
+  it("uses sorted order when images array is unsorted in MongoDB", async () => {
+    vi.mocked(findArtworkBySlug).mockResolvedValue({
+      ...artwork,
+      images: [
+        {
+          publicId: "bushart/artworks/moth/detail",
+          url: "https://example.com/detail.jpg",
+          width: 100,
+          height: 100,
+          order: 1,
+        },
+        {
+          publicId: "bushart/artworks/moth/main",
+          url: "https://example.com/main.jpg",
+          width: 100,
+          height: 100,
+          order: 0,
+        },
+      ],
+    });
+
+    const req = new NextRequest("http://localhost/api/artworks/moth-study/download?image=1");
+    const res = await GET(req, { params: Promise.resolve({ id: "moth-study" }) });
+    expect(res.status).toBe(302);
+    expect(getTransformationUrl).toHaveBeenCalledWith(
+      "bushart/artworks/moth/detail",
+      "download",
+      "image",
+    );
+  });
 });

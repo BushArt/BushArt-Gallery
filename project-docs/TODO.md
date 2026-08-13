@@ -127,7 +127,16 @@ Below it, each finding is logged as it surfaces:
 - [Checklist item] <what was found> — <resolution or "unresolved">
 ### Notes / Results
 
-Status: Pending Audit
+Status: Pass
+
+- [Regression check] Vitest suite — 261 passing / 8 skipped (34 files); matches Phase 5 baseline — resolved
+- [Bug sweep] Gallery, filters, infinite scroll, hero, artwork read APIs reviewed — no blocking defects — resolved
+- [Incomplete work] TODO-020 route placeholders return null; card links lead to empty pages — expected Phase 6 scope — resolved (Phase 6 implementation)
+- [Integration gaps] Detail API unused by UI; `@modal` slot wired but empty — Phase 6 scope — resolved (Phase 6 implementation)
+- [Convention deviations] None blocking Phase 6 — resolved
+- [Inconsistencies] Slug routing and response shapes consistent across API layer — resolved
+
+[Phase 6 post-implementation audit] 22 findings logged; full remediation complete. Final: 275 Vitest / 6 E2E passing.
 
 ### [Done] Phase 1 — Data Layer
 
@@ -142,7 +151,7 @@ Status: Pending Audit
 ### Phase 6 — Artwork Detail & Sharing
 
 #### TODO-020 — Intercepting-route modal + full-page fallback
-**Status:** Not Started · **Est. time:** 5h · **Depends on:** TODO-012, TODO-017
+**Status:** Done — Awaiting Close-Out · **Est. time:** 5h · **Depends on:** TODO-012, TODO-017
 **Spec reference:** `03-System-Architecture.md` §6, `08-Project-Structure.md` §2, `12-Decision-Log.md` ADR-005
 
 **Success conditions:**
@@ -150,10 +159,12 @@ Status: Pending Audit
 - Visiting `/artwork/[slug]` directly server-renders the same popup content as a full page, sharing the identical underlying component
 
 **Tests:** E2E test covering both entry paths (in-app click vs. direct URL load).
-**Notes / Results:** _(none yet)_
+**Notes / Results:** Intercepting `@modal/(.)artwork/[slug]` route + `/artwork/[slug]` full-page fallback share `ArtworkPopup` via `HomePageShell` extraction, `ArtworkModalClient`, and Suspense boundaries for Cache Components. Playwright bootstrapped (`playwright.config.ts`, `scripts/seed-e2e.ts`, CI e2e job). 2 E2E tests; 268 passing / 8 skipped (37 Vitest files). E2E: 2 passing.
+
+[Phase 6 audit remediation] Fixed Esc/fullscreen stacking (P6-001/002), modal a11y name + focus trap (P6-004/005), useArtwork abort (P6-006), E2E seed fail-fast (P6-015), gitignore playwright artifacts (P6-019), CI build env parity (P6-021). 3 new tests; 275 passing / 8 skipped (39 Vitest files). E2E: 6 passing.
 
 #### TODO-021 — ArtworkPopup + FullscreenViewer
-**Status:** Not Started · **Est. time:** 5h · **Depends on:** TODO-020
+**Status:** Done — Awaiting Close-Out · **Est. time:** 5h · **Depends on:** TODO-020
 **Spec reference:** `06-UI-Design-System.md` §11, `07-User-Flows.md` Flow 2
 
 **Success conditions:**
@@ -162,10 +173,12 @@ Status: Pending Audit
 - Fullscreen viewer strips all chrome except close + prev/next
 
 **Tests:** Component test asserting the related-artwork module is absent under all conditions.
-**Notes / Results:** _(none yet)_
+**Notes / Results:** `ArtworkPopup` renders image sequence, timelapse toggle, metadata placard, tag pills, and SketchReveal frame; `FullscreenViewer` with minimal chrome and screen-reader position text; NSFW interstitial when opening NSFW artwork in SFW mode (`07` Flow 5). 3 new component tests; 268 passing / 8 skipped (37 Vitest files). E2E: 2 passing.
+
+[Phase 6 audit remediation] Timelapse fullscreen entry (P6-007), sketch-in popup frame (P6-008), swipe nav (P6-012), fullscreen motion (P6-016), Modal/FullscreenViewer Vitest (P6-014), fallback shell consistency (P6-022). 2 new tests; 275 passing / 8 skipped (39 files). E2E: 6 passing.
 
 #### TODO-022 — Download + Share actions
-**Status:** Not Started · **Est. time:** 2h · **Depends on:** TODO-012, TODO-021
+**Status:** Done — Awaiting Close-Out · **Est. time:** 2h · **Depends on:** TODO-012, TODO-021
 **Spec reference:** `07-User-Flows.md` Flows 3 & 4, `05-API-Specification.md` §4.3
 
 **Success conditions:**
@@ -173,7 +186,9 @@ Status: Pending Audit
 - Share uses the Web Share API where available and falls back to clipboard-copy with visible confirmation otherwise
 
 **Tests:** Component test for both Share code paths (mocked API availability true/false).
-**Notes / Results:** _(none yet)_
+**Notes / Results:** `DownloadButton` redirects via `GET /api/artworks/:slug/download`; `ShareButton` uses Web Share API with clipboard fallback and inline confirmation. Wired into popup action row. 4 new component tests (2 Share + 2 Download); 268 passing / 8 skipped (37 Vitest files). E2E: 2 passing.
+
+[Phase 6 audit remediation] Download raw index mapping + API sort defense (P6-003), anchor-based DownloadButton (P6-017), share/download E2E (P6-013). 2 new tests; 275 passing / 8 skipped (39 files). E2E: 6 passing.
 
 ### Phase 7 — Admin Experience
 

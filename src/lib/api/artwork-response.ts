@@ -7,7 +7,7 @@ export function toArtworkDetailResponse(artwork: Artwork, tags: Tag[]) {
     id: artwork.id,
     slug: artwork.slug,
     title: artwork.title,
-    description: artwork.description,
+    description: artwork.description ?? null,
     medium: artwork.medium,
     type: artwork.type,
     nsfw: artwork.nsfw,

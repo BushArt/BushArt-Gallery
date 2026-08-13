@@ -46,7 +46,8 @@ export async function GET(
       return NextResponse.redirect(url, 302);
     }
 
-    const image = artwork.images[imageIndex];
+    const sortedImages = [...artwork.images].sort((a, b) => a.order - b.order);
+    const image = sortedImages[imageIndex];
     if (!image) {
       return apiError(404, "NOT_FOUND", "Image not found");
     }

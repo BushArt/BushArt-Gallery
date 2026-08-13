@@ -10,7 +10,10 @@
  * reads the API secret).
  */
 
-const cloudName =
-  process.env.CLOUDINARY_CLOUD_NAME ?? process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+function resolveCloudName(): string | undefined {
+  return process.env.CLOUDINARY_CLOUD_NAME ?? process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+}
 
-export { cloudName };
+const cloudName = resolveCloudName();
+
+export { cloudName, resolveCloudName };
