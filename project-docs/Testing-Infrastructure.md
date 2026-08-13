@@ -41,7 +41,7 @@ flowchart TB
 |---|---|---|
 | **Unit** (`tests/lib/`) | Correctness of isolated functions — auth, validation, slug generation, API response shaping | MongoDB persistence, HTTP wiring, browser behavior |
 | **Model unit** (`tests/db/models/`) | Document mapping and query logic with a mocked driver | Real index behavior or Atlas connectivity |
-| **Route integration** (`tests/api/`) | Handler auth, validation, status codes, error envelopes via mocked `lib/` calls | End-to-end DB round-trips (see TODO-032) |
+| **Route integration** (`tests/api/`) | Handler auth, validation, status codes, error envelopes via mocked `lib/` calls | End-to-end DB round-trips (see TODO-036) |
 | **DB integration** (`tests/db-setup.test.ts`) | Index creation matches `04-Database-Schema.md` | Application logic |
 | **Component / hook** (`tests/components/`, `tests/hooks/`) | Interactive UI behavior in jsdom | Layout fidelity, cross-browser quirks |
 | **E2E** (`tests/e2e/`) | Full stack: routing, modal, gallery filters, NSFW persistence | Every admin CMS flow (Phase 7+) |
@@ -171,17 +171,17 @@ Shared helpers in `tests/helpers/` reduce duplication across API tests. Prefer i
 
 | Gap | Owner |
 |---|---|
-| Real-MongoDB route integration (all 15 endpoints) | TODO-032 |
-| Login + upload E2E flows | TODO-033 |
+| Real-MongoDB route integration (all 15 endpoints) | TODO-036 |
+| Login + upload E2E flows | TODO-037 |
 | Accessibility audit (`@axe-core/playwright`) | TODO-030 |
-| MSW layer for multi-request hook tests | TODO-037 |
-| Schema contract tests (Zod vs `04`/`05`) | TODO-038 |
-| Visual regression baseline | TODO-039 |
-| Post-deploy smoke automation | TODO-040 |
-| Lighthouse CI performance budget | TODO-041 |
-| Parallel E2E workers + flake policy | TODO-042 |
+| MSW layer for multi-request hook tests | TODO-041 |
+| Schema contract tests (Zod vs `04`/`05`) | TODO-042 |
+| Visual regression baseline | TODO-043 |
+| Post-deploy smoke automation | TODO-044 |
+| Lighthouse CI performance budget | TODO-045 |
+| Parallel E2E workers + flake policy | TODO-046 |
 | Admin CMS component tests | TODO-023–028 (per feature) |
-| Phase 11 advanced automation (MSW, schema contracts, visual regression, smoke, Lighthouse, parallel E2E) | TODO-037–042 |
+| Phase 11 advanced automation (MSW, schema contracts, visual regression, smoke, Lighthouse, parallel E2E) | TODO-041–046 |
 
 ---
 
@@ -192,7 +192,7 @@ When picking up a TODO item or new feature:
 1. **Check `09-Coding-Standards.md` §13** — does this layer warrant tests at all?
 2. **Match an existing sibling** — copy the pattern from the nearest test file in `tests/lib/`, `tests/api/`, or `tests/components/`.
 3. **Use helpers** — if you need artwork fixtures or JSON requests, import from `tests/helpers/`.
-4. **Route handlers** — mock model layer unless the work is explicitly TODO-032 real-DB integration.
+4. **Route handlers** — mock model layer unless the work is explicitly TODO-036 real-DB integration.
 5. **User-facing flows** — add or extend a Playwright spec under `tests/e2e/` when the flow is listed in `07-User-Flows.md` and would be damaging to break silently.
 6. **Touching auth or artwork writes** — confirm `npm run test:coverage` still passes before marking work done.
 

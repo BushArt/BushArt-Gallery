@@ -146,14 +146,18 @@ Status: Pending Audit
 ### Phase 8 — Hardening
 
 #### TODO-029 — Error boundaries + API error envelope + logging
-**Status:** Not Started · **Est. time:** 4h · **Depends on:** TODO-012 through TODO-028
+**Status:** Not Started · **Est. time:** 5h · **Depends on:** TODO-012 through TODO-028
 **Spec reference:** `03-System-Architecture.md` §10, `05-API-Specification.md` §2, `09-Coding-Standards.md` §11–12
 
 **Success conditions:**
 - Gallery feed and artwork popup fail independently — one broken request never blanks the whole page
 - Every Route Handler returns the shared error envelope; no bare `console.log` remains in committed code
+- Auth routes (`login`, `logout`, `me`, `upload/signature`) funnel through `apiError` / `handleRouteError` — no hand-rolled error JSON
+- `GET /api/auth/me` returns **200** `{ authenticated: false }` when the JWT is valid but the admin record is missing
+- `lib/logger.ts` provides leveled structured logging; no bare `console.*` in committed server code (replace usages in routes, `handleRouteError`, `SectionErrorBoundary`)
+- Root `app/error.tsx` (and optionally `global-error.tsx`) for uncaught layout failures; gallery and artwork popup remain independently recoverable per `03` §10
 
-**Tests:** Component test forcing one section to error and asserting the rest of the page still renders.
+**Tests:** Component test forcing one section to error and asserting the rest of the page still renders; auth/me contract test; logger unit test.
 **Notes / Results:** _(none yet)_
 
 #### TODO-030 — Accessibility pass
@@ -168,9 +172,57 @@ Status: Pending Audit
 **Tests:** Automated accessibility audit (e.g., axe) integrated into the E2E suite, zero critical violations as the bar.
 **Notes / Results:** _(none yet)_
 
+#### TODO-031 — Boot-time environment validation
+**Status:** Not Started · **Est. time:** 2h · **Depends on:** None
+**Spec reference:** `02-Technical-Specification.md` §9, `08-Project-Structure.md` §6
+
+**Success conditions:**
+- Server init fails fast with a clear, actionable message when any required runtime var from `02` §9 is missing or empty (`MONGODB_URI`, `JWT_SECRET`, Cloudinary vars, `NEXT_PUBLIC_SITE_URL`, etc.)
+- Production enforces minimum `JWT_SECRET` length
+- `.env.example` stays in sync with the validation schema
+- Existing `scripts/verify-env.mjs` either delegates to the shared schema or is documented as a dev convenience only
+
+**Tests:** Unit test for env schema (valid / missing / weak secret cases).
+**Notes / Results:** _(none yet)_
+
+#### TODO-032 — MongoDB connectivity fail-fast (503)
+**Status:** Not Started · **Est. time:** 2h · **Depends on:** TODO-029, TODO-031
+**Spec reference:** `03-System-Architecture.md` §10, `05-API-Specification.md` §2
+
+**Success conditions:**
+- Atlas connection/timeout errors surface as **503** `SERVICE_UNAVAILABLE` via the shared envelope, not **500** `INTERNAL_ERROR`
+- Behavior documented in route error handling — no request hangs indefinitely when Atlas is unreachable
+
+**Tests:** Integration test with mocked connection failure asserting 503 + code.
+**Notes / Results:** _(none yet)_
+
+#### TODO-033 — Client resilience + upload metadata retry
+**Status:** Not Started · **Est. time:** 3h · **Depends on:** TODO-029
+**Spec reference:** `03-System-Architecture.md` §10
+
+**Success conditions:**
+- `useArtwork` distinguishes retryable 5xx/network failures from terminal 4xx (aligned with `useArtworks` retry semantics)
+- After Cloudinary upload succeeds but `POST /api/artworks` fails, UploadDialog shows an explicit **Retry save** affordance that re-submits metadata only (preserved `images`/`timelapse` refs, no re-upload)
+- Same retry pattern on edit flow if applicable
+
+**Tests:** Component test for upload retry path; hook test for 5xx retry flag on `useArtwork`.
+**Notes / Results:** _(none yet)_
+
+#### TODO-034 — HTTP security headers
+**Status:** Not Started · **Est. time:** 2h · **Depends on:** None
+**Spec reference:** `02-Technical-Specification.md` §12 (add baseline headers sentence at close-out), `10-Deployment-Guide.md` §6
+
+**Success conditions:**
+- `next.config.ts` `headers()` sets baseline: `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, and a CSP compatible with Next.js + Cloudinary CDN
+- HSTS deferred to Render/proxy or explicitly noted in Notes
+- Close-out updates `02` §12 with one sentence documenting the chosen header set
+
+**Tests:** Lightweight integration test asserting headers on `/` and one `/api/*` route.
+**Notes / Results:** _(none yet)_
+
 ### Phase 9 — Testing Infrastructure
 
-#### TODO-031 — Wire the required unit-test coverage gate
+#### TODO-035 — Wire the required unit-test coverage gate
 **Status:** Not Started · **Est. time:** 2h · **Depends on:** TODO-007, TODO-008, TODO-013
 **Spec reference:** `09-Coding-Standards.md` §13
 
@@ -178,19 +230,20 @@ Status: Pending Audit
 - CI fails the build if `lib/auth/` or the `artworks` write paths lack passing test coverage — the one area flagged as required-before-ship, not optional
 
 **Tests:** This task *is* the test-infrastructure work — the tests themselves are written under TODO-007/008/013.
-**Notes / Results:** Coverage gate wired: `@vitest/coverage-v8@3.2.7`, `npm run test:coverage`, per-glob thresholds in `vitest.config.mts` (85% lines/statements/functions, 80% branches on `lib/auth/**`, artwork model write paths, `app/api/artworks/**` independently). CI `test` job runs MongoDB + `db:setup` + single coverage step. See `Testing-Infrastructure.md`.
+**Notes / Results:** Coverage gate wired: `@vitest/coverage-v8@3.2.7`, `npm run test:coverage`, per-glob thresholds in `vitest.config.mts` (85% lines/statements/functions, 80% branches on `lib/auth/**`, artwork model write paths, `app/api/artworks/**` independently). CI `test` job runs MongoDB + `db:setup` + single coverage step. See `Testing-Infrastructure.md`. Phase 9 testing scope is unchanged from the original MVP plan; pick up after Phase 8 hardening (TODO-029–034) is complete.
 
-#### TODO-032 — Route Handler integration test suite
+#### TODO-036 — Route Handler integration test suite
 **Status:** Not Started · **Est. time:** 6h · **Depends on:** TODO-012, TODO-013, TODO-014, TODO-015
 **Spec reference:** `09-Coding-Standards.md` §13, `05-API-Specification.md` (all sections)
 
 **Success conditions:**
 - Primary success + failure path covered for all 15 endpoints, run against a real local/test MongoDB instance
+- Dependency failures assert **503** `SERVICE_UNAVAILABLE` and shared error envelope (Phase 8 TODO-029/032 behaviors)
 
 **Tests:** This task is the test suite itself.
-**Notes / Results:** _(none yet)_
+**Notes / Results:** Assert Phase 8 error-envelope and MongoDB **503** behaviors from TODO-029/032 on dependency-failure paths.
 
-#### TODO-033 — E2E suite (Playwright)
+#### TODO-037 — E2E suite (Playwright)
 **Status:** Not Started · **Est. time:** 5h · **Depends on:** TODO-018, TODO-023, TODO-024
 **Spec reference:** `09-Coding-Standards.md` §13
 
@@ -198,33 +251,33 @@ Status: Pending Audit
 - Login, full upload, and NSFW toggle flows pass headlessly in CI
 
 **Tests:** This task is the test suite itself.
-**Notes / Results:** _(none yet)_
+**Notes / Results:** Accessibility axe audit (TODO-030) integrates into this suite when wired; not a blocking dependency for login/upload/NSFW flow coverage.
 
 ### Phase 10 — Deployment
 
-#### TODO-034 — Deploy to Render
-**Status:** Not Started · **Est. time:** 2h · **Depends on:** TODO-001 through TODO-033; the pending Railway→Render documentation update (`02`, `03`, `08`, `10`, `12`, `CHANGELOG.md`) applied first
+#### TODO-038 — Deploy to Render
+**Status:** Not Started · **Est. time:** 2h · **Depends on:** TODO-001 through TODO-037; the pending Railway→Render documentation update (`02`, `03`, `08`, `10`, `12`, `CHANGELOG.md`) applied first
 **Spec reference:** `10-Deployment-Guide.md` §6 (Render version), `12-Decision-Log.md` ADR-013
 
 **Success conditions:**
 - Connected repo auto-deploys `main`; every environment variable set; homepage loads, login works, and a real upload succeeds end-to-end in production
 
 **Tests:** Manual production smoke test against the full checklist in `10` §10.
-**Notes / Results:** _(none yet)_
+**Notes / Results:** Deploy gate requires all Phase 8 hardening (TODO-029–034) — error envelope/logging, accessibility, env validation, MongoDB 503, client retry, security headers — in addition to feature and test work through TODO-037.
 - [ ] `NEXT_PUBLIC_SITE_URL` must be set to the production Render URL in the Render dashboard environment variables before deployment (also affects share links and Open Graph metadata).
 
-#### TODO-035 — Backup workflow
-**Status:** Not Started · **Est. time:** 3h · **Depends on:** TODO-034
+#### TODO-039 — Backup workflow
+**Status:** Not Started · **Est. time:** 3h · **Depends on:** TODO-038
 **Spec reference:** `10-Deployment-Guide.md` §8
 
 **Success conditions:**
 - Scheduled GitHub Actions job runs `mongodump` on a recurring cadence and completes successfully at least once, verified manually
 
 **Tests:** One manual restore-drill into a scratch cluster confirming the export is actually usable.
-**Notes / Results:** _(none yet)_
+**Notes / Results:** Requires production deploy (TODO-038) live first.
 
-#### TODO-036 — Monitoring: Cloudinary alerts + Render keep-alive
-**Status:** Not Started · **Est. time:** 1h · **Depends on:** TODO-034
+#### TODO-040 — Monitoring: Cloudinary alerts + Render keep-alive
+**Status:** Not Started · **Est. time:** 1h · **Depends on:** TODO-038
 **Spec reference:** `10-Deployment-Guide.md` §7
 
 **Success conditions:**
@@ -232,11 +285,11 @@ Status: Pending Audit
 - A scheduled keep-alive ping configured to stay within Render's included monthly hours while avoiding the 15-minute sleep in practice
 
 **Tests:** None — operational configuration.
-**Notes / Results:** _(none yet)_
+**Notes / Results:** Requires production deploy (TODO-038) live first.
 
 ### Phase 11 — Advanced Testing Infrastructure
 
-#### TODO-037 — MSW integration layer for hook/component tests
+#### TODO-041 — MSW integration layer for hook/component tests
 **Status:** Not Started · **Est. time:** 4h · **Depends on:** None
 **Spec reference:** `Testing-Infrastructure.md` §8–§9, `09-Coding-Standards.md` §13
 
@@ -245,9 +298,9 @@ Status: Pending Audit
 - At least one hook test (`useArtworks` or `useFilters`) converted to the shared MSW pattern as a reference implementation
 
 **Tests:** This task is the test-infrastructure work.
-**Notes / Results:** _(none yet)_
+**Notes / Results:** Post-MVP advanced testing; scope unchanged. E2E baseline is TODO-037; deploy prerequisite for smoke/Lighthouse items is TODO-038.
 
-#### TODO-038 — Schema contract tests (Zod vs 04/05)
+#### TODO-042 — Schema contract tests (Zod vs 04/05)
 **Status:** Not Started · **Est. time:** 3h · **Depends on:** None
 **Spec reference:** `04-Database-Schema.md`, `05-API-Specification.md`, `09-Coding-Standards.md` §13
 
@@ -258,8 +311,8 @@ Status: Pending Audit
 **Tests:** This task is the test suite itself.
 **Notes / Results:** _(none yet)_
 
-#### TODO-039 — Playwright visual regression baseline
-**Status:** Not Started · **Est. time:** 4h · **Depends on:** TODO-033
+#### TODO-043 — Playwright visual regression baseline
+**Status:** Not Started · **Est. time:** 4h · **Depends on:** TODO-037
 **Spec reference:** `Testing-Infrastructure.md` §2, `06-UI-Design-System.md`
 
 **Success conditions:**
@@ -269,19 +322,19 @@ Status: Pending Audit
 **Tests:** This task is the test suite itself.
 **Notes / Results:** _(none yet)_
 
-#### TODO-040 — Automated post-deploy smoke suite
-**Status:** Not Started · **Est. time:** 3h · **Depends on:** TODO-034
+#### TODO-044 — Automated post-deploy smoke suite
+**Status:** Not Started · **Est. time:** 3h · **Depends on:** TODO-038
 **Spec reference:** `10-Deployment-Guide.md` §10, `Testing-Infrastructure.md` §6
 
 **Success conditions:**
 - Script or GitHub Action hits production (or staging) with HTTP checks for homepage, auth endpoint, and gallery API
-- Replaces the manual production checklist in TODO-034 for routine deploy verification
+- Replaces the manual production checklist in TODO-038 for routine deploy verification
 
 **Tests:** This task is the smoke suite itself.
 **Notes / Results:** _(none yet)_
 
-#### TODO-041 — Lighthouse CI performance budget gate
-**Status:** Not Started · **Est. time:** 3h · **Depends on:** TODO-034
+#### TODO-045 — Lighthouse CI performance budget gate
+**Status:** Not Started · **Est. time:** 3h · **Depends on:** TODO-038
 **Spec reference:** `02-Technical-Specification.md` §13, `Testing-Infrastructure.md` §6
 
 **Success conditions:**
@@ -291,8 +344,8 @@ Status: Pending Audit
 **Tests:** This task is the performance gate itself.
 **Notes / Results:** _(none yet)_
 
-#### TODO-042 — Parallel E2E workers + flake policy
-**Status:** Not Started · **Est. time:** 2h · **Depends on:** TODO-033
+#### TODO-046 — Parallel E2E workers + flake policy
+**Status:** Not Started · **Est. time:** 2h · **Depends on:** TODO-037
 **Spec reference:** `Testing-Infrastructure.md` §6, `playwright.config.ts`
 
 **Success conditions:**
