@@ -123,7 +123,7 @@ describe("ArtworkPopup", () => {
     expect(screen.getByRole("heading", { name: "Test Artwork" })).toBeInTheDocument();
   });
 
-  it("passes raw MongoDB index to DownloadButton when images are unsorted", () => {
+  it("passes sorted display index to DownloadButton for the API", () => {
     vi.mocked(useArtwork).mockReturnValue({
       artwork: makeArtwork({
         images: [
@@ -149,6 +149,6 @@ describe("ArtworkPopup", () => {
     );
 
     const download = screen.getByTestId("download-button");
-    expect(download).toHaveAttribute("href", expect.stringContaining("image=1"));
+    expect(download).toHaveAttribute("href", expect.stringContaining("image=0"));
   });
 });

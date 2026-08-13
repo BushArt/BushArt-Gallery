@@ -102,14 +102,6 @@ export function ArtworkPopup({ slug, initialData = null }: ArtworkPopupProps) {
     [artwork],
   );
 
-  const rawDownloadIndex = useMemo(() => {
-    if (!artwork || showTimelapse) return 0;
-    const selected = sortedImages[mediaIndex];
-    if (!selected) return 0;
-    const rawIndex = artwork.images.findIndex((img) => img.publicId === selected.publicId);
-    return rawIndex >= 0 ? rawIndex : mediaIndex;
-  }, [artwork, mediaIndex, showTimelapse, sortedImages]);
-
   const nsfwBlocked =
     artwork?.nsfw === true && nsfwPreference === "exclude" && !nsfwConfirmed;
 
@@ -187,7 +179,7 @@ export function ArtworkPopup({ slug, initialData = null }: ArtworkPopupProps) {
               <div className="flex items-center justify-end gap-1 border-b border-ink-800 px-4 py-3">
                 <DownloadButton
                   slug={artwork.slug}
-                  imageIndex={rawDownloadIndex}
+                  imageIndex={mediaIndex}
                   asset={showTimelapse && artwork.timelapse ? "timelapse" : undefined}
                 />
                 <ShareButton slug={artwork.slug} />

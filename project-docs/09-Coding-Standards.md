@@ -89,9 +89,9 @@ Given the Constitution's single-operator scale, testing effort is **risk-weighte
 | `lib/` (business logic, auth, validation, db access) | Unit-tested thoroughly — this is where a silent bug does real damage (data loss, an auth bypass, a broken upload). |
 | `app/api/**` (Route Handlers) | Integration-tested against a real (local/test) MongoDB instance for the primary success and failure paths of each endpoint in `05-API-Specification.md`. |
 | `components/` | Light, targeted testing — critical interactive components (upload dialog, filter bar, NSFW toggle) get tests for their core behavior; purely presentational components generally don't need dedicated tests. |
-| End-to-end | A small number of Playwright tests covering the flows in `07-User-Flows.md` that would be embarrassing or damaging to break silently: login, upload, and the NSFW toggle. Not exhaustive coverage of every flow. |
+| End-to-end | Playwright tests covering flows in `07-User-Flows.md` that would be embarrassing or damaging to break silently: artwork modal entry paths (in-app vs direct URL), Esc/fullscreen stacking, NSFW interstitial, download/share actions, plus (Phase 7+) login, upload. Not exhaustive coverage of every flow. |
 
-**Component tests (Phase 5+):** React components and client hooks under `tests/components/` and `tests/hooks/` run in Vitest with the `jsdom` environment and `@testing-library/react`. Node-only tests (`tests/**/*.test.ts`) remain on the default Node environment.
+**Component tests (Phase 5+):** React components and client hooks under `tests/components/` and `tests/hooks/` run in Vitest with the `jsdom` environment and `@testing-library/react`. Node-only tests (`tests/**/*.test.ts`) remain on the default Node environment. **E2E tests (Phase 6+):** Playwright specs live under `tests/e2e/` with a dedicated `tsconfig.json`; the root `tsconfig.json` excludes them to keep IDE resolution clean.
 
 It's acceptable for test coverage to grow incrementally post-MVP rather than being complete on day one — but `lib/auth/` and `lib/db/models/artwork.ts`'s write paths are the one area where tests are expected **before** a feature touching them is considered done, given how costly a silent bug there would be (Constitution: "long-term maintainability over short-term convenience").
 

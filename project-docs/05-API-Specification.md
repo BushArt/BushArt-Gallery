@@ -157,7 +157,7 @@ Note: the list response intentionally omits `description`, the full `images[]` a
 
 | Param | Type | Notes |
 |---|---|---|
-| `image` | `number` | Index into the artwork's `images[]` array. Defaults to `0` (the primary image) if omitted. |
+| `image` | `number` | Display-order index into the artwork's `images[]` array (sorted by each image's `order` field before lookup). Defaults to `0` (the primary image) if omitted. |
 | `asset` | `"image" \| "timelapse"` | Defaults to `"image"`. |
 
 **Response:** `302 Found` redirect to a Cloudinary `fl_attachment` URL for the requested original asset. BushArt does not proxy the file bytes itself.

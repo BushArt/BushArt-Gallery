@@ -11,7 +11,7 @@ bushart/
 ├── src/
 │   ├── app/
 │   │   ├── layout.tsx                     # Root layout: fonts, providers, <html>/<body>
-│   │   ├── page.tsx                       # Homepage: hero + gallery feed
+│   │   ├── page.tsx                       # Homepage: delegates to HomePageShell
 │   │   ├── globals.css                    # Tailwind entry + CSS custom properties (design tokens)
 │   │   ├── @modal/                        # Parallel route slot for the artwork popup
 │   │   │   ├── default.tsx                # Renders null when no modal is active
@@ -48,8 +48,11 @@ bushart/
 │   │   │   ├── UploadCard.tsx             # Admin-only "add artwork" card (Phase 7)
 │   │   │   ├── FilterBar.tsx              # Includes NsfwToggle export
 │   │   │   └── ViewModeToggle.tsx
+│   │   ├── home/
+│   │   │   └── HomePageShell.tsx          # Shared hero + gallery shell for `/` and artwork fallback
 │   │   ├── artwork/
 │   │   │   ├── ArtworkPopup.tsx
+│   │   │   ├── ArtworkModalClient.tsx     # Intercept-route client entry for @modal slot
 │   │   │   ├── ArtworkEditForm.tsx
 │   │   │   ├── FullscreenViewer.tsx
 │   │   │   ├── DownloadButton.tsx
@@ -105,6 +108,7 @@ bushart/
 │   │
 │   ├── hooks/
 │   │   ├── useArtworks.ts                 # Data fetching + infinite scroll state
+│   │   ├── useArtwork.ts                  # Single-artwork detail fetch for popup routes
 │   │   ├── useAuth.ts                     # Wraps GET /api/auth/me
 │   │   ├── useInfiniteScroll.ts           # IntersectionObserver sentinel hook
 │   │   └── useFilters.ts                  # Reads/writes filter state to URL search params
@@ -116,8 +120,15 @@ bushart/
 │       └── api.ts                         # Shared request/response types matching 05-API-Specification.md
 │
 ├── scripts/
-│   └── seed-admin.ts                      # One-time admin bootstrap (02-Technical-Specification.md §9)
+│   ├── seed-admin.ts                      # One-time admin bootstrap (02-Technical-Specification.md §9)
+│   └── seed-e2e.ts                        # Minimal Playwright E2E seed data
 │
+├── tests/
+│   ├── e2e/                               # Playwright specs (separate tsconfig; excluded from root)
+│   ├── components/                          # Vitest jsdom component tests
+│   └── hooks/                               # Vitest jsdom hook tests
+│
+├── playwright.config.ts                   # Playwright runner + dev-server bootstrap
 ├── public/
 │   └── icons/                             # Static, non-media assets (favicon, etc.)
 │

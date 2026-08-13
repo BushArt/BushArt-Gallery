@@ -9,6 +9,12 @@ Format: loosely follows [Keep a Changelog](https://keepachangelog.com/) conventi
 ## [Unreleased]
 
 ### Added
+- **TODO-020** — Intercepting-route artwork modal and full-page fallback: `@modal/(.)artwork/[slug]` client interception, `/artwork/[slug]` server fallback, shared `ArtworkPopup` via `HomePageShell` extraction, `ArtworkModalClient`, `useArtwork` hook, Playwright bootstrap (`playwright.config.ts`, `scripts/seed-e2e.ts`), CI `e2e` job, and 6 E2E tests covering both entry paths plus Esc/fullscreen, NSFW, download, and share. 3 Modal tests + route wiring; 275 passing / 8 skipped total.
+
+- **TODO-021** — ArtworkPopup and FullscreenViewer: image sequence, timelapse toggle with fullscreen entry, metadata placard, tag pills, sketch-in modal frame, NSFW interstitial (`07` Flow 5), swipe navigation, accessible modal/focus trap, and explicit absence of any related-artwork module. 7 component tests (ArtworkPopup, FullscreenViewer, Modal); 275 passing / 8 skipped total.
+
+- **TODO-022** — Download and Share actions in the popup action row: anchor-based `DownloadButton` via sorted `GET /api/artworks/:slug/download` redirect (no byte proxying), `ShareButton` with Web Share API and clipboard fallback confirmation. 4 component tests + download API sort defense; 275 passing / 8 skipped total.
+
 - **TODO-019** — Infinite scroll and SketchReveal motion: `useInfiniteScroll` IntersectionObserver sentinel, cursor pagination via `useArtworks`, `SketchRevealImage` on gallery thumbnails with `prefers-reduced-motion` opacity fallback and load-error placeholder, retry button for retryable fetch failures, and stale-cursor race fix on filter refetch. 6 hook/UI component tests; 261 passing total.
 
 - **TODO-018** — URL-synced filter bar and NSFW toggle: `FilterBar`, `NsfwToggle`, and `useFilters` serialize tags/year/medium/type/nsfw/sort to URL search params, persist NSFW preference in `localStorage` (`bushart-nsfw`), debounce text inputs (300ms), and validate year input. 8 component/hook tests; 261 passing total.
@@ -31,6 +37,17 @@ Format: loosely follows [Keep a Changelog](https://keepachangelog.com/) conventi
 - **TODO-010** — Cloudinary v2 client configuration (`lib/cloudinary/client.ts`) with deferred env-var validation, scoped upload-signature helper (`lib/cloudinary/signature.ts`) enforcing the `bushart/` folder namespace, and `POST /api/upload/signature` Route Handler returning time-boxed HMAC signatures. Admin session enforced via `requireAdmin`; `CLOUDINARY_API_SECRET` never leaves the server. 12 integration tests + 10 unit tests; 180 passing total.
 
 ### Documentation Updates
+- `03-System-Architecture.md` §6 — no change; intercepting parallel routes with shared `ArtworkPopup` and Suspense boundaries match the documented shareable-modal architecture (ADR-005).
+- `08-Project-Structure.md` §1 — added `HomePageShell.tsx`, `ArtworkModalClient.tsx`, `useArtwork.ts`, `playwright.config.ts`, `scripts/seed-e2e.ts`, and `tests/e2e/` for Phase 6 modal/E2E layout.
+- `12-Decision-Log.md` ADR-005 — no change; implementation matches the documented intercepting-route + fallback pattern.
+
+- `06-UI-Design-System.md` §11, §14 — no change; popup placard, action row, sketch-in modal frame, and fullscreen chrome match the documented component spec.
+- `07-User-Flows.md` Flow 2, Flow 5 — no change; artwork detail overlay, fullscreen viewer, and NSFW interstitial match documented flows.
+- `01-Product-Definition.md` — no change; related-artwork module remains an explicit non-feature.
+
+- `07-User-Flows.md` Flows 3 & 4 — no change; download redirect and share (Web Share + clipboard fallback) match documented behavior.
+- `05-API-Specification.md` §4.3 — clarified that `image` index resolves against images sorted by `order` before lookup.
+
 - `08-Project-Structure.md` §1 — added `GallerySection.tsx`; noted `NsfwToggle` is exported from `FilterBar.tsx`; added `tests/components/` and `tests/hooks/` for jsdom component tests.
 - `03-System-Architecture.md` §6, §9, §10 — no change; infinite scroll, cursor pagination, and inline retry for retryable fetch failures match documented gallery rendering model (full error boundaries deferred to TODO-029).
 - `06-UI-Design-System.md` §14 — no change; `SketchRevealImage` implements the signature sketch-in reveal with reduced-motion opacity crossfade.
@@ -85,6 +102,8 @@ Format: loosely follows [Keep a Changelog](https://keepachangelog.com/) conventi
 - **TODO-006** — Added Zod validation schemas for artwork, tag, and settings with strict field-level enforcement; introduced internal DB-layer schemas (`ArtworkCreateInternalSchema`/`ArtworkUpdateInternalSchema`) so `createArtwork`/`updateArtwork` and `createTag` validate before write; added auth request/response schemas for Phase 2; tightened `Admin.createdAt` to non-null `Date` to match `04-Database-Schema.md §5`.
 
 ### Fixed
+- [Phase 6 audit remediation] — 22 post-implementation findings remediated: modal Esc/fullscreen stacking and a11y, download sorted-index contract, useArtwork abort/slug guard, timelapse fullscreen entry, sketch-in frame, card prefetch, generateMetadata, swipe nav, E2E/CI hardening, and Playwright artifact gitignore. 275 Vitest / 6 E2E passing.
+
 - [Phase 5 audit remediation] — Infinite-scroll stale-cursor race on filter change; year NaN validation; useFilters URL/localStorage integration tests; retry button for retryable fetch failures; debounced filter inputs; SketchReveal load-error fallback; +10 tests (261 passing / 8 skipped total).
 
 - [Phase 4 audit remediation] — Tag AND filter empty page when any requested slug is missing; DELETE artwork destroys Cloudinary media before Mongo delete (503 if destroy fails); PATCH featured/featuredOrder merged-state validation; tagIds ObjectId format + uniqueness validation; tag delete pull-before-remove order; settings GET strips image `url`; removed false-confidence route test; +11 tests (242 passing / 8 skipped total).
