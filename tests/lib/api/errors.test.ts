@@ -35,7 +35,9 @@ describe("handleRouteError", () => {
     expect(res.status).toBe(500);
     const body = await res.json();
     expect(body.error.code).toBe("INTERNAL_ERROR");
-    expect(consoleSpy).toHaveBeenCalledWith("MyRoute:", expect.any(Error));
+    // handleRouteError routes through the structured logger, which formats a
+    // timestamped message and serializes the Error (message/stack preserved).
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining("[ERROR] MyRoute"));
     consoleSpy.mockRestore();
   });
 });

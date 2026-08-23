@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { error as logError } from "@/lib/logger";
 
 type ErrorCode =
   | "VALIDATION_ERROR"
@@ -27,7 +28,7 @@ export function handleRouteError(error: unknown, logLabel: string): NextResponse
     return error as NextResponse;
   }
 
-  console.error(`${logLabel}:`, error);
+  logError(logLabel, { error });
   return apiError(500, "INTERNAL_ERROR", "An unexpected error occurred");
 }
 

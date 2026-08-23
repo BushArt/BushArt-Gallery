@@ -9,6 +9,8 @@ Format: loosely follows [Keep a Changelog](https://keepachangelog.com/) conventi
 ## [Unreleased]
 
 ### Added
+- **TODO-029** — Error boundaries + API error envelope + logging: shared leveled structured logger (`lib/logger.ts`) replacing every bare `console.*` in committed code; all Route Handlers — including all four auth routes — funneling errors through `apiError`/`handleRouteError`; `GET /api/auth/me` returning **200** `{authenticated:false}` when the JWT is valid but the admin record is missing; root `app/error.tsx` last-resort boundary alongside independent gallery/popup recovery; and an ESLint `no-console` guard enforcing the invariant. Two audit rounds fixed Error-serialization loss in logs, silent root-boundary swallowing, an unreachable trace level, the logout funnel gap, and purity/double-log issues in `SectionErrorBoundary`. 361 passing / 8 skipped; lint + typecheck clean.
+
 - **TODO-023** — Admin login surface: `AuthProvider`, `useAuth`, `LoginModal`, `AdminFooter` (footer glyph + `Shift+Alt+L`), root `Providers` wrapper in `layout.tsx` (Suspense for PPR), and E2E login/lockout/edit-after-login coverage. 352 passing / 8 skipped; E2E 19.
 
 - **TODO-024** — Upload flow: `UploadCard`, `UploadDialog`, `TagPicker`, client `uploadClient.ts`, gallery refresh via `AdminShell`, empty-gallery and list-mode upload entry points, and E2E upload with inline tag create + post-upload gallery refresh assertion. 352 passing / 8 skipped; E2E 19.
@@ -49,6 +51,10 @@ Format: loosely follows [Keep a Changelog](https://keepachangelog.com/) conventi
 - **TODO-010** — Cloudinary v2 client configuration (`lib/cloudinary/client.ts`) with deferred env-var validation, scoped upload-signature helper (`lib/cloudinary/signature.ts`) enforcing the `bushart/` folder namespace, and `POST /api/upload/signature` Route Handler returning time-boxed HMAC signatures. Admin session enforced via `requireAdmin`; `CLOUDINARY_API_SECRET` never leaves the server. 12 integration tests + 10 unit tests; 180 passing total.
 
 ### Documentation Updates
+- `03-System-Architecture.md` §10 — documented as-built root `app/error.tsx` last-resort boundary complementing the independent gallery-feed/artwork-popup boundaries.
+- `05-API-Specification.md` §2 — no change; envelope shape, error codes, and status mapping match the documented contract exactly across every Route Handler.
+- `09-Coding-Standards.md` §11–12 — §11 no change (every handler funnels through the shared helpers); §12 updated to note the no-console invariant is enforced by a scoped ESLint rule (`src/**`, `lib/logger.ts` exempt).
+- `08-Project-Structure.md` §1 — added `lib/logger.ts`, the root/route-level `error.tsx` boundaries, and `ui/SectionErrorBoundary.tsx` to the directory tree.
 - `08-Project-Structure.md` §1 — expanded `components/admin/` tree (`Providers`, `AuthProvider`, `AdminShell`, `AdminFooter`, `AdminOverlays`, `TagPicker`), `HomePageClient.tsx`, and `lib/cloudinary/uploadClient.ts`; noted root layout `Providers` + Suspense for shared auth across homepage and artwork modal routes.
 - `06-UI-Design-System.md` §12 — no change; hidden login glyph, keyboard shortcut, and admin chrome match the documented spec.
 - `07-User-Flows.md` Flows 6–11 — no change; login, upload, edit, tag management, hero edit, and featured flows implemented as documented.

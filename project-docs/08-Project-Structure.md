@@ -13,14 +13,17 @@ bushart/
 │   │   ├── layout.tsx                     # Root layout: fonts, Providers (auth), Suspense, @modal slot
 │   │   ├── page.tsx                       # Homepage: delegates to HomePageShell
 │   │   ├── globals.css                    # Tailwind entry + CSS custom properties (design tokens)
+│   │   ├── error.tsx                      # Root client error boundary — last-resort layout-failure UI (03 §10)
 │   │   ├── @modal/                        # Parallel route slot for the artwork popup
 │   │   │   ├── default.tsx                # Renders null when no modal is active
 │   │   │   └── (.)artwork/
 │   │   │       └── [slug]/
-│   │   │           └── page.tsx           # Intercepted artwork popup (client-side nav target)
+│   │   │           ├── page.tsx           # Intercepted artwork popup (client-side nav target)
+│   │   │           └── error.tsx          # Popup-level error boundary (independent recovery, 03 §10)
 │   │   ├── artwork/
 │   │   │   └── [slug]/
-│   │   │       └── page.tsx               # Full-page fallback: direct visits, refreshes, shared links
+│   │   │       ├── page.tsx               # Full-page fallback: direct visits, refreshes, shared links
+│   │   │       └── error.tsx              # Page-level error boundary (independent recovery, 03 §10)
 │   │   └── api/
 │   │       ├── auth/
 │   │       │   ├── login/route.ts
@@ -80,9 +83,11 @@ bushart/
 │   │       ├── Input.tsx
 │   │       ├── TagPill.tsx
 │   │       ├── SketchReveal.tsx           # The signature loading/reveal primitive (06-UI-Design-System.md §14)
+│   │       ├── SectionErrorBoundary.tsx   # Per-section isolation so one failing section can't blank the page (03 §10)
 │   │       └── Skeleton.tsx
 │   │
 │   ├── lib/
+│   │   ├── logger.ts                        # Leveled structured logging wrapper — the only sanctioned console.* boundary (09 §12)
 │   │   ├── db/
 │   │   │   ├── mongodb.ts                 # Cached connection helper
 │   │   │   └── models/

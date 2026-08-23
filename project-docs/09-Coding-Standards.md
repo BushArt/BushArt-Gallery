@@ -76,7 +76,7 @@ See `08-Project-Structure.md` §3 for the full convention table. Summary: `Pasca
 
 ## 12. Logging
 
-- Structured, leveled logging (`debug`/`info`/`warn`/`error`) through a single small wrapper — no bare `console.log` left in committed code.
+- Structured, leveled logging (`debug`/`info`/`warn`/`error`) through a single small wrapper (`lib/logger.ts`) — no bare `console.*` left in committed code. Enforced by a scoped ESLint `no-console: error` rule over `src/**`, with `lib/logger.ts` (the sanctioned console boundary) exempt.
 - Logs never include secrets, full request bodies containing credentials, or a plaintext password under any circumstance, even at `debug` level.
 - Server-side errors are logged with enough context to diagnose without reproducing (route, relevant ids, error message/stack) — but never with full user-submitted free text (artwork descriptions, bios) beyond what's needed to identify the record.
 

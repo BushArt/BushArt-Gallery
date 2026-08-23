@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
+import { error as logError } from "@/lib/logger";
 
 export default function ArtworkModalError({
   error,
@@ -11,7 +12,7 @@ export default function ArtworkModalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error("Artwork modal error:", error);
+    logError("Artwork modal error", { error });
   }, [error]);
 
   return (

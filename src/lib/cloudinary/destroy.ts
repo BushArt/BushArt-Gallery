@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getCloudinary } from "./client";
+import { warn } from "@/lib/logger";
 
 export type DestroyAsset = {
   publicId: string;
@@ -19,10 +20,9 @@ export async function destroyAssets(assets: DestroyAsset[]): Promise<void> {
     assets.map(async ({ publicId, resourceType }) => {
       const result = await cld.uploader.destroy(publicId, { resource_type: resourceType });
       if (result.result !== "ok" && result.result !== "not found") {
-        console.warn(
-          `Cloudinary destroy unexpected result for ${publicId} (${resourceType}):`,
-          result.result,
-        );
+        warn(`Cloudinary destroy unexpected result for ${publicId} (${resourceType})`, {
+          result: result.result,
+        });
       }
     }),
   );

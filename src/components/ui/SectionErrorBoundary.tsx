@@ -2,6 +2,8 @@
 
 import { Component, type ErrorInfo, type ReactNode } from "react";
 
+import { error as logError } from "@/lib/logger";
+
 interface SectionErrorBoundaryProps {
   children: ReactNode;
   fallbackLabel?: string;
@@ -18,11 +20,15 @@ export class SectionErrorBoundary extends Component<
   state: SectionErrorBoundaryState = { error: null };
 
   static getDerivedStateFromError(error: Error): SectionErrorBoundaryState {
+    // getDerivedStateFromError must be pure — logging happens in componentDidCatch.
     return { error };
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error("SectionErrorBoundary:", error, info.componentStack);
+    logError("SectionErrorBoundary caught error", {
+      error,
+      componentStack: info.componentStack,
+    });
   }
 
   private handleRetry = () => {

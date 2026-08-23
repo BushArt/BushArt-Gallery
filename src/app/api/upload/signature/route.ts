@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth/guard";
 import { signUploadSignature, FolderValidationError } from "@/lib/cloudinary/signature";
+import { apiError, handleRouteError } from "@/lib/api/errors";
 
 /**
  * POST /api/upload/signature
@@ -30,30 +31,16 @@ export async function POST(request: NextRequest): Promise<Response> {
     try {
       body = await request.json();
     } catch {
-      return new Response(
-        JSON.stringify({
-          error: {
-            code: "VALIDATION_ERROR",
-            message: "Invalid JSON body",
-            details: {},
-          },
-        }),
-        { status: 400, headers: { "Content-Type": "application/json" } },
-      );
+      return apiError(400, "VALIDATION_ERROR", "Invalid JSON body");
     }
 
     const parsed = requestSchema.safeParse(body);
 
     if (!parsed.success) {
-      return new Response(
-        JSON.stringify({
-          error: {
-            code: "VALIDATION_ERROR",
-            message: parsed.error.errors[0]?.message ?? "Invalid request",
-            details: {},
-          },
-        }),
-        { status: 400, headers: { "Content-Type": "application/json" } },
+      return apiError(
+        400,
+        "VALIDATION_ERROR",
+        parsed.error.errors[0]?.message ?? "Invalid request",
       );
     }
 
@@ -76,29 +63,9 @@ export async function POST(request: NextRequest): Promise<Response> {
 
     // Folder validation errors are client mistakes → 400, not 500
     if (error instanceof FolderValidationError) {
-      return new Response(
-        JSON.stringify({
-          error: {
-            code: "VALIDATION_ERROR",
-            message: error.message,
-            details: {},
-          },
-        }),
-        { status: 400, headers: { "Content-Type": "application/json" } },
-      );
+      return apiError(400, "VALIDATION_ERROR", error.message);
     }
 
-    console.error("Upload signature error:", error);
-
-    return new Response(
-      JSON.stringify({
-        error: {
-          code: "INTERNAL_ERROR",
-          message: "Failed to generate upload signature",
-          details: {},
-        },
-      }),
-      { status: 500, headers: { "Content-Type": "application/json" } },
-    );
+    return handleRouteError(error, "POST /api/upload/signature");
   }
 }

@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
+import { error as logError } from "@/lib/logger";
 
 export default function ArtworkPageError({
   error,
@@ -11,7 +12,7 @@ export default function ArtworkPageError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error("Artwork page error:", error);
+    logError("Artwork page error", { error });
   }, [error]);
 
   return (

@@ -145,21 +145,6 @@ Status: Pending Audit
 
 ### Phase 8 — Hardening
 
-#### TODO-029 — Error boundaries + API error envelope + logging
-**Status:** Not Started · **Est. time:** 5h · **Depends on:** TODO-012 through TODO-028
-**Spec reference:** `03-System-Architecture.md` §10, `05-API-Specification.md` §2, `09-Coding-Standards.md` §11–12
-
-**Success conditions:**
-- Gallery feed and artwork popup fail independently — one broken request never blanks the whole page
-- Every Route Handler returns the shared error envelope; no bare `console.log` remains in committed code
-- Auth routes (`login`, `logout`, `me`, `upload/signature`) funnel through `apiError` / `handleRouteError` — no hand-rolled error JSON
-- `GET /api/auth/me` returns **200** `{ authenticated: false }` when the JWT is valid but the admin record is missing
-- `lib/logger.ts` provides leveled structured logging; no bare `console.*` in committed server code (replace usages in routes, `handleRouteError`, `SectionErrorBoundary`)
-- Root `app/error.tsx` (and optionally `global-error.tsx`) for uncaught layout failures; gallery and artwork popup remain independently recoverable per `03` §10
-
-**Tests:** Component test forcing one section to error and asserting the rest of the page still renders; auth/me contract test; logger unit test.
-**Notes / Results:** _(none yet)_
-
 #### TODO-030 — Accessibility pass
 **Status:** Not Started · **Est. time:** 6h · **Depends on:** TODO-016 through TODO-028
 **Spec reference:** `06-UI-Design-System.md` §16, `01-Product-Definition.md` §7

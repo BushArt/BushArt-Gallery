@@ -1,66 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
 import { LoginRequestSchema } from "@/lib/validation/auth";
-import { getAdminByUsername, updateLoginState, findLockoutStateByUsername } from "@/lib/db/models/admin";
+import {
+  getAdminByUsername,
+  updateLoginState,
+  findLockoutStateByUsername,
+} from "@/lib/db/models/admin";
 import { verifyPassword } from "@/lib/auth/password";
 import { signToken, TOKEN_EXPIRY_SECONDS } from "@/lib/auth/jwt";
 import { isLocked, recordFailedAttempt, recordSuccessfulLogin } from "@/lib/auth/lockout";
+import { apiError, handleRouteError } from "@/lib/api/errors";
 
 const SESSION_COOKIE = "bushart_session";
-
-function unauthenticatedResponse(): NextResponse {
-  return NextResponse.json(
-    {
-      error: {
-        code: "UNAUTHENTICATED",
-        message: "Invalid username or password",
-        details: {},
-      },
-    },
-    { status: 401 },
-  );
-}
-
-function lockedResponse(retryAfterSeconds: number): NextResponse {
-  return NextResponse.json(
-    {
-      error: {
-        code: "LOCKED",
-        message: "Account is temporarily locked",
-        details: { retryAfterSeconds },
-      },
-    },
-    { status: 423 },
-  );
-}
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   let body: unknown;
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json(
-      {
-        error: {
-          code: "VALIDATION_ERROR",
-          message: "Request body must be valid JSON",
-          details: {},
-        },
-      },
-      { status: 400 },
-    );
+    return apiError(400, "VALIDATION_ERROR", "Request body must be valid JSON");
   }
 
   const parsed = LoginRequestSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json(
-      {
-        error: {
-          code: "VALIDATION_ERROR",
-          message: parsed.error.issues[0]?.message ?? "Validation failed",
-          details: {},
-        },
-      },
-      { status: 400 },
+    return apiError(
+      400,
+      "VALIDATION_ERROR",
+      parsed.error.issues[0]?.message ?? "Validation failed",
     );
   }
 
@@ -74,13 +39,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // bcrypt work and to avoid revealing whether the username exists.
     if (admin && isLocked(admin.lockUntil, now)) {
       const retryAfterSeconds = Math.ceil((admin.lockUntil!.getTime() - now.getTime()) / 1000);
-      return lockedResponse(retryAfterSeconds);
+      return apiError(423, "LOCKED", "Account is temporarily locked", { retryAfterSeconds });
     }
 
     // If admin not found, return the identical 401 response as wrong password.
     // This prevents username enumeration.
     if (!admin) {
-      return unauthenticatedResponse();
+      return apiError(401, "UNAUTHENTICATED", "Invalid username or password");
     }
 
     const passwordValid = await verifyPassword(password, admin.passwordHash);
@@ -98,11 +63,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
       // If the failed attempt triggered a lock, return 423 instead of 401.
       if (isLocked(failedState.lockUntil, now)) {
-        const retryAfterSeconds = Math.ceil((failedState.lockUntil!.getTime() - now.getTime()) / 1000);
-        return lockedResponse(retryAfterSeconds);
+        const retryAfterSeconds = Math.ceil(
+          (failedState.lockUntil!.getTime() - now.getTime()) / 1000,
+        );
+        return apiError(423, "LOCKED", "Account is temporarily locked", { retryAfterSeconds });
       }
 
-      return unauthenticatedResponse();
+      return apiError(401, "UNAUTHENTICATED", "Invalid username or password");
     }
 
     // Success — re-check lockout atomically after password verification to
@@ -110,8 +77,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // attempt counter while this request was verifying the password.
     const currentLockout = await findLockoutStateByUsername(admin.username);
     if (currentLockout && isLocked(currentLockout.lockUntil, now)) {
-      const retryAfterSeconds = Math.ceil((currentLockout.lockUntil!.getTime() - now.getTime()) / 1000);
-      return lockedResponse(retryAfterSeconds);
+      const retryAfterSeconds = Math.ceil(
+        (currentLockout.lockUntil!.getTime() - now.getTime()) / 1000,
+      );
+      return apiError(423, "LOCKED", "Account is temporarily locked", { retryAfterSeconds });
     }
 
     const successState = recordSuccessfulLogin(now);
@@ -135,16 +104,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     return response;
   } catch (error) {
-    console.error("Login error:", error);
-    return NextResponse.json(
-      {
-        error: {
-          code: "INTERNAL_ERROR",
-          message: "An unexpected error occurred",
-          details: {},
-        },
-      },
-      { status: 500 },
-    );
+    return handleRouteError(error, "POST /api/auth/login");
   }
 }

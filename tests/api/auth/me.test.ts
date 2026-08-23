@@ -73,6 +73,17 @@ describe("GET /api/auth/me", () => {
     expect(res.headers.get("Cache-Control")).toBe("no-store");
   });
 
+  it("returns 200 {authenticated: false} when JWT is valid but admin record is missing", async () => {
+    // findByUsername mock defaults to null — a valid token with a deleted/missing
+    // admin must be treated as unauthenticated (200), not an error (401/500).
+    const req = createMeRequest("valid-token");
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json).toEqual({ authenticated: false });
+    expect(res.headers.get("Cache-Control")).toBe("no-store");
+  });
+
   it("does not return 401 for unauthenticated requests — 200 is deliberate", async () => {
     const req = createMeRequest();
     const res = await GET(req);

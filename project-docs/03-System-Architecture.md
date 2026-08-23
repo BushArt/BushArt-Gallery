@@ -149,7 +149,7 @@ The MVP does not include free-text search — filtering by tag, medium, year, an
 
 ## 10. Error Recovery
 
-- **Client:** React error boundaries wrap the gallery feed and the artwork popup independently, so a failure loading one artwork's data cannot blank the entire page. Failed infinite-scroll page requests show an inline retry affordance rather than failing silently.
+- **Client:** React error boundaries wrap the gallery feed and the artwork popup independently, so a failure loading one artwork's data cannot blank the entire page. Failed infinite-scroll page requests show an inline retry affordance rather than failing silently. As built, a root `app/error.tsx` boundary also catches unexpected layout-level failures as a last resort, so even a broken layout renders a recoverable error screen instead of a blank page.
 - **Uploads:** if the Cloudinary upload step succeeds but the subsequent `POST /api/artworks` call fails, the admin UI keeps the already-uploaded asset references client-side and offers a retry that skips re-uploading the media — only the metadata call is repeated.
 - **API:** every Route Handler returns a consistent error envelope (`05-API-Specification.md` §Error Format); the client's data-fetching layer treats network failures and 5xx responses as retryable, and 4xx responses as terminal (surfaced to the user, not retried automatically).
 - **Database connectivity:** the MongoDB connection helper (`08-Project-Structure.md`) reuses a cached client across requests and fails fast with a clear 503-style response if Atlas is unreachable, rather than hanging a request indefinitely.

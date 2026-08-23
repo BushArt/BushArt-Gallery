@@ -3,6 +3,7 @@ import { requireAdmin } from "@/lib/auth/guard";
 import { toArtworkDetailResponse } from "@/lib/api/artwork-response";
 import { apiError, handleRouteError, OBJECT_ID_REGEX } from "@/lib/api/errors";
 import { destroyAssets, type DestroyAsset } from "@/lib/cloudinary/destroy";
+import { error as logError } from "@/lib/logger";
 import {
   deleteArtwork,
   findArtworkById,
@@ -20,10 +21,7 @@ type RouteContext = { params: Promise<{ id: string }> };
  * DELETE /api/artworks/:id — delete artwork + Cloudinary media (05 §7.3)
  */
 
-export async function GET(
-  _request: NextRequest,
-  context: RouteContext,
-): Promise<NextResponse> {
+export async function GET(_request: NextRequest, context: RouteContext): Promise<NextResponse> {
   try {
     const { id: slug } = await context.params;
     const artwork = await findArtworkBySlug(slug, true);
@@ -39,10 +37,7 @@ export async function GET(
   }
 }
 
-export async function PATCH(
-  request: NextRequest,
-  context: RouteContext,
-): Promise<NextResponse> {
+export async function PATCH(request: NextRequest, context: RouteContext): Promise<NextResponse> {
   try {
     await requireAdmin(request);
 
@@ -96,10 +91,7 @@ export async function PATCH(
 
       if (!mergedFeatured) {
         mergedFeaturedOrder = null;
-      } else if (
-        typeof mergedFeaturedOrder !== "number" ||
-        Number.isNaN(mergedFeaturedOrder)
-      ) {
+      } else if (typeof mergedFeaturedOrder !== "number" || Number.isNaN(mergedFeaturedOrder)) {
         return apiError(
           400,
           "VALIDATION_ERROR",
@@ -124,10 +116,7 @@ export async function PATCH(
   }
 }
 
-export async function DELETE(
-  request: NextRequest,
-  context: RouteContext,
-): Promise<NextResponse> {
+export async function DELETE(request: NextRequest, context: RouteContext): Promise<NextResponse> {
   try {
     await requireAdmin(request);
 
@@ -155,7 +144,7 @@ export async function DELETE(
     try {
       await destroyAssets(assets);
     } catch (error) {
-      console.error("DELETE /api/artworks/:id Cloudinary destroy failed:", error);
+      logError("DELETE /api/artworks/:id Cloudinary destroy failed", { error });
       return apiError(
         503,
         "SERVICE_UNAVAILABLE",
