@@ -3,6 +3,11 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ArtworkDetailResponse } from "@/types/api";
 import { ArtworkEditForm } from "@/components/artwork/ArtworkEditForm";
+import { uploadFileToCloudinary } from "@/lib/cloudinary/uploadClient";
+
+vi.mock("@/lib/cloudinary/uploadClient", () => ({
+  uploadFileToCloudinary: vi.fn(),
+}));
 
 vi.mock("@/components/admin/TagPicker", () => ({
   TagPicker: () => <div data-testid="tag-picker-mock" />,
@@ -18,7 +23,9 @@ const artwork: ArtworkDetailResponse = {
   type: "personal",
   nsfw: false,
   completionDate: "2024-01-15T00:00:00.000Z",
-  images: [{ publicId: "img-1", url: "https://cdn.example.com/img-1", width: 800, height: 600, order: 0 }],
+  images: [
+    { publicId: "img-1", url: "https://cdn.example.com/img-1", width: 800, height: 600, order: 0 },
+  ],
   timelapse: null,
   tags: [],
   featured: false,
@@ -28,13 +35,18 @@ const artwork: ArtworkDetailResponse = {
 describe("ArtworkEditForm", () => {
   beforeEach(() => {
     vi.stubGlobal("fetch", vi.fn());
+    vi.mocked(uploadFileToCloudinary).mockResolvedValue({
+      public_id: "img-2",
+      secure_url: "https://cdn.example.com/img-2",
+      width: 800,
+      height: 600,
+      resource_type: "image",
+    });
   });
 
   it("requires featuredOrder when featured is toggled on", async () => {
     const user = userEvent.setup();
-    render(
-      <ArtworkEditForm artwork={artwork} onSave={vi.fn()} onCancel={vi.fn()} />,
-    );
+    render(<ArtworkEditForm artwork={artwork} onSave={vi.fn()} onCancel={vi.fn()} />);
 
     await user.click(screen.getByTestId("edit-featured"));
     await user.click(screen.getByTestId("edit-save"));
@@ -57,9 +69,7 @@ describe("ArtworkEditForm", () => {
       new Response(JSON.stringify(featuredArtwork), { status: 200 }),
     );
 
-    render(
-      <ArtworkEditForm artwork={featuredArtwork} onSave={onSave} onCancel={vi.fn()} />,
-    );
+    render(<ArtworkEditForm artwork={featuredArtwork} onSave={onSave} onCancel={vi.fn()} />);
 
     const titleInput = screen.getByTestId("edit-title");
     await user.clear(titleInput);
@@ -80,20 +90,33 @@ describe("ArtworkEditForm", () => {
     const multiImageArtwork: ArtworkDetailResponse = {
       ...artwork,
       images: [
-        { publicId: "img-1", url: "https://cdn.example.com/img-1", width: 800, height: 600, order: 0 },
-        { publicId: "img-2", url: "https://cdn.example.com/img-2", width: 800, height: 600, order: 1 },
+        {
+          publicId: "img-1",
+          url: "https://cdn.example.com/img-1",
+          width: 800,
+          height: 600,
+          order: 0,
+        },
+        {
+          publicId: "img-2",
+          url: "https://cdn.example.com/img-2",
+          width: 800,
+          height: 600,
+          order: 1,
+        },
       ],
     };
 
     vi.mocked(fetch).mockResolvedValue(
-      new Response(JSON.stringify({ ...multiImageArtwork, images: [multiImageArtwork.images[1]] }), {
-        status: 200,
-      }),
+      new Response(
+        JSON.stringify({ ...multiImageArtwork, images: [multiImageArtwork.images[1]] }),
+        {
+          status: 200,
+        },
+      ),
     );
 
-    render(
-      <ArtworkEditForm artwork={multiImageArtwork} onSave={onSave} onCancel={vi.fn()} />,
-    );
+    render(<ArtworkEditForm artwork={multiImageArtwork} onSave={onSave} onCancel={vi.fn()} />);
 
     await user.click(screen.getByTestId("remove-image-0"));
     await user.click(screen.getByTestId("edit-save"));
@@ -103,5 +126,49 @@ describe("ArtworkEditForm", () => {
     const body = JSON.parse(init.body as string) as { images: { publicId: string }[] };
     expect(body.images).toHaveLength(1);
     expect(body.images[0].publicId).toBe("img-2");
+  });
+
+  it("retries a failed PATCH without re-uploading added media", async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn();
+    const fetchMock = vi
+      .mocked(fetch)
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ error: { message: "Database temporarily unavailable" } }), {
+          status: 503,
+        }),
+      )
+      .mockResolvedValueOnce(new Response(JSON.stringify(artwork), { status: 200 }));
+
+    render(<ArtworkEditForm artwork={artwork} onSave={onSave} onCancel={vi.fn()} />);
+
+    await user.upload(
+      screen.getByLabelText("Images"),
+      new File(["image"], "new.png", { type: "image/png" }),
+    );
+    await user.click(screen.getByTestId("edit-save"));
+    await expect(screen.findByTestId("edit-retry-save")).resolves.toBeInTheDocument();
+    expect(uploadFileToCloudinary).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByTestId("edit-retry-save"));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    expect(uploadFileToCloudinary).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not offer retry for terminal PATCH errors", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi
+      .mocked(fetch)
+      .mockResolvedValue(
+        new Response(JSON.stringify({ error: { message: "Invalid artwork" } }), { status: 400 }),
+      );
+
+    render(<ArtworkEditForm artwork={artwork} onSave={vi.fn()} onCancel={vi.fn()} />);
+    await user.click(screen.getByTestId("edit-save"));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(screen.queryByTestId("edit-retry-save")).not.toBeInTheDocument();
   });
 });

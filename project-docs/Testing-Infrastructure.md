@@ -57,6 +57,8 @@ flowchart TB
 | **Playwright** | Headless browser E2E | `playwright.config.ts` |
 | **Testing Library** | Component/hook rendering and interaction | `tests/setup.ts` |
 | **jsdom** | Browser-like environment for `*.test.tsx` | Vitest `component` project |
+| **@axe-core/playwright** | Automated accessibility checks in the E2E suite | `tests/e2e/accessibility.spec.ts` |
+| **Test-count guard** | Prevents regressions in test files, passed/skipped/failed counts, and CI report validity | `scripts/check-test-counts.mjs` |
 
 Vitest runs two projects:
 
@@ -88,6 +90,7 @@ tests/
 └── e2e/                       # Playwright specs (separate tsconfig)
     ├── fixtures.ts
     ├── global-setup.ts
+    ├── accessibility.spec.ts
     ├── artwork-modal.spec.ts
     └── gallery-browse.spec.ts
 ```
@@ -133,6 +136,8 @@ flowchart LR
 
 Both jobs use a **MongoDB 7 service container**. The `test` job runs index integration tests and enforces the coverage gate via a single `npm run test:coverage` invocation; the `e2e` job seeds minimal artwork data then runs Playwright headlessly.
 
+The test job writes a machine-readable Vitest report and uploads it as an artifact. The E2E job writes a machine-readable Playwright report, downloads the Vitest report, and runs `npm run test:counts` against both reports. The count guard enforces the baseline in `scripts/test-count-baseline.json`, including minimum passed tests and zero-failure/skip ceilings. Accessibility checks live in `tests/e2e/accessibility.spec.ts` and cover critical Axe violations, contrast, reduced motion, keyboard flows, fullscreen announcements, and security headers.
+
 Workflow: `.github/workflows/ci.yml`.
 
 ---
@@ -173,7 +178,6 @@ Shared helpers in `tests/helpers/` reduce duplication across API tests. Prefer i
 |---|---|
 | Real-MongoDB route integration (all 15 endpoints) | TODO-036 |
 | Login + upload E2E flows | TODO-037 |
-| Accessibility audit (`@axe-core/playwright`) | TODO-030 |
 | MSW layer for multi-request hook tests | TODO-041 |
 | Schema contract tests (Zod vs `04`/`05`) | TODO-042 |
 | Visual regression baseline | TODO-043 |

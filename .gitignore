@@ -38,6 +38,7 @@ coverage/
 test-results/
 playwright-report/
 blob-report/
+ci-reports/
 
 # Misc
 # .pre-commit-config.yaml

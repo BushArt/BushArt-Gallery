@@ -19,8 +19,15 @@ let cachedClientPromise: Promise<MongoClient> | null = null;
 
 async function getOrCreateClient(): Promise<MongoClient> {
   if (!cachedClientPromise) {
-    const client = new MongoClient(getMongoUri());
-    cachedClientPromise = client.connect();
+    const client = new MongoClient(getMongoUri(), {
+      connectTimeoutMS: 10_000,
+      serverSelectionTimeoutMS: 10_000,
+    });
+    cachedClientPromise = client.connect().catch(async (error) => {
+      cachedClientPromise = null;
+      await client.close().catch(() => undefined);
+      throw error;
+    });
   }
   return cachedClientPromise;
 }

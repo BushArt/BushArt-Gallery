@@ -9,6 +9,27 @@ Format: loosely follows [Keep a Changelog](https://keepachangelog.com/) conventi
 ## [Unreleased]
 
 ### Added
+- **TODO-030** — Accessibility pass: added axe-core E2E coverage, keyboard journeys across gallery, filters, artwork popup, fullscreen, and admin controls, reduced-motion and contrast checks, screen-reader image-position announcements, and title-derived image alt text.
+- **TODO-031** — Boot-time environment validation: added shared Zod validation for required runtime variables, production JWT secret strength enforcement, and Next.js instrumentation-based startup validation.
+- **TODO-032** — MongoDB connectivity fail-fast: mapped MongoDB network, selection, timeout, and documented timeout-code failures to the shared 503 `SERVICE_UNAVAILABLE` envelope, added 10-second connection bounds, and enabled reconnect after failed connections.
+- **TODO-033** — Client resilience and upload metadata retry: aligned artwork-detail retry state with list-fetch semantics and added status-aware upload/edit save retries that preserve uploaded media references and avoid re-uploading Cloudinary assets.
+- **TODO-034** — HTTP security headers: added baseline frame, content-type, referrer, and Cloudinary-compatible CSP headers across site and API routes, with HSTS remaining at the Render/proxy boundary.
+
+### Documentation Updates
+- `01-Product-Definition.md` §7 — no change; the accessibility requirements are satisfied as implemented.
+- `06-UI-Design-System.md` §16 — no change; keyboard, focus, contrast, motion, and screen-reader behavior match the documented contract.
+- `08-Project-Structure.md` §1 — no change; accessibility coverage remains under `tests/e2e/`.
+- `09-Coding-Standards.md` §13 — no change; the accessibility E2E suite follows the risk-weighted testing policy.
+- `02-Technical-Specification.md` §9 — no change; the validated runtime variables and one-time seed inputs match the documented environment contract.
+- `08-Project-Structure.md` §1, §6 — added the shared environment validator and instrumentation hook to the documented structure and runtime responsibilities.
+- `03-System-Architecture.md` §10 — no change; bounded MongoDB failures and recovery match the documented error-recovery model.
+- `05-API-Specification.md` §2 — no change; dependency failures preserve the documented shared error envelope with `503 SERVICE_UNAVAILABLE`.
+- `03-System-Architecture.md` §10 — no change; client retries and metadata-only persistence follow the documented resilience model.
+- `08-Project-Structure.md` §1 — no change; retry behavior is implemented in the documented component and API-helper locations.
+- `09-Coding-Standards.md` §13 — no change; focused hook and component tests match the risk-weighted testing policy.
+- `02-Technical-Specification.md` §12 — documented the selected baseline security headers and HSTS deferral at the deployment boundary.
+- `10-Deployment-Guide.md` §6 — no change; HSTS remains a Render/proxy responsibility as documented.
+
 - **TODO-029** — Error boundaries + API error envelope + logging: shared leveled structured logger (`lib/logger.ts`) replacing every bare `console.*` in committed code; all Route Handlers — including all four auth routes — funneling errors through `apiError`/`handleRouteError`; `GET /api/auth/me` returning **200** `{authenticated:false}` when the JWT is valid but the admin record is missing; root `app/error.tsx` last-resort boundary alongside independent gallery/popup recovery; and an ESLint `no-console` guard enforcing the invariant. Two audit rounds fixed Error-serialization loss in logs, silent root-boundary swallowing, an unreachable trace level, the logout funnel gap, and purity/double-log issues in `SectionErrorBoundary`. 361 passing / 8 skipped; lint + typecheck clean.
 
 - **TODO-023** — Admin login surface: `AuthProvider`, `useAuth`, `LoginModal`, `AdminFooter` (footer glyph + `Shift+Alt+L`), root `Providers` wrapper in `layout.tsx` (Suspense for PPR), and E2E login/lockout/edit-after-login coverage. 352 passing / 8 skipped; E2E 19.
@@ -126,6 +147,7 @@ Format: loosely follows [Keep a Changelog](https://keepachangelog.com/) conventi
 - **TODO-006** — Added Zod validation schemas for artwork, tag, and settings with strict field-level enforcement; introduced internal DB-layer schemas (`ArtworkCreateInternalSchema`/`ArtworkUpdateInternalSchema`) so `createArtwork`/`updateArtwork` and `createTag` validate before write; added auth request/response schemas for Phase 2; tightened `Admin.createdAt` to non-null `Date` to match `04-Database-Schema.md §5`.
 
 ### Fixed
+- [Phase 8 audit remediation] — Remediated accessibility keyboard coverage and popup timing, environment validation, MongoDB 503/reconnect handling, client metadata retries, security headers, Node 20 command compatibility, and test-count regression protection; local validation finished at 376 Vitest passes / 8 skips and 30 Playwright passes.
 - [Phase 7 audit remediation] — Unified auth context (single root `Providers`), safe featured PATCH on metadata-only edits, empty-gallery upload entry, complete hero editor fields, image/timelapse edit in edit form, tag-create error surfacing, and gallery refresh E2E assertion. 352 Vitest / 19 E2E passing.
 
 - [Phase 6 audit remediation] — 22 post-implementation findings remediated: modal Esc/fullscreen stacking and a11y, download sorted-index contract, useArtwork abort/slug guard, timelapse fullscreen entry, sketch-in frame, card prefetch, generateMetadata, swipe nav, E2E/CI hardening, and Playwright artifact gitignore. 275 Vitest / 6 E2E passing.

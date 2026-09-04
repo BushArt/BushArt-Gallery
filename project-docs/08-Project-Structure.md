@@ -88,6 +88,7 @@ bushart/
 │   │
 │   ├── lib/
 │   │   ├── logger.ts                        # Leveled structured logging wrapper — the only sanctioned console.* boundary (09 §12)
+│   │   ├── env.ts                            # Shared boot-time runtime environment validation
 │   │   ├── db/
 │   │   │   ├── mongodb.ts                 # Cached connection helper
 │   │   │   └── models/
@@ -101,6 +102,7 @@ bushart/
 │   │   │   └── guard.ts                   # Server-side "require admin" helper used by every protected route handler
 │   │   ├── api/
 │   │   │   ├── errors.ts                  # Shared error envelope helpers for Route Handlers
+│   │   │   ├── client-retry.ts             # Shared client request retryability semantics
 │   │   │   ├── artwork-response.ts        # §4.2 detail response mapper
 │   │   │   ├── artwork-slug.ts            # Unique slug generation for POST /api/artworks
 │   │   │   └── settings-response.ts       # §4.5 public settings shape (strips internal fields)
@@ -127,15 +129,18 @@ bushart/
 │   │   ├── useInfiniteScroll.ts           # IntersectionObserver sentinel hook
 │   │   └── useFilters.ts                  # Reads/writes filter state to URL search params
 │   │
-│   └── types/
+│   ├── types/
 │       ├── artwork.ts
 │       ├── tag.ts
 │       ├── settings.ts
 │       └── api.ts                         # Shared request/response types matching 05-API-Specification.md
+│   └── instrumentation.ts                  # Boot-time runtime environment validation hook
 │
 ├── scripts/
 │   ├── seed-admin.ts                      # One-time admin bootstrap (02-Technical-Specification.md §9)
-│   └── seed-e2e.ts                        # Minimal Playwright E2E seed data
+│   ├── seed-e2e.ts                         # Minimal Playwright E2E seed data
+│   ├── check-test-counts.mjs               # CI regression guard for test files and outcomes
+│   └── test-count-baseline.json            # Minimum protected test counts
 │
 ├── tests/
 │   ├── helpers/                             # Shared fixtures and request builders

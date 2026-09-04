@@ -15,7 +15,7 @@ export default async function globalSetup() {
     return;
   }
 
-  execSync("node --use-system-ca ./node_modules/tsx/dist/cli.mjs scripts/seed-e2e.ts", {
+  execSync("node ./node_modules/tsx/dist/cli.mjs scripts/seed-e2e.ts", {
     stdio: "inherit",
     env: process.env,
   });

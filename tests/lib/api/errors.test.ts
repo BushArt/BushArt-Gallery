@@ -40,6 +40,29 @@ describe("handleRouteError", () => {
     expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining("[ERROR] MyRoute"));
     consoleSpy.mockRestore();
   });
+
+  it("returns 503 SERVICE_UNAVAILABLE for MongoDB connection errors", async () => {
+    const error = new Error("server selection timed out");
+    error.name = "MongoServerSelectionError";
+
+    const res = handleRouteError(error, "MongoRoute");
+
+    expect(res.status).toBe(503);
+    const body = await res.json();
+    expect(body.error).toEqual({
+      code: "SERVICE_UNAVAILABLE",
+      message: "Database temporarily unavailable",
+      details: {},
+    });
+  });
+
+  it("returns 503 for MongoDB timeout error codes", async () => {
+    const error = Object.assign(new Error("operation timed out"), { code: 50 });
+
+    const res = handleRouteError(error, "MongoTimeoutRoute");
+
+    expect(res.status).toBe(503);
+  });
 });
 
 describe("OBJECT_ID_REGEX", () => {

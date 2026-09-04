@@ -2,6 +2,7 @@
 
 import { useCallback, useState, type FormEvent } from "react";
 import { uploadFileToCloudinary } from "@/lib/cloudinary/uploadClient";
+import { isRetryableStatus, statusFromError } from "@/lib/api/client-retry";
 import type { ArtworkDetailResponse } from "@/types/api";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -47,9 +48,7 @@ export function ArtworkEditForm({ artwork, onSave, onCancel }: ArtworkEditFormPr
   const [title, setTitle] = useState(artwork.title);
   const [description, setDescription] = useState(artwork.description ?? "");
   const [medium, setMedium] = useState(artwork.medium);
-  const [completionDate, setCompletionDate] = useState(
-    artwork.completionDate.slice(0, 10),
-  );
+  const [completionDate, setCompletionDate] = useState(artwork.completionDate.slice(0, 10));
   const [type, setType] = useState<"personal" | "commission">(artwork.type);
   const [nsfw, setNsfw] = useState(artwork.nsfw);
   const [tagIds, setTagIds] = useState(artwork.tags.map((t) => t.id));
@@ -76,6 +75,7 @@ export function ArtworkEditForm({ artwork, onSave, onCancel }: ArtworkEditFormPr
   const [featuredOrderError, setFeaturedOrderError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [canRetrySave, setCanRetrySave] = useState(false);
 
   const handleFeaturedChange = useCallback((checked: boolean) => {
     setFeaturedDirty(true);
@@ -86,30 +86,33 @@ export function ArtworkEditForm({ artwork, onSave, onCancel }: ArtworkEditFormPr
     }
   }, []);
 
-  const handleAddImages = useCallback(async (files: FileList | null) => {
-    if (!files?.length) return;
-    setUploadProgress("Uploading images…");
-    setError(null);
-    try {
-      const uploaded: EditableImage[] = [];
-      for (let i = 0; i < files.length; i++) {
-        const result = await uploadFileToCloudinary(files[i], "image");
-        uploaded.push({
-          publicId: result.public_id,
-          url: result.secure_url,
-          width: result.width,
-          height: result.height,
-          order: images.length + i,
-        });
+  const handleAddImages = useCallback(
+    async (files: FileList | null) => {
+      if (!files?.length) return;
+      setUploadProgress("Uploading images…");
+      setError(null);
+      try {
+        const uploaded: EditableImage[] = [];
+        for (let i = 0; i < files.length; i++) {
+          const result = await uploadFileToCloudinary(files[i], "image");
+          uploaded.push({
+            publicId: result.public_id,
+            url: result.secure_url,
+            width: result.width,
+            height: result.height,
+            order: images.length + i,
+          });
+        }
+        setImages((prev) => [...prev, ...uploaded].map((img, index) => ({ ...img, order: index })));
+        setImagesDirty(true);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Image upload failed");
+      } finally {
+        setUploadProgress(null);
       }
-      setImages((prev) => [...prev, ...uploaded].map((img, index) => ({ ...img, order: index })));
-      setImagesDirty(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Image upload failed");
-    } finally {
-      setUploadProgress(null);
-    }
-  }, [images.length]);
+    },
+    [images.length],
+  );
 
   const handleRemoveImage = useCallback((index: number) => {
     setImages((prev) => prev.filter((_, i) => i !== index).map((img, i) => ({ ...img, order: i })));
@@ -142,6 +145,71 @@ export function ArtworkEditForm({ artwork, onSave, onCancel }: ArtworkEditFormPr
     setTimelapseDirty(true);
   }, []);
 
+  const saveArtwork = useCallback(async () => {
+    setError(null);
+    setCanRetrySave(false);
+    setIsSubmitting(true);
+    try {
+      const body: Record<string, unknown> = {
+        title,
+        description: description || null,
+        medium,
+        type,
+        nsfw,
+        completionDate: new Date(completionDate).toISOString(),
+        tagIds,
+      };
+
+      if (imagesDirty) body.images = images;
+      if (timelapseDirty) body.timelapse = timelapse;
+
+      if (featuredDirty) {
+        body.featured = featured;
+        body.featuredOrder = featured ? Number(featuredOrder) : null;
+      }
+
+      const res = await fetch(`/api/artworks/${artwork.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        const requestError = new Error(errBody?.error?.message ?? "Save failed") as Error & {
+          status?: number;
+        };
+        requestError.status = res.status;
+        throw requestError;
+      }
+
+      const updated = (await res.json()) as ArtworkDetailResponse;
+      onSave(updated);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Save failed");
+      setCanRetrySave(isRetryableStatus(statusFromError(err)));
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [
+    artwork.id,
+    completionDate,
+    description,
+    featured,
+    featuredDirty,
+    featuredOrder,
+    images,
+    imagesDirty,
+    medium,
+    nsfw,
+    onSave,
+    tagIds,
+    timelapse,
+    timelapseDirty,
+    title,
+    type,
+  ]);
+
   const handleSubmit = useCallback(
     async (event: FormEvent) => {
       event.preventDefault();
@@ -161,79 +229,17 @@ export function ArtworkEditForm({ artwork, onSave, onCancel }: ArtworkEditFormPr
         }
       }
 
-      setIsSubmitting(true);
-      try {
-        const body: Record<string, unknown> = {
-          title,
-          description: description || null,
-          medium,
-          type,
-          nsfw,
-          completionDate: new Date(completionDate).toISOString(),
-          tagIds,
-        };
-
-        if (imagesDirty) {
-          body.images = images;
-        }
-
-        if (timelapseDirty) {
-          body.timelapse = timelapse;
-        }
-
-        if (featuredDirty) {
-          if (featured) {
-            body.featured = true;
-            body.featuredOrder = Number(featuredOrder);
-          } else {
-            body.featured = false;
-            body.featuredOrder = null;
-          }
-        }
-
-        const res = await fetch(`/api/artworks/${artwork.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-
-        if (!res.ok) {
-          const errBody = await res.json().catch(() => ({}));
-          throw new Error(errBody?.error?.message ?? "Save failed");
-        }
-
-        const updated = (await res.json()) as ArtworkDetailResponse;
-        onSave(updated);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Save failed");
-      } finally {
-        setIsSubmitting(false);
-      }
+      await saveArtwork();
     },
-    [
-      artwork.id,
-      completionDate,
-      description,
-      featured,
-      featuredDirty,
-      featuredOrder,
-      images,
-      imagesDirty,
-      medium,
-      nsfw,
-      onSave,
-      tagIds,
-      timelapse,
-      timelapseDirty,
-      title,
-      type,
-    ],
+    [featured, featuredDirty, featuredOrder, images.length, saveArtwork],
   );
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 p-4" data-testid="artwork-edit-form">
       <div className="space-y-2">
-        <label className="block text-body-sm text-paper-500">Images</label>
+        <label htmlFor="edit-add-images" className="block text-body-sm text-paper-500">
+          Images
+        </label>
         <ul className="space-y-1">
           {images.map((img, index) => (
             <li
@@ -255,6 +261,7 @@ export function ArtworkEditForm({ artwork, onSave, onCancel }: ArtworkEditFormPr
           ))}
         </ul>
         <input
+          id="edit-add-images"
           type="file"
           accept="image/*"
           multiple
@@ -265,16 +272,24 @@ export function ArtworkEditForm({ artwork, onSave, onCancel }: ArtworkEditFormPr
       </div>
 
       <div className="space-y-2">
-        <label className="block text-body-sm text-paper-500">Timelapse (optional)</label>
+        <label htmlFor="edit-timelapse" className="block text-body-sm text-paper-500">
+          Timelapse (optional)
+        </label>
         {timelapse ? (
           <div className="flex items-center justify-between rounded-sm border border-ink-800 px-3 py-2 text-body-sm text-paper-300">
             <span>{timelapse.publicId.split("/").pop()}</span>
-            <Button type="button" variant="ghost" className="text-accent-ember" onClick={handleRemoveTimelapse}>
+            <Button
+              type="button"
+              variant="ghost"
+              className="text-accent-ember"
+              onClick={handleRemoveTimelapse}
+            >
               Remove
             </Button>
           </div>
         ) : null}
         <input
+          id="edit-timelapse"
           type="file"
           accept="video/*"
           onChange={(e) => void handleTimelapseFile(e.target.files)}
@@ -337,8 +352,13 @@ export function ArtworkEditForm({ artwork, onSave, onCancel }: ArtworkEditFormPr
         </div>
       </fieldset>
 
-      <label className="flex items-center gap-2 text-body-md text-paper-300">
-        <input type="checkbox" checked={nsfw} onChange={(e) => setNsfw(e.target.checked)} />
+      <label htmlFor="edit-nsfw" className="flex items-center gap-2 text-body-md text-paper-300">
+        <input
+          id="edit-nsfw"
+          type="checkbox"
+          checked={nsfw}
+          onChange={(e) => setNsfw(e.target.checked)}
+        />
         NSFW
       </label>
 
@@ -350,10 +370,17 @@ export function ArtworkEditForm({ artwork, onSave, onCancel }: ArtworkEditFormPr
         disabled={isSubmitting}
       />
 
-      <fieldset className="space-y-2 rounded-sm border border-ink-800 p-3" data-testid="featured-fields">
+      <fieldset
+        className="space-y-2 rounded-sm border border-ink-800 p-3"
+        data-testid="featured-fields"
+      >
         <legend className="text-body-sm text-paper-500">Featured on homepage</legend>
-        <label className="flex items-center gap-2 text-body-md text-paper-300">
+        <label
+          htmlFor="edit-featured"
+          className="flex items-center gap-2 text-body-md text-paper-300"
+        >
           <input
+            id="edit-featured"
             type="checkbox"
             checked={featured}
             onChange={(e) => handleFeaturedChange(e.target.checked)}
@@ -394,6 +421,17 @@ export function ArtworkEditForm({ artwork, onSave, onCancel }: ArtworkEditFormPr
         <Button type="button" variant="secondary" onClick={onCancel}>
           Cancel
         </Button>
+        {canRetrySave && (
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => void saveArtwork()}
+            disabled={isSubmitting}
+            data-testid="edit-retry-save"
+          >
+            Retry save
+          </Button>
+        )}
         <Button type="submit" variant="primary" disabled={isSubmitting} data-testid="edit-save">
           {isSubmitting ? "Saving…" : "Save"}
         </Button>

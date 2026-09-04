@@ -122,6 +122,7 @@ This update is recorded in `12-Decision-Log.md` ADR-013, which supersedes ADR-00
 - All Cloudinary uploads from the browser are authorized by short-lived, single-use signed parameters — the API secret never reaches the client.
 - Input validation via Zod on every Route Handler that accepts a body; invalid input is rejected before it reaches any database or Cloudinary call.
 - MongoDB Atlas network access is restricted to an IP allowlist appropriate for Render's deployment model (documented concretely in `10-Deployment-Guide.md` — Render provides static outbound egress IPs per region on the free tier, which is a strict improvement over the previous platform).
+- Responses include baseline `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, and Cloudinary-compatible `Content-Security-Policy` headers; HSTS remains enforced at the Render/proxy boundary.
 - Cookies: `httpOnly`, `Secure` (in production), `SameSite=Lax`.
 - No secrets are ever committed to the repository; `.env.example` documents every variable's shape without real values.
 

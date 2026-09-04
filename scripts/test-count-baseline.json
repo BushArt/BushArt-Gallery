@@ -1,0 +1,13 @@
+{
+  "vitest": {
+    "minTestFiles": 56,
+    "minTests": 361,
+    "minPassedTests": 361,
+    "maxSkipped": 8
+  },
+  "playwright": {
+    "minSpecFiles": 6,
+    "minTests": 19,
+    "maxSkipped": 0
+  }
+}

@@ -23,7 +23,10 @@ test.describe("Artwork modal entry paths", () => {
   test("server-renders full page with popup on direct URL visit", async ({ page }) => {
     await page.goto(`/artwork/${E2E_SLUG}?nsfw=include`);
 
-    await expect(page.getByTestId("artwork-popup")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("heading", { name: E2E_TITLE, level: 2 })).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(page.getByTestId("artwork-popup").last()).toBeVisible({ timeout: 15_000 });
     await expect(page.getByRole("heading", { name: E2E_TITLE, level: 2 })).toBeVisible();
     await expect(page.getByRole("region", { name: "Gallery" })).toBeVisible();
   });

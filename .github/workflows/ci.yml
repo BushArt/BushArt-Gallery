@@ -39,6 +39,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Prepare test reports
+        run: mkdir -p ci-reports
+
       - name: Setup database indexes
         run: npm run db:setup
 
@@ -46,7 +49,13 @@ jobs:
         run: npm run lint
 
       - name: Test with coverage gate
-        run: npm run test:coverage
+        run: npm run test:coverage -- --reporter=json --outputFile=ci-reports/vitest.json
+
+      - name: Upload Vitest report
+        uses: actions/upload-artifact@v4
+        with:
+          name: vitest-report
+          path: ci-reports/vitest.json
 
       - name: Build
         run: npm run build
@@ -82,6 +91,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Prepare test reports
+        run: mkdir -p ci-reports
+
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
@@ -89,7 +101,16 @@ jobs:
         run: npm run db:setup
 
       - name: Seed E2E data
-        run: node --use-system-ca ./node_modules/tsx/dist/cli.mjs scripts/seed-e2e.ts
+        run: node ./node_modules/tsx/dist/cli.mjs scripts/seed-e2e.ts
 
       - name: E2E tests
-        run: npm run test:e2e
+        run: node ./node_modules/playwright/cli.js test --reporter=json > ci-reports/playwright.json
+
+      - name: Download Vitest report
+        uses: actions/download-artifact@v4
+        with:
+          name: vitest-report
+          path: ci-reports
+
+      - name: Check test counts
+        run: npm run test:counts -- ci-reports/vitest.json ci-reports/playwright.json

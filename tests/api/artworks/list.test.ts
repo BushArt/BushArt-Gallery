@@ -94,6 +94,18 @@ describe("GET /api/artworks", () => {
     expect(json.error.code).toBe("INTERNAL_ERROR");
   });
 
+  it("returns 503 SERVICE_UNAVAILABLE when MongoDB cannot be reached", async () => {
+    const error = new Error("server selection timed out");
+    error.name = "MongoServerSelectionError";
+    vi.mocked(listArtworks).mockRejectedValue(error);
+
+    const res = await GET(listRequest());
+
+    expect(res.status).toBe(503);
+    const json = await res.json();
+    expect(json.error.code).toBe("SERVICE_UNAVAILABLE");
+  });
+
   it("defaults nsfw to exclude per spec", async () => {
     await GET(listRequest());
     expect(listArtworks).toHaveBeenCalledWith(expect.objectContaining({ nsfw: "exclude" }));

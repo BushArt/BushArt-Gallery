@@ -8,8 +8,32 @@ import type { NextConfig } from "next";
 const publicCloudName =
   process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ?? process.env.CLOUDINARY_CLOUD_NAME ?? "";
 
+const securityHeaders = [
+  { key: "X-Frame-Options", value: "DENY" },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  {
+    key: "Content-Security-Policy",
+    value: [
+      "default-src 'self'",
+      "base-uri 'self'",
+      "frame-ancestors 'none'",
+      "form-action 'self'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: blob: https://res.cloudinary.com",
+      "media-src 'self' blob: https://res.cloudinary.com",
+      "font-src 'self' data:",
+      "connect-src 'self' https://api.cloudinary.com https://res.cloudinary.com",
+    ].join("; "),
+  },
+];
+
 const nextConfig: NextConfig = {
   cacheComponents: true,
+  async headers() {
+    return [{ source: "/:path*", headers: securityHeaders }];
+  },
   env: {
     NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: publicCloudName,
   },

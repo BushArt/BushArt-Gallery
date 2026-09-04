@@ -14,7 +14,12 @@ interface UseArtworkResult {
   artwork: ArtworkDetailResponse | null;
   isLoading: boolean;
   error: string | null;
+  isRetryable: boolean;
   refresh: () => void;
+}
+
+interface ArtworkRequestError extends Error {
+  status?: number;
 }
 
 async function loadArtwork(
@@ -25,7 +30,9 @@ async function loadArtwork(
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     const message = body?.error?.message ?? `Request failed (${res.status})`;
-    throw new Error(message);
+    const error = new Error(message) as ArtworkRequestError;
+    error.status = res.status;
+    throw error;
   }
   const data = (await res.json()) as ArtworkDetailResponse;
   if (data.slug !== slug) {
@@ -33,6 +40,12 @@ async function loadArtwork(
   }
   cacheArtworkDetail(data);
   return data;
+}
+
+function isRetryableError(error: unknown): boolean {
+  if (error instanceof TypeError) return true;
+  const status = (error as ArtworkRequestError).status;
+  return status === 0 || (status !== undefined && status >= 500);
 }
 
 function resolveInitialData(
@@ -54,6 +67,7 @@ export function useArtwork({
   const [artwork, setArtwork] = useState<ArtworkDetailResponse | null>(seeded);
   const [isLoading, setIsLoading] = useState(!seeded && enabled);
   const [error, setError] = useState<string | null>(null);
+  const [isRetryable, setIsRetryable] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   if (slug !== trackedSlug) {
@@ -61,6 +75,7 @@ export function useArtwork({
     setTrackedSlug(slug);
     setArtwork(nextSeeded);
     setError(null);
+    setIsRetryable(false);
     setIsLoading(!nextSeeded && enabled);
   }
 
@@ -83,6 +98,7 @@ export function useArtwork({
       .catch((err) => {
         if (cancelled) return;
         if (err instanceof DOMException && err.name === "AbortError") return;
+        setIsRetryable(isRetryableError(err));
         setError(err instanceof Error ? err.message : "Failed to load artwork");
         setArtwork(null);
       })
@@ -106,6 +122,7 @@ export function useArtwork({
 
     setIsLoading(true);
     setError(null);
+    setIsRetryable(false);
 
     loadArtwork(requestedSlug, controller.signal)
       .then((data) => {
@@ -115,6 +132,7 @@ export function useArtwork({
       .catch((err) => {
         if (controller.signal.aborted) return;
         if (err instanceof DOMException && err.name === "AbortError") return;
+        setIsRetryable(isRetryableError(err));
         setError(err instanceof Error ? err.message : "Failed to load artwork");
         setArtwork(null);
       })
@@ -127,6 +145,7 @@ export function useArtwork({
     artwork,
     isLoading,
     error,
+    isRetryable,
     refresh,
   };
 }

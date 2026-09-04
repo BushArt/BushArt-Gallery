@@ -2,6 +2,7 @@
 
 import { useCallback, useId, useState, type FormEvent } from "react";
 import { uploadFileToCloudinary } from "@/lib/cloudinary/uploadClient";
+import { isRetryableStatus, statusFromError } from "@/lib/api/client-retry";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
@@ -41,32 +42,36 @@ export function UploadDialog({ onClose, onSuccess }: UploadDialogProps) {
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [canRetrySave, setCanRetrySave] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<string | null>(null);
 
-  const handleImageFiles = useCallback(async (files: FileList | null) => {
-    if (!files?.length) return;
-    setUploadProgress("Uploading images…");
-    setError(null);
-    try {
-      const uploaded: UploadedImage[] = [];
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const result = await uploadFileToCloudinary(file, "image");
-        uploaded.push({
-          publicId: result.public_id,
-          url: result.secure_url,
-          width: result.width,
-          height: result.height,
-          order: images.length + i,
-        });
+  const handleImageFiles = useCallback(
+    async (files: FileList | null) => {
+      if (!files?.length) return;
+      setUploadProgress("Uploading images…");
+      setError(null);
+      try {
+        const uploaded: UploadedImage[] = [];
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          const result = await uploadFileToCloudinary(file, "image");
+          uploaded.push({
+            publicId: result.public_id,
+            url: result.secure_url,
+            width: result.width,
+            height: result.height,
+            order: images.length + i,
+          });
+        }
+        setImages((prev) => [...prev, ...uploaded]);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Image upload failed");
+      } finally {
+        setUploadProgress(null);
       }
-      setImages((prev) => [...prev, ...uploaded]);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Image upload failed");
-    } finally {
-      setUploadProgress(null);
-    }
-  }, [images.length]);
+    },
+    [images.length],
+  );
 
   const handleTimelapseFile = useCallback(async (files: FileList | null) => {
     if (!files?.[0]) return;
@@ -88,6 +93,60 @@ export function UploadDialog({ onClose, onSuccess }: UploadDialogProps) {
     }
   }, []);
 
+  const saveArtwork = useCallback(async () => {
+    setError(null);
+    setCanRetrySave(false);
+    setIsSubmitting(true);
+    try {
+      const res = await fetch("/api/artworks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          description: description || null,
+          medium,
+          type,
+          nsfw,
+          completionDate: new Date(completionDate).toISOString(),
+          images,
+          timelapse,
+          tagIds,
+          featured: false,
+          featuredOrder: null,
+        }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        const requestError = new Error(
+          body?.error?.message ?? "Failed to create artwork",
+        ) as Error & { status?: number };
+        requestError.status = res.status;
+        throw requestError;
+      }
+
+      onSuccess();
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create artwork");
+      setCanRetrySave(isRetryableStatus(statusFromError(err)));
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [
+    completionDate,
+    description,
+    images,
+    medium,
+    nsfw,
+    onClose,
+    onSuccess,
+    tagIds,
+    timelapse,
+    title,
+    type,
+  ]);
+
   const handleSubmit = useCallback(
     async (event: FormEvent) => {
       event.preventDefault();
@@ -98,52 +157,9 @@ export function UploadDialog({ onClose, onSuccess }: UploadDialogProps) {
         return;
       }
 
-      setIsSubmitting(true);
-      try {
-        const res = await fetch("/api/artworks", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title,
-            description: description || null,
-            medium,
-            type,
-            nsfw,
-            completionDate: new Date(completionDate).toISOString(),
-            images,
-            timelapse,
-            tagIds,
-            featured: false,
-            featuredOrder: null,
-          }),
-        });
-
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          throw new Error(body?.error?.message ?? "Failed to create artwork");
-        }
-
-        onSuccess();
-        onClose();
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to create artwork");
-      } finally {
-        setIsSubmitting(false);
-      }
+      await saveArtwork();
     },
-    [
-      completionDate,
-      description,
-      images,
-      medium,
-      nsfw,
-      onClose,
-      onSuccess,
-      tagIds,
-      timelapse,
-      title,
-      type,
-    ],
+    [images.length, saveArtwork],
   );
 
   return (
@@ -154,8 +170,11 @@ export function UploadDialog({ onClose, onSuccess }: UploadDialogProps) {
         </h2>
 
         <div className="space-y-2">
-          <label className="block text-body-sm text-paper-500">Images</label>
+          <label htmlFor="upload-images" className="block text-body-sm text-paper-500">
+            Images
+          </label>
           <input
+            id="upload-images"
             type="file"
             accept="image/*"
             multiple
@@ -169,17 +188,18 @@ export function UploadDialog({ onClose, onSuccess }: UploadDialogProps) {
         </div>
 
         <div className="space-y-2">
-          <label className="block text-body-sm text-paper-500">Timelapse (optional)</label>
+          <label htmlFor="upload-timelapse" className="block text-body-sm text-paper-500">
+            Timelapse (optional)
+          </label>
           <input
+            id="upload-timelapse"
             type="file"
             accept="video/*"
             onChange={(e) => void handleTimelapseFile(e.target.files)}
             className="text-body-sm text-paper-300"
             data-testid="upload-timelapse-input"
           />
-          {timelapse && (
-            <p className="text-body-sm text-paper-500">Timelapse attached</p>
-          )}
+          {timelapse && <p className="text-body-sm text-paper-500">Timelapse attached</p>}
         </div>
 
         <Input
@@ -239,8 +259,12 @@ export function UploadDialog({ onClose, onSuccess }: UploadDialogProps) {
           </div>
         </fieldset>
 
-        <label className="flex items-center gap-2 text-body-md text-paper-300">
+        <label
+          htmlFor="upload-nsfw"
+          className="flex items-center gap-2 text-body-md text-paper-300"
+        >
           <input
+            id="upload-nsfw"
             type="checkbox"
             checked={nsfw}
             onChange={(e) => setNsfw(e.target.checked)}
@@ -272,7 +296,23 @@ export function UploadDialog({ onClose, onSuccess }: UploadDialogProps) {
           <Button type="button" variant="secondary" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" variant="primary" disabled={isSubmitting} data-testid="upload-submit">
+          {canRetrySave && (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => void saveArtwork()}
+              disabled={isSubmitting}
+              data-testid="upload-retry-save"
+            >
+              Retry save
+            </Button>
+          )}
+          <Button
+            type="submit"
+            variant="primary"
+            disabled={isSubmitting}
+            data-testid="upload-submit"
+          >
             {isSubmitting ? "Saving…" : "Upload"}
           </Button>
         </div>

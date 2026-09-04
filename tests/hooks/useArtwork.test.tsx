@@ -87,6 +87,25 @@ describe("useArtwork", () => {
     await waitFor(() => {
       expect(result.current.error).toBe("Not found");
     });
+    expect(result.current.isRetryable).toBe(false);
+  });
+
+  it("marks server failures as retryable", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 503,
+        json: async () => ({ error: { message: "Database temporarily unavailable" } }),
+      }),
+    );
+
+    const { result } = renderHook(() => useArtwork({ slug: "unavailable" }));
+
+    await waitFor(() => {
+      expect(result.current.error).toBe("Database temporarily unavailable");
+    });
+    expect(result.current.isRetryable).toBe(true);
   });
 
   it("aborts in-flight fetch when slug changes", async () => {
