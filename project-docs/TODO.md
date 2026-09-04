@@ -143,34 +143,7 @@ Status: Pending Audit
 
 ### [Done] Phase 7 — Admin Experience
 
-### Phase 8 — Hardening
-
-### Phase 8 Test-Count Protection
-
-Added `scripts/check-test-counts.mjs`, `scripts/test-count-baseline.json`, and the `test:counts` script. CI now emits machine-readable Vitest and Playwright reports, transfers the Vitest report between jobs, and checks that test files/projects and pass/skip/fail counts do not regress. The guard now validates report count fields/results and enforces a minimum passed-test baseline, preventing pass-to-skip substitution. Final local check result: Vitest 59 files, 376 passed, 8 skipped, 0 failed; Playwright 6 spec files, 30 passed, 0 skipped, 0 failed. Both `unit` and `component` Vitest projects were discovered.
-
-### Phase 8 Validation Ledger
-
-- [Dependency installation] `npm ci` completed successfully after one interrupted attempt; 537 packages installed from the lockfile. npm reported the existing `glob` deprecation and 6 high-severity audit findings; no automatic audit fix was applied.
-- [Phase 8 remediation] Removed the unsupported `--use-system-ca` flag from package scripts and CI seed/E2E commands; focused count-guard validation passed with Vitest 59 files / 376 passed / 8 skipped / 0 failed and Playwright 26 passed / 0 skipped / 0 failed.
-- [Phase 8 remediation] Removed the remaining `--use-system-ca` invocation from Playwright global setup; the accessibility security-header smoke test passed 1/1 with E2E seeding intact.
-- [Phase 8 remediation] MongoDB rejected-connection recovery now resets the cached promise and closes the failed client; focused Mongo tests passed 2/2.
-- [Phase 8 remediation] Upload/edit save retries now require network or 5xx failures; terminal 4xx regression coverage passed 7/7 focused component tests.
-- [Database setup] `npm run db:setup` was attempted after installation but is blocked in this shell because `MONGODB_URI` is unset. It must be rerun with the CI/local MongoDB environment before Phase 8 close-out.
-- [Native tests] `npm test`: 59 files, 373 passed, 8 skipped, 0 failed. `npm run test:coverage`: 59 files, 373 passed, 8 skipped, 0 failed; coverage gate passed with protected paths at or above 85% lines/statements/functions and 80% branches.
-- [Post-remediation validation] `npm test`: 59 files, 376 passed, 8 skipped, 0 failed. `npm run test:coverage`: 59 files, 376 passed, 8 skipped, 0 failed; coverage remained at 94.99% lines/statements, 87.32% branches, and 96.77% functions.
-- [Lint] `npm run lint`: 0 errors and 1 existing warning in `tests/components/admin/HomepageEditor.test.tsx` for its mocked `<img>` element.
-- [Build] `npm run build`: passed after clearing a stale corrupted `.next` generated type file and removing the worker-incompatible `--use-system-ca` flag from the build script. Next logged expected dynamic `/api/auth/me` prerender diagnostics.
-- [E2E] `npm run test:e2e`: 26 passed, 0 skipped, 0 failed using one worker; includes all 7 accessibility/security-header tests.
-- [Post-remediation E2E] `npm run test:e2e`: 26 passed, 0 skipped, 0 failed after synchronizing the accessibility popup navigation assertion.
-- [Final accessibility validation] `tests/e2e/accessibility.spec.ts`: 11 passed, 0 skipped, 0 failed, including keyboard operation for gallery/filter, popup/fullscreen, upload, tag-manager, and login controls.
-- [Final E2E validation] `npm run test:e2e`: 29 passed, 0 skipped, 0 failed after stabilizing the direct-route popup loaded-state assertion.
-- [Final E2E report validation] Report-mode `npm run test:e2e -- --reporter=json` completed with 30 passed, 0 skipped, 0 failed after stabilizing the fullscreen live-region keyboard assertion.
-- [Count guard] `npm run test:counts -- ci-reports/final-vitest.json ci-reports/final-playwright.json`: passed with Vitest 59 files / 376 passed / 8 skipped / 0 failed and Playwright 6 spec files / 26 passed / 0 skipped / 0 failed.
-- [Final count guard] `npm run test:counts -- ci-reports/final-vitest.json ci-reports/final-playwright.json`: passed with Vitest 59 files / 376 passed / 8 skipped / 0 failed and Playwright 6 spec files / 30 passed / 0 skipped / 0 failed.
-- [GitHub CI] `.github/workflows/ci.yml` now runs coverage with machine-readable output, uploads the Vitest report, runs Playwright with JSON output, downloads the Vitest report, and executes `test:counts`. The hosted GitHub Actions workflow was not executed from this local environment; its actual Node 20 + MongoDB 7 jobs remain to be confirmed by a GitHub run.
-- [Permission] Explicit permission was granted to close completed TODO items and commit the work. No commit has been created yet; TODO-030 through TODO-034 have completed their individual close-out transactions.
-- [Close-out readiness] TODO-030 through TODO-034 are closed with individual changelog records. Local database setup remains blocked without `MONGODB_URI`, and hosted GitHub Actions validation remains outstanding.
+### [Done] Phase 8 — Hardening
 
 ### Phase 9 — Testing Infrastructure
 
