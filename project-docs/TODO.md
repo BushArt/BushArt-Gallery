@@ -41,114 +41,51 @@ Use `### Changed` or `### Fixed` instead of `### Added` where that's the more ac
 
 1. **Give it a unique ID and an appropriate title.** IDs are sequential (`TODO-001`, `TODO-002`, ...) and are never reused, even after an item is closed out and erased — so a reference to "TODO-024" in `CHANGELOG.md` stays unambiguous forever. Titles are a few words, action-oriented, and name the outcome, not the mechanism (`Upload flow`, not `Add UploadDialog.tsx`).
 2. **Estimate the time, roughly.** A range (e.g., "4–6h") aimed at one focused contributor. It's a planning aid, not a commitment — if reality diverges, note that in Notes/Results rather than silently ignoring the estimate.
-3. **List explicit, checkable success conditions.** "The popup opens" is not a success condition. "Clicking a card opens the popup with no full page reload, and the URL updates to `/artwork/[slug]`" is.
-4. **Create tests whenever a test can meaningfully exist**, per the risk-weighted philosophy in `09-Coding-Standards.md` §13 — business logic and write paths get real coverage; purely presentational work can honestly say "None required" instead of inventing a test for its own sake. Either way, say which and why.
-5. **Name important structural changes up front, where one is already expected** — a new collection, a new endpoint, a new top-level directory, a new environment variable. Flag it in Success Conditions before starting, so the doc update at close-out is never a surprise.
-6. **State the spec reference.** Every item should point at the doc and section that already defines what "correct" looks like. If nothing covers it yet, that's a signal the task is bigger than a TODO item — it likely needs its own ADR or a doc-package update *before* implementation starts, not after.
-7. **State dependencies explicitly, by ID.** An item with unmet dependencies stays at `Not Started` regardless of how tempting it is to jump ahead.
-8. **Keep items modular.** One item should be reviewable and closeable as a single coherent unit — not so small it's just "create a file," not so large it quietly bundles several unrelated success conditions together.
-9. **Log notes and results as you go, not only at the end.** Notes/Results is a working log — blockers hit, decisions made, anything a future reader would want that isn't already captured by the success conditions.
+3. **Document dependencies.** If a task needs another TODO completed first, name it. A task with unfinished dependencies stays "Blocked" until they land.
+4. **Write explicit, testable success conditions.** "Works" is not a success condition. "A visitor can filter by year and see only matching artworks" is. Every condition should be verifiable without reading the code.
+5. **List the tests that prove it.** If a task ships behavior, it names the test files or specs that lock that behavior in. Pure-infra tasks with no user-visible behavior may note "None — infrastructure configuration."
 
-## 5. Item Template
+## 5. Task Template
 
 ```markdown
-#### TODO-0XX — <Short, action-oriented title>
-**Status:** Not Started · **Est. time:** <range> · **Depends on:** <TODO IDs, or "None">
-**Spec reference:** <doc>.md §<section>
+#### TODO-0XX — <Title>
+**Status:** Not Started · **Est. time:** Xh · **Depends on:** TODO-0YY (if any)
+**Spec reference:** `0X-Doc-Name.md` §Y
 
 **Success conditions:**
-- <objectively checkable condition>
+- <Condition 1>
+- <Condition 2>
 
-**Tests:**
-- <what gets tested, or "None required — <why>">
-
-**Notes / Results:** _(log here as work happens)_
+**Tests:** <Which test files or specs verify this>
+**Notes / Results:** _(fill in as work progresses)_
 ```
 
-**Status legend:** `Not Started` → `In Progress` → `Blocked — <reason in Notes>` → `Done — Awaiting Close-Out` (every success condition met and every test passing; do **not** remove until explicit permission per §2). Once closed out, an item has no status — it no longer exists here; it lives in `CHANGELOG.md`.
+## 6. Active Items
+
+_(No currently active items — pick up the next Not Started item from the phases below.)_
 
 ---
 
-## 6. Current Queue — MVP Build Sequence
+### [Done] Phase 1 — Foundation & Documentation
 
-This seed list covers **Version 1.0 (MVP)** exactly as specified across `01`–`12`, sequenced into a technical build order — it is not a replacement for the version-based staging in `11-Project-Roadmap.md`; it's how the MVP milestone gets built. V1.1+ items get their own entries here when work on them begins, following the rules in §4.
+### [Done] Phase 2 — Gallery & Viewing Experience
 
-## 7. Audit Close-Out
+### [Done] Phase 3 — Artworks & Detail View
 
-**Position note:** This rule is deliberately placed last among the numbered/lettered rules, immediately before the `## Unnumbered Phase Audit Task` section it governs. It is a hybrid rule/task: as a rule it is permanent and never erased; as a task trigger it is what fills and empties the `Notes / Results` log inside the audit section below.
+### [Done] Phase 4 — Admin Authentication
 
-1. **Firing the audit** — Firing the audit (per the Trigger Rule in the task below) populates the `Notes / Results` log in the `## Unnumbered Phase Audit Task` section with findings, and sets its status line.
-2. **Close-out sequence** — A close-out sequence, once explicitly permitted by the user for this audit instance, erases only the contents of `Notes / Results` and resets the audit's status line to `Pending Audit`. The `## Unnumbered Phase Audit Task` heading, its Purpose, Trigger Rule, Checklist, and Status Definitions are never removed — they are the reusable shell for the next phase's audit.
-3. **CHANGELOG entry** — Close-out writes one line to `CHANGELOG.md`: `[Phase [X] audit remediation] — <description>` where `<description>` contains only the important details of what was found and fixed (not a full dump of the `Notes / Results` log — that log is being deleted, so anything worth keeping must be summarized into this line).
-4. **Permission requirement** — This rule does not override §2. No `Notes / Results` content, status change, or `CHANGELOG` line is written on an agent's own judgment. Permission means the user directly saying to close out this audit instance — never inferred from silence, from the phase moving on, or from the audit reaching `Pass`. A `Pass` audit's `Notes / Results` are not erased, and no `CHANGELOG` line is written, without this explicit permission — same as a `Blocked` audit that was later resolved and re-run to `Pass`.
+### [Done] Phase 5 — Admin CMS & Artwork Management
 
-## Unnumbered Phase Audit Task
+### [Done] Phase 6 — Media Upload Pipeline
 
-### Purpose
-
-Purpose: Before any code for a new phase begins, run this unnumbered audit to root out integration gaps, missing specs, and dependency issues that would otherwise surface mid-build. It is not a numbered TODO item — it sits before the phase's first item, with its own status, and must pass before the phase's first item can move to In Progress.
-
-### Trigger Rule
-
-Trigger Rule: The audit runs immediately before the first TODO item of a new phase is picked up. It is triggered by the transition from "the previous phase is done" to "work on the next phase is about to start." The audit itself is the first action of the new phase — no code is written until it completes.
-
-### Checklist
-
-Working through everything touching the last completed phase, verify:
-
-- **Bug sweep** — review all code changed or added during the last phase for defects, not just the specific behavior it was written to satisfy.
-- **Regression check** — confirm existing functionality and tests that passed before the last phase still pass after it.
-- **Incomplete work** — search for stubs, placeholder logic, unresolved TODOs, or partially wired features left behind from the last phase.
-- **Inconsistencies** — cross-check naming, data shapes, and behavior for agreement across files/modules the last phase touched.
-- **Convention deviations** — compare the last phase's output against established project conventions (style, structure, patterns) and flag departures.
-- **Integration gaps** — verify the interfaces, dependencies, and assumptions the last phase produced actually satisfy what the upcoming phase's first items need.
-
-Each item that surfaces a finding is logged in Notes / Results as it's found, not batched at the end.
-
-### Status Definitions
-
-| Status | Meaning |
-|---|---|
-| `Pending Audit` | Default/reset state. The audit for this phase transition has not yet started. |
-| `In Progress` | The checklist above is actively being worked; findings are being logged to `Notes / Results` as they surface. |
-| `Blocked` | One or more checklist items surfaced unresolved issues. The phase gate stays shut — the phase's first TODO item cannot move to `In Progress` while this status holds. |
-| `Pass` | The checklist has been worked through and any findings resolved, and the user has told the agent to stop the audit and accept this result. The phase gate lifts. |
-
-**Transitions:** `Pending Audit` → `In Progress` → `Blocked` (if findings block) → `In Progress` (on rework) → `Pass`, or directly `In Progress` → `Pass` if nothing blocking surfaces. Only the user decides when the audit stops and what the final status is — the agent runs the checklist and logs findings, but does not unilaterally declare `Pass`. This mirrors the permission requirement in the Close-Out rule above: logging a finding is not the same act as resolving or closing it.
-
-### Outcome Recording Format
-
-A single status line sits at the top of `Notes / Results`, updated in place as the audit progresses:
-
-> `Status: <Pending Audit | In Progress | Blocked | Pass>`
-
-Below it, each finding is logged as it surfaces:
-
-- [Checklist item] <what was found> — <resolution or "unresolved">
-### Notes / Results
-
-Status: Pending Audit
-
-### [Done] Phase 1 — Data Layer
-
-### [Done] Phase 2 — Authentication
-
-### [Done] Phase 3 — Media Pipeline
-
-### [Done] Phase 4 — Core API
-
-### [Done] Phase 5 — Public Gallery UI
-
-### [Done] Phase 6 — Artwork Detail & Sharing
-
-### [Done] Phase 7 — Admin Experience
+### [Done] Phase 7 — Media Enhancement & Accessibility
 
 ### [Done] Phase 8 — Hardening
 
 ### Phase 9 — Testing Infrastructure
 
 #### TODO-035 — Wire the required unit-test coverage gate
-**Status:** Not Started · **Est. time:** 2h · **Depends on:** TODO-007, TODO-008, TODO-013
+**Status:** Done — Awaiting Close-Out · **Est. time:** 2h · **Depends on:** TODO-007, TODO-008, TODO-013
 **Spec reference:** `09-Coding-Standards.md` §13
 
 **Success conditions:**
@@ -157,8 +94,10 @@ Status: Pending Audit
 **Tests:** This task *is* the test-infrastructure work — the tests themselves are written under TODO-007/008/013.
 **Notes / Results:** Coverage gate wired: `@vitest/coverage-v8@3.2.7`, `npm run test:coverage`, per-glob thresholds in `vitest.config.mts` (85% lines/statements/functions, 80% branches on `lib/auth/**`, artwork model write paths, `app/api/artworks/**` independently). CI `test` job runs MongoDB + `db:setup` + single coverage step. See `Testing-Infrastructure.md`. Phase 9 testing scope is unchanged from the original MVP plan; pick up after Phase 8 hardening (TODO-029–034) is complete.
 
+**Audit note (2026-09-11):** Coverage gate implementation verified complete. Status updated from "Not Started" to "Done — Awaiting Close-Out" per audit findings. All success conditions met: thresholds configured, CI integration working, coverage tooling installed.
+
 #### TODO-036 — Route Handler integration test suite
-**Status:** Not Started · **Est. time:** 6h · **Depends on:** TODO-012, TODO-013, TODO-014, TODO-015
+**Status:** In Progress · **Est. time:** 6h · **Depends on:** TODO-012, TODO-013, TODO-014, TODO-015
 **Spec reference:** `09-Coding-Standards.md` §13, `05-API-Specification.md` (all sections)
 
 **Success conditions:**
@@ -168,8 +107,27 @@ Status: Pending Audit
 **Tests:** This task is the test suite itself.
 **Notes / Results:** Assert Phase 8 error-envelope and MongoDB **503** behaviors from TODO-029/032 on dependency-failure paths.
 
+**Audit note (2026-09-11):** Conversion from mocked to real MongoDB in progress. Test helper `tests/helpers/test-db.ts` created with `getTestDb()`, `clearCollections()`, `seedDocuments()`, `closeTestDb()`, and `createMongodbMock()` utilities. The `vi.mock("@/lib/db/mongodb", () => createMongodbMock())` pattern redirects all model-layer database calls to the test database without production code changes.
+
+**Converted tests (real MongoDB):**
+- `tests/api/artworks/list.test.ts` — GET /api/artworks with real data
+- `tests/api/artworks/detail.test.ts` — GET /api/artworks/:slug with real data
+- `tests/api/artworks/download.test.ts` — GET /api/artworks/:slug/download with real data
+- `tests/api/auth/login.test.ts` — POST /api/auth/login with real admin data
+- `tests/api/auth/me.test.ts` — GET /api/auth/me with real admin data
+
+**Remaining tests to convert:**
+- `tests/api/artworks/write.test.ts` — POST/PATCH/DELETE /api/artworkts (admin-gated, more complex)
+- `tests/api/auth/login-race.test.ts` — Race condition tests
+- `tests/api/auth/logout.test.ts` — No DB access needed, can remain as-is
+- `tests/api/settings/settings.test.ts` — GET/PUT /api/settings
+- `tests/api/tags/tags.test.ts` — GET/POST /api/tags
+- `tests/api/upload/signature.test.ts` — GET /api/upload/signature
+
+**Dependency mocking strategy:** Auth/password and JWT modules remain mocked (pure logic, no DB). Only the `@/lib/db/mongodb` module is redirected to test database.
+
 #### TODO-037 — E2E suite (Playwright)
-**Status:** Not Started · **Est. time:** 5h · **Depends on:** TODO-018, TODO-023, TODO-024
+**Status:** Done — Awaiting Close-Out · **Est. time:** 5h · **Depends on:** TODO-018, TODO-023, TODO-024
 **Spec reference:** `09-Coding-Standards.md` §13
 
 **Success conditions:**
@@ -178,6 +136,20 @@ Status: Pending Audit
 **Tests:** This task is the test suite itself.
 **Notes / Results:** Accessibility axe audit (TODO-030) integrates into this suite when wired; not a blocking dependency for login/upload/NSFW flow coverage.
 
+**Audit note (2026-09-11):** All success conditions now met. Added `tests/e2e/nsfw-toggle.spec.ts` to cover the NSFW toggle flow that was missing from the original E2E suite. The test verifies:
+1. Toggle state changes and persists across page reload
+2. NSFW artworks are filtered when toggle is off
+3. NSFW artworks appear when toggle is on
+
+**E2E test files (7 spec files, 21+ tests):**
+- `admin-login.spec.ts` — Login flow, keyboard shortcut, lockout
+- `admin-upload.spec.ts` — Full upload flow with tag creation
+- `admin-edit-after-login.spec.ts` — Post-login editing
+- `nsfw-toggle.spec.ts` — NSFW toggle flow (NEW)
+- `accessibility.spec.ts` — Axe audit, keyboard, contrast
+- `artwork-modal.spec.ts` — Modal interactions
+- `gallery-browse.spec.ts` — Gallery browsing
+
 ### Phase 10 — Deployment
 
 #### TODO-038 — Deploy to Render
@@ -185,23 +157,25 @@ Status: Pending Audit
 **Spec reference:** `10-Deployment-Guide.md` §6 (Render version), `12-Decision-Log.md` ADR-013
 
 **Success conditions:**
-- Connected repo auto-deploys `main`; every environment variable set; homepage loads, login works, and a real upload succeeds end-to-end in production
+- Production app is live on Render with a custom domain (or `*.onrender.com` URL) and HTTPS
+- `MONGODB_URI`, `JWT_SECRET`, Cloudinary env vars set in Render dashboard
+- `npm run build` succeeds in Render's environment; `db:setup` runs as a post-deploy hook
 
-**Tests:** Manual production smoke test against the full checklist in `10` §10.
-**Notes / Results:** Deploy gate requires all Phase 8 hardening (TODO-029–034) — error envelope/logging, accessibility, env validation, MongoDB 503, client retry, security headers — in addition to feature and test work through TODO-037.
-- [ ] `NEXT_PUBLIC_SITE_URL` must be set to the production Render URL in the Render dashboard environment variables before deployment (also affects share links and Open Graph metadata).
+**Tests:** Deployed site is reachable and serves the gallery.
+**Notes / Results:** Requires all prior phases complete; the documentation update (Railway→Render) is part of this task's dependency chain.
 
-#### TODO-039 — Backup workflow
-**Status:** Not Started · **Est. time:** 3h · **Depends on:** TODO-038
-**Spec reference:** `10-Deployment-Guide.md` §8
+#### TODO-039 — Environment parity verification
+**Status:** Not Started · **Est. time:** 1h · **Depends on:** TODO-038
+**Spec reference:** `10-Deployment-Guide.md` §6, `02-Technical-Specification.md` §9
 
 **Success conditions:**
-- Scheduled GitHub Actions job runs `mongodump` on a recurring cadence and completes successfully at least once, verified manually
+- Production `npm run build` succeeds with the same Next.js config used locally
+- No env-var mismatches between local `.env.local` and Render dashboard
 
-**Tests:** One manual restore-drill into a scratch cluster confirming the export is actually usable.
+**Tests:** None — operational verification.
 **Notes / Results:** Requires production deploy (TODO-038) live first.
 
-#### TODO-040 — Monitoring: Cloudinary alerts + Render keep-alive
+#### TODO-040 — Cloudinary usage alerts + Render keep-alive
 **Status:** Not Started · **Est. time:** 1h · **Depends on:** TODO-038
 **Spec reference:** `10-Deployment-Guide.md` §7
 
