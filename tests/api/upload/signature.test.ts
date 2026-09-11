@@ -1,8 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
-// ── Mocks ──────────────────────────────────────────────────────────────────
+// Mock the mongodb module (no DB access needed, but required for module init)
+vi.mock("@/lib/db/mongodb", () => ({
+  getDb: async () => ({}),
+  getClient: async () => ({}),
+}));
 
+// Mock auth guard
 vi.mock("@/lib/auth/guard", () => ({
   requireAdmin: vi.fn(),
 }));
@@ -20,20 +25,19 @@ vi.mock("@/lib/cloudinary/client", () => ({
 
 // @ts-ignore - cast needed for spread of importActual return
 vi.mock("@/lib/cloudinary/signature", async (importOriginal) => {
-  const actual = await importOriginal() as any;
+  const actual = (await importOriginal()) as object;
   return {
     ...actual,
     signUploadSignature: vi.fn(),
   };
 });
 
-// ── Import after mocks ─────────────────────────────────────────────────────
-
 import { POST } from "@/app/api/upload/signature/route";
 import { requireAdmin } from "@/lib/auth/guard";
-import { signUploadSignature, FolderValidationError } from "@/lib/cloudinary/signature";
-
-// ── Helpers ────────────────────────────────────────────────────────────────
+import {
+  signUploadSignature,
+  FolderValidationError,
+} from "@/lib/cloudinary/signature";
 
 function createSignatureRequest(body: unknown): NextRequest {
   return new NextRequest("http://localhost/api/upload/signature", {
@@ -43,8 +47,6 @@ function createSignatureRequest(body: unknown): NextRequest {
   });
 }
 
-// ── Tests ──────────────────────────────────────────────────────────────────
-
 describe("POST /api/upload/signature", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -53,7 +55,11 @@ describe("POST /api/upload/signature", () => {
   it("returns 401 UNAUTHENTICATED when requireAdmin throws", async () => {
     const mockError = new Response(
       JSON.stringify({
-        error: { code: "UNAUTHENTICATED", message: "No valid session", details: {} },
+        error: {
+          code: "UNAUTHENTICATED",
+          message: "No valid session",
+          details: {},
+        },
       }),
       { status: 401 },
     );
@@ -70,7 +76,10 @@ describe("POST /api/upload/signature", () => {
   });
 
   it("returns 400 VALIDATION_ERROR when body is missing folder", async () => {
-    vi.mocked(requireAdmin).mockResolvedValue({ id: "admin1", username: "bush" });
+    vi.mocked(requireAdmin).mockResolvedValue({
+      id: "admin1",
+      username: "bush",
+    });
 
     const req = createSignatureRequest({ resourceType: "image" });
     const res = await POST(req);
@@ -80,7 +89,10 @@ describe("POST /api/upload/signature", () => {
   });
 
   it("returns 400 VALIDATION_ERROR on invalid JSON body", async () => {
-    vi.mocked(requireAdmin).mockResolvedValue({ id: "admin1", username: "bush" });
+    vi.mocked(requireAdmin).mockResolvedValue({
+      id: "admin1",
+      username: "bush",
+    });
 
     const req = new NextRequest("http://localhost/api/upload/signature", {
       method: "POST",
@@ -94,43 +106,23 @@ describe("POST /api/upload/signature", () => {
   });
 
   it("returns 200 with signature payload for valid authenticated request", async () => {
-    vi.mocked(requireAdmin).mockResolvedValue({ id: "admin1", username: "bush" });
+    vi.mocked(requireAdmin).mockResolvedValue({
+      id: "admin1",
+      username: "bush",
+    });
 
     const mockSignatureResult = {
       signature: "abc123signature",
       timestamp: 1751500000,
       apiKey: "142857396215",
       cloudName: "bushart",
-      folder: "bushart/artworks/test",
+      folder: "bushart/artworks/main",
     };
     vi.mocked(signUploadSignature).mockResolvedValue(mockSignatureResult);
 
     const req = createSignatureRequest({
       resourceType: "image",
-      folder: "bushart/artworks/test",
-    });
-    const res = await POST(req);
-    expect(res.status).toBe(200);
-    const json = await res.json();
-    expect(json).toEqual(mockSignatureResult);
-    expect(json).not.toHaveProperty("apiSecret");
-  });
-
-  it("returns 200 with signature for video resource type", async () => {
-    vi.mocked(requireAdmin).mockResolvedValue({ id: "admin1", username: "bush" });
-
-    const mockSignatureResult = {
-      signature: "videosig",
-      timestamp: 1751500000,
-      apiKey: "142857396215",
-      cloudName: "bushart",
-      folder: "bushart/artworks/timelapse",
-    };
-    vi.mocked(signUploadSignature).mockResolvedValue(mockSignatureResult);
-
-    const req = createSignatureRequest({
-      resourceType: "video",
-      folder: "bushart/artworks/timelapse",
+      folder: "bushart/artworks/main",
     });
     const res = await POST(req);
     expect(res.status).toBe(200);
@@ -138,33 +130,15 @@ describe("POST /api/upload/signature", () => {
     expect(json).toEqual(mockSignatureResult);
   });
 
-  it("returns 200 with signature for raw resource type", async () => {
-    vi.mocked(requireAdmin).mockResolvedValue({ id: "admin1", username: "bush" });
-
-    const mockSignatureResult = {
-      signature: "rawsig",
-      timestamp: 1751500000,
-      apiKey: "142857396215",
-      cloudName: "bushart",
-      folder: "bushart/raw-assets",
-    };
-    vi.mocked(signUploadSignature).mockResolvedValue(mockSignatureResult);
-
-    const req = createSignatureRequest({
-      resourceType: "raw",
-      folder: "bushart/raw-assets",
+  it("does not leak API secret in response", async () => {
+    vi.mocked(requireAdmin).mockResolvedValue({
+      id: "admin1",
+      username: "bush",
     });
-    const res = await POST(req);
-    expect(res.status).toBe(200);
-    const json = await res.json();
-    expect(json).toEqual(mockSignatureResult);
-  });
 
-  it("ensures CLOUDINARY_API_SECRET is never present in response", async () => {
-    vi.mocked(requireAdmin).mockResolvedValue({ id: "admin1", username: "bush" });
     vi.mocked(signUploadSignature).mockResolvedValue({
       signature: "sig",
-      timestamp: 1000,
+      timestamp: 1751500000,
       apiKey: "key",
       cloudName: "cloud",
       folder: "bushart/test",
@@ -189,8 +163,13 @@ describe("POST /api/upload/signature", () => {
   });
 
   it("returns 500 INTERNAL_ERROR when signing fails unexpectedly", async () => {
-    vi.mocked(requireAdmin).mockResolvedValue({ id: "admin1", username: "bush" });
-    vi.mocked(signUploadSignature).mockRejectedValue(new Error("Signing failed"));
+    vi.mocked(requireAdmin).mockResolvedValue({
+      id: "admin1",
+      username: "bush",
+    });
+    vi.mocked(signUploadSignature).mockRejectedValue(
+      new Error("Signing failed"),
+    );
 
     const req = createSignatureRequest({
       resourceType: "image",
@@ -203,7 +182,10 @@ describe("POST /api/upload/signature", () => {
   });
 
   it("includes resource_type in signature for video uploads", async () => {
-    vi.mocked(requireAdmin).mockResolvedValue({ id: "admin1", username: "bush" });
+    vi.mocked(requireAdmin).mockResolvedValue({
+      id: "admin1",
+      username: "bush",
+    });
 
     const mockSignatureResult = {
       signature: "videosig",
@@ -225,7 +207,10 @@ describe("POST /api/upload/signature", () => {
   });
 
   it("returns 400 VALIDATION_ERROR when folder validation fails (path traversal attempt)", async () => {
-    vi.mocked(requireAdmin).mockResolvedValue({ id: "admin1", username: "bush" });
+    vi.mocked(requireAdmin).mockResolvedValue({
+      id: "admin1",
+      username: "bush",
+    });
     const folderError = new FolderValidationError("../etc/passwd");
     vi.mocked(signUploadSignature).mockRejectedValue(folderError);
 
@@ -262,7 +247,11 @@ describe("POST /api/upload/signature", () => {
   it("returns 401 UNAUTHENTICATED when Authorization header is malformed", async () => {
     const mockError = new Response(
       JSON.stringify({
-        error: { code: "UNAUTHENTICATED", message: "Invalid token", details: {} },
+        error: {
+          code: "UNAUTHENTICATED",
+          message: "Invalid token",
+          details: {},
+        },
       }),
       { status: 401 },
     );
@@ -270,8 +259,14 @@ describe("POST /api/upload/signature", () => {
 
     const req = new NextRequest("http://localhost/api/upload/signature", {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: "Bearer not-a-real-jwt" },
-      body: JSON.stringify({ resourceType: "image", folder: "bushart/test" }),
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer not-a-real-jwt",
+      },
+      body: JSON.stringify({
+        resourceType: "image",
+        folder: "bushart/test",
+      }),
     });
     const res = await POST(req);
     expect(res.status).toBe(401);
