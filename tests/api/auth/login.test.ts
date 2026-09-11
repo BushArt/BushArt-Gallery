@@ -1,55 +1,41 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterAll } from "vitest";
 import { NextRequest } from "next/server";
 import { ObjectId } from "mongodb";
 import { createLoginRequest } from "../../helpers";
+import {
+  getTestDb,
+  clearCollections,
+  closeTestDb,
+  createMongodbMock,
+} from "../../helpers";
 
-// ── Mocks ──────────────────────────────────────────────────────────────────
-
-const mockAdmins: Map<string, any> = new Map();
-
-vi.mock("@/lib/db/models/admin", () => ({
-  getAdminByUsername: vi.fn(async (username: string) => mockAdmins.get(username) ?? null),
-  updateLoginState: vi.fn(async (id: string, data: any) => {
-    for (const admin of mockAdmins.values()) {
-      if (admin.id === id) {
-        admin.failedLoginAttempts = data.failedLoginAttempts;
-        admin.lockUntil = data.lockUntil;
-        admin.lastLoginAt = data.lastLoginAt;
-      }
-    }
-  }),
-  findLockoutStateByUsername: vi.fn(async (username: string) => {
-    const admin = mockAdmins.get(username);
-    if (!admin) return null;
-    return {
-      failedLoginAttempts: admin.failedLoginAttempts,
-      lockUntil: admin.lockUntil,
-    };
-  }),
-}));
+// Mock the mongodb module to redirect to test database
+vi.mock("@/lib/db/mongodb", () => createMongodbMock());
 
 vi.mock("@/lib/auth/password", () => ({
-  verifyPassword: vi.fn(async (password: string, hash: string) => password === "correct-password"),
+  verifyPassword: vi.fn(
+    async (password: string, hash: string) => password === "correct-password",
+  ),
 }));
 
 vi.mock("@/lib/auth/jwt", () => ({
-  signToken: vi.fn((payload: { id: string; username: string }) => `mock-token.${payload.id}.${payload.username}`),
+  signToken: vi.fn(
+    (payload: { id: string; username: string }) =>
+      `mock-token.${payload.id}.${payload.username}`,
+  ),
   TOKEN_EXPIRY_SECONDS: 60 * 60 * 24 * 7,
 }));
 
-// Use the real lockout module — it's pure functions, no DB calls.
-
-// ── Import after mocks ─────────────────────────────────────────────────────
-
 import { POST } from "@/app/api/auth/login/route";
-import { getAdminByUsername, updateLoginState } from "@/lib/db/models/admin";
 import { verifyPassword } from "@/lib/auth/password";
 import { signToken } from "@/lib/auth/jwt";
 
-function seedAdmin(overrides: Partial<any> = {}): any {
-  const id = new ObjectId().toHexString();
+async function seedAdmin(overrides: Record<string, unknown> = {}) {
+  const db = await getTestDb();
+  const id = new ObjectId();
   const admin = {
-    id,
+    _id: id,
+    id: id.toHexString(),
     username: "bush",
     passwordHash: "hashed-secret",
     failedLoginAttempts: 0,
@@ -58,15 +44,17 @@ function seedAdmin(overrides: Partial<any> = {}): any {
     createdAt: new Date(),
     ...overrides,
   };
-  mockAdmins.set(admin.username, admin);
+  await db.collection("admins").insertOne(admin);
   return admin;
 }
 
-// ── Tests ──────────────────────────────────────────────────────────────────
-
-beforeEach(() => {
-  mockAdmins.clear();
+beforeEach(async () => {
+  await clearCollections(["admins"]);
   vi.clearAllMocks();
+});
+
+afterAll(async () => {
+  await closeTestDb();
 });
 
 describe("POST /api/auth/login", () => {
@@ -107,23 +95,31 @@ describe("POST /api/auth/login", () => {
   });
 
   it("returns 401 UNAUTHENTICATED when password is wrong", async () => {
-    seedAdmin();
-    const req = createLoginRequest({ username: "bush", password: "wrong-password" });
+    await seedAdmin();
+    const req = createLoginRequest({
+      username: "bush",
+      password: "wrong-password",
+    });
     const res = await POST(req);
     expect(res.status).toBe(401);
     const json = await res.json();
     expect(json.error.code).toBe("UNAUTHENTICATED");
   });
 
-  it("returns identical 401 response for wrong username vs wrong password", async () => {
-    seedAdmin();
+  it("returns identical response for wrong username and wrong password (timing safety)", async () => {
+    await seedAdmin();
+    const wrongUserReq = createLoginRequest({
+      username: "ghost",
+      password: "any",
+    });
+    const wrongPassReq = createLoginRequest({
+      username: "bush",
+      password: "wrong",
+    });
 
-    const wrongUserReq = createLoginRequest({ username: "ghost", password: "any" });
     const wrongUserRes = await POST(wrongUserReq);
-    const wrongUserJson = await wrongUserRes.json();
-
-    const wrongPassReq = createLoginRequest({ username: "bush", password: "wrong-password" });
     const wrongPassRes = await POST(wrongPassReq);
+    const wrongUserJson = await wrongUserRes.json();
     const wrongPassJson = await wrongPassRes.json();
 
     expect(wrongUserRes.status).toBe(wrongPassRes.status);
@@ -132,9 +128,12 @@ describe("POST /api/auth/login", () => {
 
   it("returns 423 LOCKED with retryAfterSeconds when account is locked", async () => {
     const lockUntil = new Date(Date.now() + 10 * 60 * 1000); // 10 min in future
-    seedAdmin({ failedLoginAttempts: 5, lockUntil });
+    await seedAdmin({ failedLoginAttempts: 5, lockUntil });
 
-    const req = createLoginRequest({ username: "bush", password: "correct-password" });
+    const req = createLoginRequest({
+      username: "bush",
+      password: "correct-password",
+    });
     const res = await POST(req);
     expect(res.status).toBe(423);
     const json = await res.json();
@@ -143,12 +142,15 @@ describe("POST /api/auth/login", () => {
   });
 
   it("returns 200 and sets cookie with correct attributes on successful login", async () => {
-    const admin = seedAdmin();
-    const req = createLoginRequest({ username: "bush", password: "correct-password" });
+    const admin = await seedAdmin();
+    const req = createLoginRequest({
+      username: "bush",
+      password: "correct-password",
+    });
     const res = await POST(req);
 
     expect(res.status).toBe(200);
-    expect(res.body).toBe(null); // empty body per spec
+    expect(res.body).toBeNull(); // empty body per spec
 
     const setCookie = res.headers.get("set-cookie");
     expect(setCookie).toBeTruthy();
@@ -163,43 +165,62 @@ describe("POST /api/auth/login", () => {
       expect(hasSecure).toBe(true);
     }
 
-    expect(signToken).toHaveBeenCalledWith({ id: admin.id, username: "bush" });
+    expect(signToken).toHaveBeenCalledWith({
+      id: admin.id,
+      username: "bush",
+    });
     expect(res.headers.get("Cache-Control")).toBe("no-store");
   });
 
   it("resets lockout state on successful login", async () => {
-    const admin = seedAdmin({ failedLoginAttempts: 3, lockUntil: null });
-    const req = createLoginRequest({ username: "bush", password: "correct-password" });
+    const admin = await seedAdmin({
+      failedLoginAttempts: 3,
+      lockUntil: null,
+    });
+    const req = createLoginRequest({
+      username: "bush",
+      password: "correct-password",
+    });
     await POST(req);
 
-    expect(updateLoginState).toHaveBeenCalledWith(
-      admin.id,
-      expect.objectContaining({
-        failedLoginAttempts: 0,
-        lockUntil: null,
-      }),
-    );
+    // Verify the admin record was updated
+    const db = await getTestDb();
+    const updated = await db
+      .collection("admins")
+      .findOne({ _id: new ObjectId(admin.id) });
+    expect(updated?.failedLoginAttempts).toBe(0);
+    expect(updated?.lockUntil).toBeNull();
   });
 
   it("increments failedLoginAttempts on wrong password and persists", async () => {
-    const admin = seedAdmin({ failedLoginAttempts: 0 });
-    const req = createLoginRequest({ username: "bush", password: "wrong-password" });
+    const admin = await seedAdmin({ failedLoginAttempts: 0 });
+    const req = createLoginRequest({
+      username: "bush",
+      password: "wrong-password",
+    });
     await POST(req);
 
-    expect(verifyPassword).toHaveBeenCalledWith("wrong-password", "hashed-secret");
-    expect(updateLoginState).toHaveBeenCalledWith(
-      admin.id,
-      expect.objectContaining({
-        failedLoginAttempts: 1,
-      }),
+    expect(verifyPassword).toHaveBeenCalledWith(
+      "wrong-password",
+      "hashed-secret",
     );
+
+    // Verify the admin record was updated
+    const db = await getTestDb();
+    const updated = await db
+      .collection("admins")
+      .findOne({ _id: new ObjectId(admin.id) });
+    expect(updated?.failedLoginAttempts).toBe(1);
   });
 
   it("returns 423 LOCKED when the failed attempt triggers the lock threshold", async () => {
     // 4 previous failures — one more triggers the lock at 5
-    seedAdmin({ failedLoginAttempts: 4, lockUntil: null });
+    await seedAdmin({ failedLoginAttempts: 4, lockUntil: null });
 
-    const req = createLoginRequest({ username: "bush", password: "wrong-password" });
+    const req = createLoginRequest({
+      username: "bush",
+      password: "wrong-password",
+    });
     const res = await POST(req);
 
     expect(res.status).toBe(423);
@@ -210,9 +231,12 @@ describe("POST /api/auth/login", () => {
 
   it("does not call verifyPassword when account is locked", async () => {
     const lockUntil = new Date(Date.now() + 5 * 60 * 1000);
-    seedAdmin({ failedLoginAttempts: 5, lockUntil });
+    await seedAdmin({ failedLoginAttempts: 5, lockUntil });
 
-    const req = createLoginRequest({ username: "bush", password: "correct-password" });
+    const req = createLoginRequest({
+      username: "bush",
+      password: "correct-password",
+    });
     await POST(req);
 
     expect(verifyPassword).not.toHaveBeenCalled();
@@ -223,6 +247,5 @@ describe("POST /api/auth/login", () => {
     await POST(req);
 
     expect(verifyPassword).not.toHaveBeenCalled();
-    expect(getAdminByUsername).toHaveBeenCalledWith("ghost");
   });
 });
