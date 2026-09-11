@@ -1,26 +1,33 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterAll } from "vitest";
 import { NextRequest } from "next/server";
+import {
+  getTestDb,
+  clearCollections,
+  closeTestDb,
+  createMongodbMock,
+} from "../../helpers";
 
+// Mock the mongodb module to redirect to test database
+vi.mock("@/lib/db/mongodb", () => createMongodbMock());
+
+// Mock auth guard — PATCH is admin-gated
 vi.mock("@/lib/auth/guard", () => ({
   requireAdmin: vi.fn(),
 }));
 
-vi.mock("@/lib/db/models/settings", () => ({
-  findSettings: vi.fn(),
-  upsertSettings: vi.fn(),
-}));
-
 import { GET, PATCH } from "@/app/api/settings/route";
 import { requireAdmin } from "@/lib/auth/guard";
-import { findSettings, upsertSettings } from "@/lib/db/models/settings";
 
 describe("GET /api/settings", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+  beforeEach(async () => {
+    await clearCollections(["site_settings"]);
+  });
+
+  afterAll(async () => {
+    await closeTestDb();
   });
 
   it("returns empty defaults when no settings document exists", async () => {
-    vi.mocked(findSettings).mockResolvedValue(null);
     const res = await GET();
     expect(res.status).toBe(200);
     const json = await res.json();
@@ -30,7 +37,8 @@ describe("GET /api/settings", () => {
   });
 
   it("returns populated settings without url on image assets", async () => {
-    vi.mocked(findSettings).mockResolvedValue({
+    const db = await getTestDb();
+    await db.collection("site_settings").insertOne({
       artistName: "Bush",
       tagline: "Gallery",
       biography: "Bio",
@@ -42,11 +50,14 @@ describe("GET /api/settings", () => {
         order: 0,
       },
       bannerImage: null,
-      socialLinks: [{ platform: "Instagram", url: "https://instagram.com/example" }],
+      socialLinks: [
+        { platform: "Instagram", url: "https://instagram.com/example" },
+      ],
       contactEmail: "hello@example.com",
       contactUrl: null,
-      updatedAt: "2026-06-01T00:00:00.000Z",
+      updatedAt: new Date("2026-06-01T00:00:00.000Z"),
     });
+
     const res = await GET();
     const json = await res.json();
     expect(json.artistName).toBe("Bush");
@@ -59,17 +70,21 @@ describe("GET /api/settings", () => {
   });
 
   it("returns populated settings", async () => {
-    vi.mocked(findSettings).mockResolvedValue({
+    const db = await getTestDb();
+    await db.collection("site_settings").insertOne({
       artistName: "Bush",
       tagline: "Gallery",
       biography: "Bio",
       profileImage: null,
       bannerImage: null,
-      socialLinks: [{ platform: "Instagram", url: "https://instagram.com/example" }],
+      socialLinks: [
+        { platform: "Instagram", url: "https://instagram.com/example" },
+      ],
       contactEmail: "hello@example.com",
       contactUrl: null,
-      updatedAt: "2026-06-01T00:00:00.000Z",
+      updatedAt: new Date("2026-06-01T00:00:00.000Z"),
     });
+
     const res = await GET();
     const json = await res.json();
     expect(json.artistName).toBe("Bush");
@@ -78,14 +93,24 @@ describe("GET /api/settings", () => {
 });
 
 describe("PATCH /api/settings", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    await clearCollections(["site_settings"]);
     vi.clearAllMocks();
-    vi.mocked(requireAdmin).mockResolvedValue({ id: "admin1", username: "bush" });
+    vi.mocked(requireAdmin).mockResolvedValue({
+      id: "admin1",
+      username: "bush",
+    });
+  });
+
+  afterAll(async () => {
+    await closeTestDb();
   });
 
   it("returns 401 when not authenticated", async () => {
     vi.mocked(requireAdmin).mockRejectedValue(
-      new Response(JSON.stringify({ error: { code: "UNAUTHENTICATED" } }), { status: 401 }),
+      new Response(JSON.stringify({ error: { code: "UNAUTHENTICATED" } }), {
+        status: 401,
+      }),
     );
     const req = new NextRequest("http://localhost/api/settings", {
       method: "PATCH",
@@ -97,35 +122,28 @@ describe("PATCH /api/settings", () => {
   });
 
   it("succeeds on zero-state first PATCH before any settings document exists", async () => {
-    vi.mocked(findSettings).mockResolvedValue(null);
-    vi.mocked(upsertSettings).mockResolvedValue({
-      artistName: "Bush",
-      tagline: "New tagline",
-      biography: null,
-      profileImage: null,
-      bannerImage: null,
-      socialLinks: [],
-      contactEmail: null,
-      contactUrl: null,
-      updatedAt: "2026-06-01T00:00:00.000Z",
-    });
-
     const req = new NextRequest("http://localhost/api/settings", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ artistName: "Bush", tagline: "New tagline", socialLinks: [] }),
+      body: JSON.stringify({
+        artistName: "Bush",
+        tagline: "New tagline",
+        socialLinks: [],
+      }),
     });
     const res = await PATCH(req);
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.tagline).toBe("New tagline");
-    expect(upsertSettings).toHaveBeenCalledWith(
-      expect.objectContaining({ artistName: "Bush", tagline: "New tagline" }),
-    );
+
+    // Verify persistence
+    const db = await getTestDb();
+    const saved = await db.collection("site_settings").findOne({});
+    expect(saved?.artistName).toBe("Bush");
+    expect(saved?.tagline).toBe("New tagline");
   });
 
   it("returns 400 when first PATCH omits artistName on zero-state", async () => {
-    vi.mocked(findSettings).mockResolvedValue(null);
     const req = new NextRequest("http://localhost/api/settings", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -136,7 +154,6 @@ describe("PATCH /api/settings", () => {
     const json = await res.json();
     expect(json.error.code).toBe("VALIDATION_ERROR");
     expect(json.error.details.field).toBe("artistName");
-    expect(upsertSettings).not.toHaveBeenCalled();
   });
 
   it("returns 400 VALIDATION_ERROR for invalid JSON body", async () => {
@@ -161,5 +178,33 @@ describe("PATCH /api/settings", () => {
     expect(res.status).toBe(400);
     const json = await res.json();
     expect(json.error.code).toBe("VALIDATION_ERROR");
+  });
+
+  it("updates existing settings on second PATCH", async () => {
+    // First create settings
+    const db = await getTestDb();
+    await db.collection("site_settings").insertOne({
+      artistName: "Original",
+      tagline: "Original tagline",
+      biography: null,
+      profileImage: null,
+      bannerImage: null,
+      socialLinks: [],
+      contactEmail: null,
+      contactUrl: null,
+      updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+    });
+
+    // Now update
+    const req = new NextRequest("http://localhost/api/settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tagline: "Updated tagline" }),
+    });
+    const res = await PATCH(req);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.artistName).toBe("Original");
+    expect(json.tagline).toBe("Updated tagline");
   });
 });
