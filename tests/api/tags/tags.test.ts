@@ -1,67 +1,87 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterAll } from "vitest";
 import { NextRequest } from "next/server";
 import { ObjectId } from "mongodb";
+import {
+  getTestDb,
+  clearCollections,
+  closeTestDb,
+  createMongodbMock,
+} from "../../helpers";
 
+// Mock the mongodb module to redirect to test database
+vi.mock("@/lib/db/mongodb", () => createMongodbMock());
+
+// Mock auth guard — POST and DELETE are admin-gated
 vi.mock("@/lib/auth/guard", () => ({
   requireAdmin: vi.fn(),
-}));
-
-vi.mock("@/lib/db/models/tag", () => ({
-  listTags: vi.fn(),
-  createTag: vi.fn(),
-  findTagByNameInsensitive: vi.fn(),
-  findTagBySlug: vi.fn(),
-  deleteTag: vi.fn(),
 }));
 
 import { GET, POST } from "@/app/api/tags/route";
 import { DELETE } from "@/app/api/tags/[id]/route";
 import { requireAdmin } from "@/lib/auth/guard";
-import {
-  listTags,
-  createTag,
-  findTagByNameInsensitive,
-  findTagBySlug,
-  deleteTag,
-} from "@/lib/db/models/tag";
-
-const tagId = new ObjectId().toHexString();
 
 describe("GET /api/tags", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    vi.mocked(listTags).mockResolvedValue([
-      { id: tagId, name: "Gouache", slug: "gouache", usageCount: 3, createdAt: "2026-01-01T00:00:00.000Z" },
-    ]);
+  beforeEach(async () => {
+    await clearCollections(["tags"]);
+  });
+
+  afterAll(async () => {
+    await closeTestDb();
   });
 
   it("returns master tag list", async () => {
+    const db = await getTestDb();
+    await db.collection("tags").insertMany([
+      {
+        _id: new ObjectId(),
+        name: "Gouache",
+        slug: "gouache",
+        usageCount: 3,
+        createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      },
+      {
+        _id: new ObjectId(),
+        name: "Digital",
+        slug: "digital",
+        usageCount: 5,
+        createdAt: new Date("2026-01-02T00:00:00.000Z"),
+      },
+    ]);
+
     const res = await GET();
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json.items).toHaveLength(1);
+    expect(json.items).toHaveLength(2);
     expect(json.items[0].usageCount).toBe(3);
+  });
+
+  it("returns empty list when no tags exist", async () => {
+    const res = await GET();
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.items).toEqual([]);
   });
 });
 
 describe("POST /api/tags", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    await clearCollections(["tags"]);
     vi.clearAllMocks();
-    vi.mocked(requireAdmin).mockResolvedValue({ id: "admin1", username: "bush" });
-    vi.mocked(findTagByNameInsensitive).mockResolvedValue(null);
-    vi.mocked(findTagBySlug).mockResolvedValue(null);
-    vi.mocked(createTag).mockResolvedValue({
-      id: tagId,
-      name: "Gouache",
-      slug: "gouache",
-      usageCount: 0,
-      createdAt: "2026-06-01T00:00:00.000Z",
+    vi.mocked(requireAdmin).mockResolvedValue({
+      id: "admin1",
+      username: "bush",
     });
+  });
+
+  afterAll(async () => {
+    await closeTestDb();
   });
 
   it("returns 401 when not authenticated", async () => {
     vi.mocked(requireAdmin).mockRejectedValue(
-      new Response(JSON.stringify({ error: { code: "UNAUTHENTICATED" } }), { status: 401 }),
+      new Response(JSON.stringify({ error: { code: "UNAUTHENTICATED" } }), {
+        status: 401,
+      }),
     );
     const req = new NextRequest("http://localhost/api/tags", {
       method: "POST",
@@ -97,13 +117,15 @@ describe("POST /api/tags", () => {
   });
 
   it("returns 409 CONFLICT for case-insensitive duplicate name", async () => {
-    vi.mocked(findTagByNameInsensitive).mockResolvedValue({
-      id: tagId,
+    const db = await getTestDb();
+    await db.collection("tags").insertOne({
+      _id: new ObjectId(),
       name: "gouache",
       slug: "gouache",
       usageCount: 1,
-      createdAt: "2026-01-01T00:00:00.000Z",
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
     });
+
     const req = new NextRequest("http://localhost/api/tags", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -113,17 +135,18 @@ describe("POST /api/tags", () => {
     expect(res.status).toBe(409);
     const json = await res.json();
     expect(json.error.code).toBe("CONFLICT");
-    expect(createTag).not.toHaveBeenCalled();
   });
 
   it("returns 409 CONFLICT when slug already exists", async () => {
-    vi.mocked(findTagBySlug).mockResolvedValue({
-      id: tagId,
+    const db = await getTestDb();
+    await db.collection("tags").insertOne({
+      _id: new ObjectId(),
       name: "Existing",
       slug: "gouache",
       usageCount: 1,
-      createdAt: "2026-01-01T00:00:00.000Z",
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
     });
+
     const req = new NextRequest("http://localhost/api/tags", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -131,46 +154,147 @@ describe("POST /api/tags", () => {
     });
     const res = await POST(req);
     expect(res.status).toBe(409);
-    expect(createTag).not.toHaveBeenCalled();
+  });
+
+  it("persists the tag to the database", async () => {
+    const req = new NextRequest("http://localhost/api/tags", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "Watercolor" }),
+    });
+    await POST(req);
+
+    const db = await getTestDb();
+    const saved = await db.collection("tags").findOne({ slug: "watercolor" });
+    expect(saved).toBeTruthy();
+    expect(saved?.name).toBe("Watercolor");
   });
 });
 
 describe("DELETE /api/tags/:id", () => {
-  beforeEach(() => {
+  let tagId: string;
+
+  beforeEach(async () => {
+    await clearCollections(["tags", "artworks"]);
     vi.clearAllMocks();
-    vi.mocked(requireAdmin).mockResolvedValue({ id: "admin1", username: "bush" });
-    vi.mocked(deleteTag).mockResolvedValue(true);
+    vi.mocked(requireAdmin).mockResolvedValue({
+      id: "admin1",
+      username: "bush",
+    });
+
+    const db = await getTestDb();
+    const result = await db.collection("tags").insertOne({
+      _id: new ObjectId(),
+      name: "Deletable",
+      slug: "deletable",
+      usageCount: 0,
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+    });
+    tagId = result.insertedId.toHexString();
+  });
+
+  afterAll(async () => {
+    await closeTestDb();
   });
 
   it("returns 200 on cascading delete", async () => {
-    const req = new NextRequest(`http://localhost/api/tags/${tagId}`, { method: "DELETE" });
-    const res = await DELETE(req, { params: Promise.resolve({ id: tagId }) });
+    const req = new NextRequest(`http://localhost/api/tags/${tagId}`, {
+      method: "DELETE",
+    });
+    const res = await DELETE(req, {
+      params: Promise.resolve({ id: tagId }),
+    });
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json).toEqual({ deleted: true, id: tagId });
-    expect(deleteTag).toHaveBeenCalledWith(tagId);
   });
 
   it("returns 404 when tag not found", async () => {
-    vi.mocked(deleteTag).mockResolvedValue(false);
-    const req = new NextRequest(`http://localhost/api/tags/${tagId}`, { method: "DELETE" });
-    const res = await DELETE(req, { params: Promise.resolve({ id: tagId }) });
+    const fakeId = new ObjectId().toHexString();
+    const req = new NextRequest(`http://localhost/api/tags/${fakeId}`, {
+      method: "DELETE",
+    });
+    const res = await DELETE(req, {
+      params: Promise.resolve({ id: fakeId }),
+    });
     expect(res.status).toBe(404);
   });
 
   it("returns 401 when not authenticated", async () => {
     vi.mocked(requireAdmin).mockRejectedValue(
-      new Response(JSON.stringify({ error: { code: "UNAUTHENTICATED" } }), { status: 401 }),
+      new Response(JSON.stringify({ error: { code: "UNAUTHENTICATED" } }), {
+        status: 401,
+      }),
     );
-    const req = new NextRequest(`http://localhost/api/tags/${tagId}`, { method: "DELETE" });
-    const res = await DELETE(req, { params: Promise.resolve({ id: tagId }) });
+    const req = new NextRequest(`http://localhost/api/tags/${tagId}`, {
+      method: "DELETE",
+    });
+    const res = await DELETE(req, {
+      params: Promise.resolve({ id: tagId }),
+    });
     expect(res.status).toBe(401);
   });
 
   it("returns 400 for invalid ObjectId", async () => {
-    const req = new NextRequest("http://localhost/api/tags/not-valid", { method: "DELETE" });
-    const res = await DELETE(req, { params: Promise.resolve({ id: "not-valid" }) });
+    const req = new NextRequest("http://localhost/api/tags/not-valid", {
+      method: "DELETE",
+    });
+    const res = await DELETE(req, {
+      params: Promise.resolve({ id: "not-valid" }),
+    });
     expect(res.status).toBe(400);
-    expect(deleteTag).not.toHaveBeenCalled();
+  });
+
+  it("removes the tag from the database", async () => {
+    const req = new NextRequest(`http://localhost/api/tags/${tagId}`, {
+      method: "DELETE",
+    });
+    await DELETE(req, {
+      params: Promise.resolve({ id: tagId }),
+    });
+
+    const db = await getTestDb();
+    const deleted = await db
+      .collection("tags")
+      .findOne({ _id: new ObjectId(tagId) });
+    expect(deleted).toBeNull();
+  });
+
+  it("cascades delete to remove tag from artworks", async () => {
+    const db = await getTestDb();
+    const tagObjectId = new ObjectId(tagId);
+
+    // Create an artwork that references this tag
+    await db.collection("artworks").insertOne({
+      slug: "art-with-tag",
+      title: "Art With Tag",
+      description: null,
+      medium: "Digital",
+      type: "personal",
+      nsfw: false,
+      featured: false,
+      featuredOrder: null,
+      images: [],
+      timelapse: null,
+      tagIds: [tagObjectId],
+      completionDate: new Date("2026-06-01T00:00:00.000Z"),
+      colorPalette: null,
+      createdAt: new Date("2026-06-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-06-01T00:00:00.000Z"),
+    });
+
+    // Delete the tag
+    const req = new NextRequest(`http://localhost/api/tags/${tagId}`, {
+      method: "DELETE",
+    });
+    await DELETE(req, {
+      params: Promise.resolve({ id: tagId }),
+    });
+
+    // Verify the tag was removed from the artwork
+    const artwork = await db
+      .collection("artworks")
+      .findOne({ slug: "art-with-tag" });
+    expect(artwork?.tagIds).toHaveLength(0);
   });
 });
