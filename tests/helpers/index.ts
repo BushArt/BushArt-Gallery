@@ -11,3 +11,14 @@ export {
   withSessionCookie,
   createLoginRequest,
 } from "./request";
+export {
+  getTestDb,
+  getTestCollection,
+  closeTestDb,
+  clearCollection,
+  clearCollections,
+  seedDocument,
+  seedDocuments,
+  findById,
+  testId,
+} from "./test-db";
