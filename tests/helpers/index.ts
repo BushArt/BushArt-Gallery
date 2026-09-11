@@ -21,4 +21,5 @@ export {
   seedDocuments,
   findById,
   testId,
+  createMongodbMock,
 } from "./test-db";
