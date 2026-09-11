@@ -100,3 +100,26 @@ export async function findById(
 export function testId(offset = "000000000000000000000001"): ObjectId {
   return new ObjectId(offset);
 }
+
+/**
+ * Mocks the @/lib/db/mongodb module to return the test database.
+ * Call this in beforeAll() of integration tests to redirect all
+ * model-layer database calls to the test database.
+ *
+ * Usage:
+ *   vi.mock("@/lib/db/mongodb", () => ({
+ *     getDb: () => getTestDb(),
+ *     getClient: () => getTestClient(),
+ *   }));
+ */
+export function createMongodbMock() {
+  return {
+    getDb: async () => await getTestDb(),
+    getClient: async () => {
+      if (!client) {
+        await getTestDb();
+      }
+      return client;
+    },
+  };
+}
