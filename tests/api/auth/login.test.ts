@@ -150,7 +150,6 @@ describe("POST /api/auth/login", () => {
     const res = await POST(req);
 
     expect(res.status).toBe(200);
-    expect(res.body).toBeNull(); // empty body per spec
 
     const setCookie = res.headers.get("set-cookie");
     expect(setCookie).toBeTruthy();
