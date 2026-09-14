@@ -1,0 +1,5 @@
+# Project documentation
+# Force LF line endings for Markdown on every platform. This overrides a
+# developer's per-repo core.autocrlf=true (common on Windows) which was the
+# root cause of CRLF drift across project-docs/*.md.
+*.md text eol=lf
