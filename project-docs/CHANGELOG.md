@@ -9,6 +9,8 @@ Format: loosely follows [Keep a Changelog](https://keepachangelog.com/) conventi
 ## [Unreleased]
 
 ### Added
+- **TODO-036** — Route Handler integration test suite: all 15 endpoints covered with real MongoDB integration tests in `tests/api/` using the `createMongodbMock()` pattern; 9 files converted to real MongoDB, 2 use mocks or need no DB access; dependency-failure paths assert 503 `SERVICE_UNAVAILABLE` + shared error envelope (Phase 8 TODO-029/032).
+- **TODO-037** — Playwright E2E suite: 7 spec files covering login, full upload, NSFW toggle, artwork modal entry, admin edit-after-login, accessibility, and NSFW toggle; `tests/e2e/nsfw-toggle.spec.ts` added for the previously-missing NSFW toggle flow; `webServer` dev-server bootstrap and seeded global setup; CI `e2e` job runs after the unit/component gate.
 - **TODO-030** — Accessibility pass: added axe-core E2E coverage, keyboard journeys across gallery, filters, artwork popup, fullscreen, and admin controls, reduced-motion and contrast checks, screen-reader image-position announcements, and title-derived image alt text.
 - **TODO-031** — Boot-time environment validation: added shared Zod validation for required runtime variables, production JWT secret strength enforcement, and Next.js instrumentation-based startup validation.
 - **TODO-032** — MongoDB connectivity fail-fast: mapped MongoDB network, selection, timeout, and documented timeout-code failures to the shared 503 `SERVICE_UNAVAILABLE` envelope, added 10-second connection bounds, and enabled reconnect after failed connections.
@@ -16,6 +18,9 @@ Format: loosely follows [Keep a Changelog](https://keepachangelog.com/) conventi
 - **TODO-034** — HTTP security headers: added baseline frame, content-type, referrer, and Cloudinary-compatible CSP headers across site and API routes, with HSTS remaining at the Render/proxy boundary.
 
 ### Documentation Updates
+- `08-Project-Structure.md` §1 — updated the `tests/api/` and `tests/helpers/` comments to reflect the real-MongoDB integration (`test-db.ts` + `createMongodbMock()`, Phase 9 TODO-036).
+- `project-docs/Testing-Infrastructure.md` — no change; implementation matched the documented coverage gate and E2E setup sections.
+- `09-Coding-Standards.md` §13 — no change; implementation followed the risk-weighted testing policy.
 - `01-Product-Definition.md` §7 — no change; the accessibility requirements are satisfied as implemented.
 - `06-UI-Design-System.md` §16 — no change; keyboard, focus, contrast, motion, and screen-reader behavior match the documented contract.
 - `08-Project-Structure.md` §1 — no change; accessibility coverage remains under `tests/e2e/`.

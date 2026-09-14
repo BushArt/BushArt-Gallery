@@ -82,7 +82,9 @@ _(No currently active items — pick up the next Not Started item from the phase
 
 ### [Done] Phase 8 — Hardening
 
-### Phase 9 — Testing Infrastructure
+### [Done] Phase 9 — Testing Infrastructure
+
+**Notes / Results:** TODO-036: 15 endpoints covered with real MongoDB integration tests in `tests/api/` via `createMongodbMock()` pattern; 9 files converted (artworks list/detail/download/write, auth login/login-race/me, settings, tags); `tests/api/upload/signature.test.ts` uses mongodb mock (no DB access), `tests/api/auth/logout.test.ts` needs no DB access; dependency-failure paths assert 503 `SERVICE_UNAVAILABLE` + shared error envelope (TODO-029/032). TODO-037: 7 E2E specs (login, upload, NSFW toggle, artwork modal, admin edit, accessibility, NSFW toggle); `tests/e2e/nsfw-toggle.spec.ts` added for the missing NSFW toggle flow; `webServer` bootstrap + seeded global setup; CI `e2e` job after unit/component gate.
 
 #### TODO-035 — Wire the required unit-test coverage gate
 **Status:** Done — Awaiting Close-Out · **Est. time:** 2h · **Depends on:** TODO-007, TODO-008, TODO-013
@@ -95,60 +97,6 @@ _(No currently active items — pick up the next Not Started item from the phase
 **Notes / Results:** Coverage gate wired: `@vitest/coverage-v8@3.2.7`, `npm run test:coverage`, per-glob thresholds in `vitest.config.mts` (85% lines/statements/functions, 80% branches on `lib/auth/**`, artwork model write paths, `app/api/artworks/**` independently). CI `test` job runs MongoDB + `db:setup` + single coverage step. See `Testing-Infrastructure.md`. Phase 9 testing scope is unchanged from the original MVP plan; pick up after Phase 8 hardening (TODO-029–034) is complete.
 
 **Audit note (2026-09-11):** Coverage gate implementation verified complete. Status updated from "Not Started" to "Done — Awaiting Close-Out" per audit findings. All success conditions met: thresholds configured, CI integration working, coverage tooling installed.
-
-#### TODO-036 — Route Handler integration test suite
-**Status:** Done — Awaiting Close-Out · **Est. time:** 6h · **Depends on:** TODO-012, TODO-013, TODO-014, TODO-015
-**Spec reference:** `09-Coding-Standards.md` §13, `05-API-Specification.md` (all sections)
-
-**Success conditions:**
-- Primary success + failure path covered for all 15 endpoints, run against a real local/test MongoDB instance
-- Dependency failures assert **503** `SERVICE_UNAVAILABLE` and shared error envelope (Phase 8 TODO-029/032 behaviors)
-
-**Tests:** This task is the test suite itself.
-**Notes / Results:** All 15 endpoints covered with real MongoDB integration tests. Test helper `tests/helpers/test-db.ts` provides `getTestDb()`, `clearCollections()`, `seedDocuments()`, `closeTestDb()`, and `createMongodbMock()` utilities. The `vi.mock("@/lib/db/mongodb", () => createMongodbMock())` pattern redirects all model-layer database calls to the test database without production code changes.
-
-**Audit note (2026-09-11):** Full conversion from mocked to real MongoDB completed. All API test files now use real MongoDB:
-
-**Converted tests (real MongoDB):**
-- `tests/api/artworks/list.test.ts` — GET /api/artworks (8 tests)
-- `tests/api/artworks/detail.test.ts` — GET /api/artworks/:slug (3 tests)
-- `tests/api/artworks/download.test.ts` — GET /api/artworks/:slug/download (8 tests)
-- `tests/api/artworks/write.test.ts` — POST/PATCH/DELETE /api/artworks (15 tests)
-- `tests/api/auth/login.test.ts` — POST /api/auth/login (12 tests)
-- `tests/api/auth/login-race.test.ts` — Concurrent login TOCTOU (4 tests)
-- `tests/api/auth/me.test.ts` — GET /api/auth/me (6 tests)
-- `tests/api/settings/settings.test.ts` — GET/PATCH /api/settings (10 tests)
-- `tests/api/tags/tags.test.ts` — GET/POST/DELETE /api/tags (14 tests)
-
-**Special cases:**
-- `tests/api/upload/signature.test.ts` — Uses mongodb mock (no DB access, auth + cloudinary only)
-- `tests/api/auth/logout.test.ts` — No DB access needed, remains as-is
-
-**Dependency mocking strategy:** Auth/password and JWT modules remain mocked (pure logic, no DB). Auth guard (`@/lib/auth/guard`) is mocked for admin-gated routes. Cloudinary modules are mocked for upload/delete operations. Only the `@/lib/db/mongodb` module is redirected to test database for data access.
-
-#### TODO-037 — E2E suite (Playwright)
-**Status:** Done — Awaiting Close-Out · **Est. time:** 5h · **Depends on:** TODO-018, TODO-023, TODO-024
-**Spec reference:** `09-Coding-Standards.md` §13
-
-**Success conditions:**
-- Login, full upload, and NSFW toggle flows pass headlessly in CI
-
-**Tests:** This task is the test suite itself.
-**Notes / Results:** Accessibility axe audit (TODO-030) integrates into this suite when wired; not a blocking dependency for login/upload/NSFW flow coverage.
-
-**Audit note (2026-09-11):** All success conditions met. Added `tests/e2e/nsfw-toggle.spec.ts` to cover the NSFW toggle flow that was missing from the original E2E suite. The test verifies:
-1. Toggle state changes and persists across page reload
-2. NSFW artworks are filtered when toggle is off
-3. NSFW artworks appear when toggle is on
-
-**E2E test files (7 spec files, 21+ tests):**
-- `admin-login.spec.ts` — Login flow, keyboard shortcut, lockout
-- `admin-upload.spec.ts` — Full upload flow with tag creation
-- `admin-edit-after-login.spec.ts` — Post-login editing
-- `nsfw-toggle.spec.ts` — NSFW toggle flow (NEW)
-- `accessibility.spec.ts` — Axe audit, keyboard, contrast
-- `artwork-modal.spec.ts` — Modal interactions
-- `gallery-browse.spec.ts` — Gallery browsing
 
 ---
 

@@ -143,11 +143,11 @@ bushart/
 │   └── test-count-baseline.json            # Minimum protected test counts
 │
 ├── tests/
-│   ├── helpers/                             # Shared fixtures and request builders
+│   ├── helpers/                             # Shared fixtures, request builders, test-db.ts + createMongodbMock
 │   ├── e2e/                                 # Playwright specs (separate tsconfig; excluded from root)
 │   ├── lib/                                 # Unit tests mirroring src/lib/
 │   ├── db/                                  # Model unit tests + db-setup integration
-│   ├── api/                                 # Route handler tests (mocked models)
+│   ├── api/                                 # Route handler tests (real MongoDB integration, Phase 9 TODO-036)
 │   ├── components/                          # Vitest jsdom component tests
 │   └── hooks/                               # Vitest jsdom hook tests
 │
