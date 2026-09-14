@@ -84,7 +84,7 @@ tests/
 │   ├── utils/
 │   └── validation/
 ├── db/                        # Model unit tests + db-setup integration
-├── api/                       # Route handler tests (mocked models)
+├── api/                       # Route handler tests (real MongoDB, Phase 9 TODO-036)
 ├── components/                # jsdom component tests
 ├── hooks/                     # jsdom hook tests
 └── e2e/                       # Playwright specs (separate tsconfig)
