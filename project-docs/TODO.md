@@ -84,20 +84,6 @@ _(No currently active items — pick up the next Not Started item from the phase
 
 ### [Done] Phase 9 — Testing Infrastructure
 
-**Notes / Results:** TODO-036: 15 endpoints covered with real MongoDB integration tests in `tests/api/` via `createMongodbMock()` pattern; 9 files converted (artworks list/detail/download/write, auth login/login-race/me, settings, tags); `tests/api/upload/signature.test.ts` uses mongodb mock (no DB access), `tests/api/auth/logout.test.ts` needs no DB access; dependency-failure paths assert 503 `SERVICE_UNAVAILABLE` + shared error envelope (TODO-029/032). TODO-037: 7 E2E specs (login, upload, NSFW toggle, artwork modal, admin edit, accessibility, NSFW toggle); `tests/e2e/nsfw-toggle.spec.ts` added for the missing NSFW toggle flow; `webServer` bootstrap + seeded global setup; CI `e2e` job after unit/component gate.
-
-#### TODO-035 — Wire the required unit-test coverage gate
-**Status:** Done — Awaiting Close-Out · **Est. time:** 2h · **Depends on:** TODO-007, TODO-008, TODO-013
-**Spec reference:** `09-Coding-Standards.md` §13
-
-**Success conditions:**
-- CI fails the build if `lib/auth/` or the `artworks` write paths lack passing test coverage — the one area flagged as required-before-ship, not optional
-
-**Tests:** This task *is* the test-infrastructure work — the tests themselves are written under TODO-007/008/013.
-**Notes / Results:** Coverage gate wired: `@vitest/coverage-v8@3.2.7`, `npm run test:coverage`, per-glob thresholds in `vitest.config.mts` (85% lines/statements/functions, 80% branches on `lib/auth/**`, artwork model write paths, `app/api/artworks/**` independently). CI `test` job runs MongoDB + `db:setup` + single coverage step. See `Testing-Infrastructure.md`. Phase 9 testing scope is unchanged from the original MVP plan; pick up after Phase 8 hardening (TODO-029–034) is complete.
-
-**Audit note (2026-09-11):** Coverage gate implementation verified complete. Status updated from "Not Started" to "Done — Awaiting Close-Out" per audit findings. All success conditions met: thresholds configured, CI integration working, coverage tooling installed.
-
 ---
 
 ### Phase 10 — Deployment
