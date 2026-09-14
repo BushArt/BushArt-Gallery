@@ -58,83 +58,52 @@ Format: loosely follows [Keep a Changelog](https://keepachangelog.com/) conventi
 - [Phase 8 audit remediation] — Remediated accessibility keyboard coverage and popup timing, environment validation, MongoDB 503/reconnect handling, client metadata retries, security headers, Node 20 command compatibility, and test-count regression protection; local validation finished at 376 Vitest passes / 8 skips and 30 Playwright passes.
 
 ### Documentation Updates
-- `01-Product-Definition.md` §7 — no change; the accessibility requirements are satisfied as implemented.
-- `01-Product-Definition.md` — no change; related-artwork module remains an explicit non-feature.
-- `01-Product-Definition.md` §6 — no change; editable hero fields render from live settings + featured query.
-- `02-Technical-Specification.md` §9 — no change; the validated runtime variables and one-time seed inputs match the documented environment contract.
-- `02-Technical-Specification.md` §12 — documented the selected baseline security headers and HSTS deferral at the deployment boundary.
-- `02-Technical-Specification.md` §9 — added `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` so client-side transformation URL building is documented alongside the server-side var.
-- `02-Technical-Specification.md` §4 — no change; guard.ts and proxy.ts implement the documented CVE-2025-29927 defense-in-depth requirement.
-- `02-Technical-Specification.md` §4 — no change; `lockout.ts` implements the documented 5-consecutive-failure/15-minute-lock contract.
-- `02-Technical-Specification.md` §4 — no change; `jwt.ts`/`password.ts` implement the documented HS256, bcrypt 12, 7-day expiry, and no-plaintext-logging contracts.
-- `03-System-Architecture.md` §10 — no change; bounded MongoDB failures and recovery match the documented error-recovery model.
-- `03-System-Architecture.md` §10 — no change; client retries and metadata-only persistence follow the documented resilience model.
-- `03-System-Architecture.md` §10 — documented as-built root `app/error.tsx` last-resort boundary complementing the independent gallery-feed/artwork-popup boundaries.
-- `03-System-Architecture.md` §6 — documented as-built single client auth tree at root layout for modal and homepage parity.
-- `03-System-Architecture.md` §6 — no change; intercepting parallel routes with shared `ArtworkPopup` and Suspense boundaries match the documented shareable-modal architecture (ADR-005).
-- `03-System-Architecture.md` §6, §9, §10 — no change; infinite scroll, cursor pagination, and inline retry for retryable fetch failures match documented gallery rendering model (full error boundaries deferred to TODO-029).
-- `03-System-Architecture.md` §7 — no change; server-driven URL-serialized filters and client-persisted NSFW preference sent as explicit query param match documented filtering model.
-- `03-System-Architecture.md` §6 — documented as-built hero Server Component pattern: settings via `findSettings()`, featured artworks via separate `findFeaturedArtworks()` DB query (not included in `GET /api/settings`).
-- `03-System-Architecture.md` §5 — no change; implementation matches the documented single-preset-map, on-demand URL transformation model (ADR-008).
-- `03-System-Architecture.md` §4 — no change; signed-upload flow implementation matches the documented direct-to-Cloudinary architecture.
-- `04-Database-Schema.md` §4 — no change; cascading tag delete behavior matches documented pull-then-remove semantics.
-- `04-Database-Schema.md` §5 — no change; admins schema already defined `failedLoginAttempts`, `lockUntil`, and `lastLoginAt` fields; implementation matches exactly.
-- `04-Database-Schema.md` §5 — no change; `AdminInternal` shape including `createdAt` matches the documented `admins` collection schema.
-- `05-API-Specification.md` §2 — no change; dependency failures preserve the documented shared error envelope with `503 SERVICE_UNAVAILABLE`.
-- `05-API-Specification.md` §2 — no change; envelope shape, error codes, and status mapping match the documented contract exactly across every Route Handler.
-- `05-API-Specification.md` §4.2 — documented as-built inclusion of `featured`, `featuredOrder`, and image `url` in artwork detail response (admin edit PATCH requires urls for unchanged images).
-- `05-API-Specification.md` §4.3 — clarified that `image` index resolves against images sorted by `order` before lookup.
-- `05-API-Specification.md` §4–§9 — no change; implementation matches the documented endpoint contracts (including audit fixes for tag AND filter and delete ordering).
-- `05-API-Specification.md` §6 — no change; request/response shape, error envelope, and auth requirement match the documented contract exactly.
-- `05-API-Specification.md` §5 — no change; implementation matches the documented auth endpoint contracts exactly.
-- `05-API-Specification.md` §3 — corrected nextCursor encoding description from `{ createdAt, _id }` to `{ sortValue, _id }` to match implementation.
-- `06-UI-Design-System.md` §16 — no change; keyboard, focus, contrast, motion, and screen-reader behavior match the documented contract.
-- `06-UI-Design-System.md` §12 — no change; hidden login glyph, keyboard shortcut, and admin chrome match the documented spec.
-- `06-UI-Design-System.md` §11, §14 — no change; popup placard, action row, sketch-in modal frame, and fullscreen chrome match the documented component spec.
-- `06-UI-Design-System.md` §14 — no change; `SketchRevealImage` implements the signature sketch-in reveal with reduced-motion opacity crossfade.
-- `06-UI-Design-System.md` §4, §8, §2.2 — no change; grid/list modes, badge accents, and accessible icon badges match documented card spec.
-- `06-UI-Design-System.md` §4 — no change; mobile-first responsive hero layout matches documented breakpoints.
-- `06-UI-Design-System.md` §2–5 — no change; `@theme`-only token strategy matches the documented design intent.
-- `07-User-Flows.md` Flows 6–11 — no change; login, upload, edit, tag management, hero edit, and featured flows implemented as documented.
-- `07-User-Flows.md` Flow 2, Flow 5 — no change; artwork detail overlay, fullscreen viewer, and NSFW interstitial match documented flows.
-- `07-User-Flows.md` Flows 3 & 4 — no change; download redirect and share (Web Share + clipboard fallback) match documented behavior.
-- `07-User-Flows.md` Flows 1 & 5 — no change; browse and NSFW toggle flows implemented through gallery shell (artwork popup entry deferred to Phase 6).
-- `08-Project-Structure.md` §1 — updated the `tests/api/` and `tests/helpers/` comments to reflect the real-MongoDB integration (`test-db.ts` + `createMongodbMock()`, Phase 9 TODO-036).
-- `08-Project-Structure.md` §1 — no change; accessibility coverage remains under `tests/e2e/`.
-- `08-Project-Structure.md` §1, §6 — added the shared environment validator and instrumentation hook to the documented structure and runtime responsibilities.
-- `08-Project-Structure.md` §1 — no change; retry behavior is implemented in the documented component and API-helper locations.
-- `08-Project-Structure.md` §1 — added `lib/logger.ts`, the root/route-level `error.tsx` boundaries, and `ui/SectionErrorBoundary.tsx` to the directory tree.
-- `08-Project-Structure.md` §1 — expanded `components/admin/` tree (`Providers`, `AuthProvider`, `AdminShell`, `AdminFooter`, `AdminOverlays`, `TagPicker`), `HomePageClient.tsx`, and `lib/cloudinary/uploadClient.ts`; noted root layout `Providers` + Suspense for shared auth across homepage and artwork modal routes.
-- `08-Project-Structure.md` §1 — added `HomePageShell.tsx`, `ArtworkModalClient.tsx`, `useArtwork.ts`, `playwright.config.ts`, `scripts/seed-e2e.ts`, and `tests/e2e/` for Phase 6 modal/E2E layout.
-- `08-Project-Structure.md` §1 — added `GallerySection.tsx`; noted `NsfwToggle` is exported from `FilterBar.tsx`; added `tests/components/` and `tests/hooks/` for jsdom component tests.
-- `08-Project-Structure.md` §1 — no change; `FilterBar.tsx` houses both filter controls and `NsfwToggle` export.
-- `08-Project-Structure.md` §1, §4 — no change; gallery domain components implemented as documented; list view omits truncated description because `ArtworkListItem` API shape excludes description (documented limitation).
-- `08-Project-Structure.md` §1 — no change; `hero/` components implemented as documented.
-- `08-Project-Structure.md` §1, §3 — added `artworks/[id]/download/route.ts`, `lib/api/` helpers, `lib/cloudinary/destroy.ts`; documented Next.js single-segment constraint for slug GET vs ObjectId PATCH/DELETE on `artworks/[id]/`.
-- `08-Project-Structure.md` §1 — added `cloudName.ts` to the `lib/cloudinary/` directory tree; marked `client.ts` as server-only.
-- `08-Project-Structure.md` §2 — no change; `lib/auth/` and `src/types/` layout matches documented conventions.
-- `08-Project-Structure.md` §2 — no change; `lib/auth/` and `src/types/` layout matches the documented conventions.
-- `08-Project-Structure.md` §2 — no change; `scripts/seed-admin.ts` was already listed and is now implemented.
-- `09-Coding-Standards.md` §13 — no change; implementation followed the risk-weighted testing policy.
-- `09-Coding-Standards.md` §13 — no change; the accessibility E2E suite follows the risk-weighted testing policy.
-- `09-Coding-Standards.md` §13 — no change; focused hook and component tests match the risk-weighted testing policy.
-- `09-Coding-Standards.md` §11–12 — §11 no change (every handler funnels through the shared helpers); §12 updated to note the no-console invariant is enforced by a scoped ESLint rule (`src/**`, `lib/logger.ts` exempt).
-- `09-Coding-Standards.md` §13 — updated; Vitest jsdom environment and 19 Phase 5 component/hook tests added per risk-weighted philosophy (261 passing total).
-- `09-Coding-Standards.md` §13 — no change; 49 new Phase 4 route/model tests satisfy the documented risk-weighted philosophy (242 passing total).
-- `09-Coding-Standards.md` §13 — no change; 13 unit tests for the Cloudinary transformation and cloud-name modules satisfy the documented risk-weighted philosophy.
-- `09-Coding-Standards.md` §13 — no change; test coverage for the Cloudinary module and upload signature route satisfies the documented risk-weighted philosophy.
-- `09-Coding-Standards.md` §1, §4, §13 — no change; type consolidation, model-boundary rule, and test coverage all satisfy the documented standards.
-- `09-Coding-Standards.md` §13 — no change; 20 lockout state-machine tests written per the documented risk-weighted philosophy.
-- `09-Coding-Standards.md` §1 — no change; `Admin`/`AdminInternal` types consolidated into `src/types/admin.ts` as the single source of truth.
-- `09-Coding-Standards.md` §4 — no change; model-boundary rule satisfied as specified.
-- `10-Deployment-Guide.md` §6 — no change; HSTS remains a Render/proxy responsibility as documented.
-- `10-Deployment-Guide.md` §3–4 — documented that both cloud-name env vars must be set to the same value in local and Render environments.
-- `10-Deployment-Guide.md` §2–3 — no change; implementation matched the documented contract.
-- `12-Decision-Log.md` ADR-005 — no change; implementation matches the documented intercepting-route + fallback pattern.
-- `12-Decision-Log.md` ADR-008 — no change; implementation matches the documented on-demand transformation URL architecture.
-- `project-docs/Testing-Infrastructure.md` — no change; implementation matched the documented coverage gate and E2E setup sections.
+
+**Summary:** 6 documents updated across 13 sections; 10 files verified unchanged against implementation (64 section-level cross-checks).
+
+#### `02-Technical-Specification.md`
+- §12 — documented the selected baseline security headers and HSTS deferral at the deployment boundary.
+- §9 — added `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` so client-side transformation URL building is documented alongside the server-side var.
+
+#### `03-System-Architecture.md`
+- §10 — documented as-built root `app/error.tsx` last-resort boundary complementing the independent gallery-feed/artwork-popup boundaries.
+- §6 — documented as-built single client auth tree at root layout for modal and homepage parity.
+- §6 — documented as-built hero Server Component pattern: settings via `findSettings()`, featured artworks via separate `findFeaturedArtworks()` DB query (not included in `GET /api/settings`).
+
+#### `05-API-Specification.md`
+- §4.2 — documented as-built inclusion of `featured`, `featuredOrder`, and image `url` in artwork detail response (admin edit PATCH requires urls for unchanged images).
+- §4.3 — clarified image index resolution behavior for artwork list queries.
+
+#### `08-Project-Structure.md`
+- §1 — added `GallerySection.tsx`; noted `NsfwToggle` is exported from `FilterBar.tsx`; added `tests/components/` and `tests/hooks/` for jsdom component tests.
+- §1, §4 — added `artworks/[id]/download/route.ts`, `lib/api/` helpers, and `lib/cloudinary/destroy.ts`; documented Next.js single-segment constraint for slug GET vs ObjectId PATCH/DELETE on `artworks/[id]/`.
+- §1 — added `cloudName.ts` to the `lib/cloudinary/` directory tree; marked `client.ts` as server-only.
+
+#### `09-Coding-Standards.md`
+- §11–12 — §11 no change (every handler funnels through the shared helpers); §12 updated to note the no-console invariant is enforced by a scoped ESLint rule (`src/**`, `lib/logger.ts` exempt).
+- §13 — updated; Vitest jsdom environment and 19 Phase 5 component/hook tests added per risk-weighted philosophy (261 passing total).
+
+#### `10-Deployment-Guide.md`
+- §3–4 — documented that both cloud-name env vars must be set to the same value in local and Render environments.
 
 ---
+
+### Verified — No Documentation Changes Required
+
+The following sections were verified unchanged against the implementation and require no edits:
+
+- `01-Product-Definition.md` — §6 editable hero fields render from live settings + featured query; §7 accessibility requirements satisfied as implemented; related-artwork module remains an explicit non-feature.
+- `02-Technical-Specification.md` — §4 guard.ts and proxy.ts implement the documented CVE-2025-29927 defense-in-depth requirement; lockout.ts implements the documented 5-consecutive-failure/15-minute-lock contract; jwt.ts/password.ts implement the documented HS256, bcrypt 12, 7-day expiry, and no-plaintext-logging contracts; §9 validated runtime variables and one-time seed inputs match the documented environment contract.
+- `03-System-Architecture.md` — §4 signed-upload flow matches documented direct-to-Cloudinary architecture; §5 implementation matches documented single-preset-map, on-demand URL transformation model (ADR-008); §6 intercepting parallel routes with shared `ArtworkPopup` and Suspense boundaries match documented shareable-modal architecture (ADR-005); §7 server-driven URL-serialized filters and client-persisted NSFW preference sent as explicit query param match documented filtering model; §9 infinite scroll, cursor pagination, and inline retry for retryable fetch failures match documented gallery rendering model (full error boundaries deferred to TODO-029).
+- `04-Database-Schema.md` — §4 cascading tag delete behavior matches documented pull-then-remove semantics; §5 admins schema already defined `failedLoginAttempts`, `lockUntil`, and `lastLoginAt` fields; `AdminInternal` shape including `createdAt` matches documented `admins` collection schema.
+- `05-API-Specification.md` — §2 dependency failures preserve documented shared error envelope with `503 SERVICE_UNAVAILABLE`; envelope shape, error codes, and status mapping match documented contract exactly across every Route Handler.
+- `06-UI-Design-System.md` — UI design system unchanged; components implemented per tokens and guidance defined in this document.
+- `07-User-Flows.md` — user flows unchanged; implemented flows match documented journeys.
+- `08-Project-Structure.md` — §1 FilterBar.tsx houses both filter controls and NsfwToggle export; gallery domain components implemented as documented (list view omits truncated description because ArtworkListItem API shape excludes description — documented limitation); hero/ components implemented as documented; §2 lib/auth/ and src/types/ layout matches documented conventions; scripts/seed-admin.ts was already listed and is now implemented.
+- `09-Coding-Standards.md` — §1 Admin/AdminInternal types consolidated into src/types/admin.ts as single source of truth; §4 model-boundary rule satisfied as specified; §13 test coverage for Cloudinary module and upload signature route satisfies documented risk-weighted philosophy; 13 unit tests for Cloudinary transformation and cloud-name modules; 20 lockout state-machine tests; 49 new Phase 4 route/model tests (242 passing total); type consolidation, model-boundary rule, and test coverage all satisfy documented standards.
+- `10-Deployment-Guide.md` — §2–3 implementation matched documented contract; §6 HSTS remains a Render/proxy responsibility as documented.
+- `12-Decision-Log.md` — ADR-005 implementation matches documented intercepting-route + fallback pattern; ADR-008 implementation matches documented on-demand transformation URL architecture.
+- `project-docs/Testing-Infrastructure.md` — implementation matched documented coverage gate and E2E setup sections.
 ## [0.1] — 2026-07-18
 
 **Initial creation of the full documentation package**, generated prior to any application code, establishing the project's single source of truth per `README.md`.
