@@ -11,10 +11,13 @@ const validEnv: RuntimeEnv = {
   NEXT_PUBLIC_SITE_URL: "http://localhost:3000",
 };
 
-const originalNodeEnv = process.env.NODE_ENV;
+// @types/node declares process.env.NODE_ENV read-only; mutate through a
+// widened view so the validateRuntimeEnv tests can set it without a type error.
+const mutableEnv = process.env as Record<string, string | undefined>;
+const originalNodeEnv = mutableEnv.NODE_ENV;
 
 afterEach(() => {
-  process.env.NODE_ENV = originalNodeEnv;
+  mutableEnv.NODE_ENV = originalNodeEnv;
 });
 
 describe("validateRuntimeEnv", () => {
@@ -41,7 +44,7 @@ describe("validateRuntimeEnv", () => {
   });
 
   it("requires a 32-character JWT secret in production", () => {
-    process.env.NODE_ENV = "production";
+    mutableEnv.NODE_ENV = "production";
 
     expect(() =>
       validateRuntimeEnv({ ...validEnv, JWT_SECRET: "too-short" }),
@@ -49,7 +52,7 @@ describe("validateRuntimeEnv", () => {
   });
 
   it("allows shorter deterministic secrets outside production", () => {
-    process.env.NODE_ENV = "test";
+    mutableEnv.NODE_ENV = "test";
 
     expect(validateRuntimeEnv({ ...validEnv, JWT_SECRET: "test-secret" }).JWT_SECRET).toBe(
       "test-secret",

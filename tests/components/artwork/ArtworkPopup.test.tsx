@@ -97,6 +97,7 @@ describe("ArtworkPopup", () => {
       artwork: makeArtwork(),
       isLoading: false,
       error: null,
+      isRetryable: false,
       refresh: vi.fn(),
     });
   });
@@ -127,6 +128,7 @@ describe("ArtworkPopup", () => {
       }),
       isLoading: false,
       error: null,
+      isRetryable: false,
       refresh: vi.fn(),
     });
 
@@ -142,6 +144,7 @@ describe("ArtworkPopup", () => {
       artwork: makeArtwork({ nsfw: true }),
       isLoading: false,
       error: null,
+      isRetryable: false,
       refresh: vi.fn(),
     });
 
@@ -165,6 +168,7 @@ describe("ArtworkPopup", () => {
       }),
       isLoading: false,
       error: null,
+      isRetryable: false,
       refresh: vi.fn(),
     });
 

@@ -1,4 +1,4 @@
-import { MongoClient, Db, Collection, ObjectId } from "mongodb";
+import { MongoClient, Db, Collection, Document, ObjectId } from "mongodb";
 
 let client: MongoClient | null = null;
 let db: Db | null = null;
@@ -22,9 +22,9 @@ export async function getTestDb(): Promise<Db> {
 /**
  * Returns a collection from the test database.
  */
-export async function getTestCollection<T = Record<string, unknown>>(
-  name: string,
-): Promise<Collection<T>> {
+export async function getTestCollection<
+  T extends Document = Document,
+>(name: string): Promise<Collection<T>> {
   const database = await getTestDb();
   return database.collection<T>(name);
 }
@@ -91,7 +91,9 @@ export async function findById(
   id: string | ObjectId,
 ): Promise<Record<string, unknown> | null> {
   const database = await getTestDb();
-  return database.collection(collection).findOne({ _id: id });
+  const objectId =
+    typeof id === "string" ? new ObjectId(id) : id;
+  return database.collection(collection).findOne({ _id: objectId });
 }
 
 /**
