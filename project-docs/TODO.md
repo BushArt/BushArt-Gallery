@@ -102,6 +102,28 @@ _(No currently active items — pick up the next Not Started item from the phase
 part of this task's dependency chain. CI note (2026-09-17): fixed the `test` job's failing coverage
 gate — vitest file parallelism is now disabled at the root config (per-project `fileParallelism`/
 `maxWorkers` are ignored), and 7 integration tests were added to cover the `src/app/api/artworks/**`
+gate: 85% lines/statements/functions, 80% branches).
+- Debug round (2026-09-17, Render deploy + IDE diagnostics):
+  - **Render build:** `npm run build` succeeds on Render (Next 16.2.10, Turbopack, Cache
+    Components/PPR enabled) and the service deploys live at `https://bushart-gallery.onrender.com`.
+    However, prerendering logs repeated bail-out errors for `/api/auth/me` ("needs to bail out of
+    prerendering because it used request.cookies"). Fix: import `connection` from `next/server`
+    and `await connection()` at the top of the GET handler in
+    `src/app/api/auth/me/route.ts`. (Cache Components forbids the route segment config
+    `export const dynamic = "force-dynamic"` — first attempt failed the build with
+    "Route segment config \"dynamic\" is not compatible with nextConfig.cacheComponents".)
+    Verified locally: `npm run build` exits 0 with zero bail-out errors and the route
+    resolves as ƒ (Dynamic).
+  - **IDE false positive (ci.yml):** the "Unable to resolve action `actions/checkout@v4` /
+    `setup-node@v4` / `upload-artifact@v4` / `download-artifact@v4`" diagnostics from the VS Code
+    GitHub Actions extension are environmental (API/network resolution failure), not real — those
+    actions and versions exist and the workflow is valid. No change to `ci.yml`.
+  - **IDE real error (vitest.config.mts):** TS1259 "Module 'path' can only be default-imported using
+    the 'esModuleInterop' flag" — `tsconfig.json` `include` glob `**/*.ts` does not match `.mts`, so
+    `vitest.config.mts` was type-checked as a standalone file without the project's
+    `esModuleInterop: true`. Fix: add `vitest.config.mts` to tsconfig `include`.
+  - **Observation (out of scope):** `npm install` on Render reports 11 vulnerabilities (4 moderate /
+    6 high / 1 critical) — audit/fix tracked separately, not part of TODO-038.
 error/featured branches (gate: 85% lines/statements/functions, 80% branches).
 
 #### TODO-039 — Environment parity verification

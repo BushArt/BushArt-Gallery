@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, connection } from "next/server";
 import { verifyToken } from "@/lib/auth/jwt";
 import { isLocked } from "@/lib/auth/lockout";
 import { findByUsername } from "@/lib/db/models/admin";
@@ -6,7 +6,11 @@ import { apiError, handleRouteError } from "@/lib/api/errors";
 
 const SESSION_COOKIE = "bushart_session";
 
+// Reads request.cookies, which is only available at request time. Under
+// Cache Components, `connection()` marks this handler as request-time
+// executed so Next skips prerendering it during static generation.
 export async function GET(request: NextRequest): Promise<NextResponse> {
+  await connection();
   try {
     const token = request.cookies.get(SESSION_COOKIE)?.value;
 
