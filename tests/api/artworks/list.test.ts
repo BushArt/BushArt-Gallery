@@ -117,6 +117,14 @@ describe("GET /api/artworks", () => {
     expect(json.hasMore).toBe(false);
   });
 
+  it("returns 400 for an invalid pagination cursor", async () => {
+    const res = await GET(listRequest("?cursor=not-a-valid-cursor!!!"));
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error.code).toBe("VALIDATION_ERROR");
+    expect(json.error.message).toBe("Invalid cursor");
+  });
+
   it("returns items sorted by most recent first", async () => {
     await seedTestData();
 

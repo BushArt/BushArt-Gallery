@@ -98,7 +98,11 @@ _(No currently active items — pick up the next Not Started item from the phase
 - `npm run build` succeeds in Render's environment; `db:setup` runs as a post-deploy hook
 
 **Tests:** Deployed site is reachable and serves the gallery.
-**Notes / Results:** Requires all prior phases complete; the documentation update (Railway→Render) is part of this task's dependency chain.
+**Notes / Results:** Requires all prior phases complete; the documentation update (Railway→Render) is
+part of this task's dependency chain. CI note (2026-09-17): fixed the `test` job's failing coverage
+gate — vitest file parallelism is now disabled at the root config (per-project `fileParallelism`/
+`maxWorkers` are ignored), and 7 integration tests were added to cover the `src/app/api/artworks/**`
+error/featured branches (gate: 85% lines/statements/functions, 80% branches).
 
 #### TODO-039 — Environment parity verification
 **Status:** Not Started · **Est. time:** 1h · **Depends on:** TODO-038

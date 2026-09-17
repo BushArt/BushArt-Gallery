@@ -52,7 +52,16 @@ describe("GET /api/tags", () => {
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.items).toHaveLength(2);
-    expect(json.items[0].usageCount).toBe(3);
+    // listTags() sorts by name ascending (src/lib/db/models/tag.ts), so Digital precedes Gouache.
+    expect(
+      json.items.map((tag: { name: string; usageCount: number }) => [
+        tag.name,
+        tag.usageCount,
+      ]),
+    ).toEqual([
+      ["Digital", 5],
+      ["Gouache", 3],
+    ]);
   });
 
   it("returns empty list when no tags exist", async () => {

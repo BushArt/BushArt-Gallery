@@ -60,10 +60,18 @@ flowchart TB
 | **@axe-core/playwright** | Automated accessibility checks in the E2E suite | `tests/e2e/accessibility.spec.ts` |
 | **Test-count guard** | Prevents regressions in test files, passed/skipped/failed counts, and CI report validity | `scripts/check-test-counts.mjs` |
 
-Vitest runs two projects:
+Vitest runs three projects:
 
-- **`unit`** — Node environment, `tests/**/*.test.ts`
+- **`unit`** — Node environment, `tests/**/*.test.ts`, excluding `tests/api/**` and `tests/db-setup.test.ts`
+- **`integration`** — Node environment, `tests/api/**/*.test.ts` and `tests/db-setup.test.ts`; file
+  parallelism is disabled at the **root** config (`fileParallelism: false`), which applies to all projects
 - **`component`** — jsdom environment, `tests/**/*.test.tsx`
+
+The root config disables file parallelism (`fileParallelism: false`) because the `integration` project
+runs one file at a time: every file in it shares the same database and clears collections in
+`beforeEach`; parallel files would delete each other's seeded documents and collide on unique indexes.
+Vitest only honours `fileParallelism`/`maxWorkers` at the root config level, not per project, so the
+setting cannot be scoped to `integration` alone.
 
 ---
 

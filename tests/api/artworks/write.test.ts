@@ -193,6 +193,30 @@ describe("POST /api/artworks", () => {
     expect(saved).toBeTruthy();
     expect(saved?.title).toBe("Persisted Art");
   });
+
+  it("creates a featured artwork with featuredOrder", async () => {
+    const { tagId } = await seedTags();
+
+    const res = await POST(
+      createJsonRequest("POST", "http://localhost/api/artworks", {
+        title: "Featured Piece",
+        medium: "Gouache",
+        type: "personal",
+        nsfw: false,
+        featured: true,
+        featuredOrder: 1,
+        completionDate: "2026-07-01",
+        tagIds: [tagId.toHexString()],
+        images: [validImage],
+      }),
+    );
+
+    expect(res.status).toBe(201);
+    const json = await res.json();
+    expect(json.featured).toBe(true);
+    expect(json.featuredOrder).toBe(1);
+  });
+
 });
 
 describe("PATCH /api/artworks/:id", () => {
@@ -306,6 +330,84 @@ describe("PATCH /api/artworks/:id", () => {
     );
     expect(res.status).toBe(400);
   });
+
+  it("returns 400 when request body is not valid JSON", async () => {
+    const res = await PATCH(
+      new NextRequest(`http://localhost/api/artworks/${artworkId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: "not-json",
+      }),
+      { params: Promise.resolve({ id: artworkId }) },
+    );
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error.code).toBe("VALIDATION_ERROR");
+  });
+
+  it("returns 400 when PATCH body fails schema validation", async () => {
+    const res = await PATCH(
+      createJsonRequest(
+        "PATCH",
+        `http://localhost/api/artworks/${artworkId}`,
+        { type: "invalid-type" },
+      ),
+      { params: Promise.resolve({ id: artworkId }) },
+    );
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error.code).toBe("VALIDATION_ERROR");
+  });
+
+  it("returns 400 when tagIds reference non-existent tags", async () => {
+    const res = await PATCH(
+      createJsonRequest(
+        "PATCH",
+        `http://localhost/api/artworks/${artworkId}`,
+        { tagIds: [new ObjectId().toHexString()] },
+      ),
+      { params: Promise.resolve({ id: artworkId }) },
+    );
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error.code).toBe("VALIDATION_ERROR");
+  });
+
+  it("persists a completionDate update", async () => {
+    const res = await PATCH(
+      createJsonRequest(
+        "PATCH",
+        `http://localhost/api/artworks/${artworkId}`,
+        { completionDate: "2027-12-31" },
+      ),
+      { params: Promise.resolve({ id: artworkId }) },
+    );
+    expect(res.status).toBe(200);
+
+    const db = await getTestDb();
+    const updated = await db
+      .collection("artworks")
+      .findOne({ _id: new ObjectId(artworkId) });
+    expect(new Date(updated!.completionDate).toISOString()).toBe(
+      "2027-12-31T00:00:00.000Z",
+    );
+  });
+
+  it("updates featured and featuredOrder, returning the merged values", async () => {
+    const res = await PATCH(
+      createJsonRequest(
+        "PATCH",
+        `http://localhost/api/artworks/${artworkId}`,
+        { featured: true, featuredOrder: 5 },
+      ),
+      { params: Promise.resolve({ id: artworkId }) },
+    );
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.featured).toBe(true);
+    expect(json.featuredOrder).toBe(5);
+  });
+
 });
 
 describe("DELETE /api/artworks/:id", () => {
