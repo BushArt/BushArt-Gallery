@@ -1,5 +1,6 @@
 import type { Db } from "mongodb";
 import { getDb, getUriDbName } from "./mongodb";
+import { info as logInfo } from "@/lib/logger";
 
 /**
  * Creates every index the application relies on, per `04-Database-Schema.md`
@@ -58,6 +59,8 @@ export function ensureIndexesOnce(): Promise<void> {
     const dbName = getUriDbName() ?? "bushart";
     if (isTestDatabaseName(dbName)) return;
     await ensureIndexes(await getDb());
+    // One info line per boot so the deployed instance's log proves the task ran.
+    logInfo("Database indexes ensured", { database: dbName });
   })();
   pending.catch(() => {
     pending = null;
