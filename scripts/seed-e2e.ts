@@ -15,6 +15,19 @@ async function main() {
     process.exit(1);
   }
 
+  // Destructive-adjacent upserts must never run against the application
+  // database (TODO-038 data incident). Fail before connecting.
+  // NOTE: multi-host mongodb:// URIs are not parseable by WHATWG URL,
+  // so extract the path with a regex instead.
+  const uriPath = (uri.match(/^mongodb(?:\+srv)?:\/\/[^/]*\/([^?]*)/) || [])[1] || "";
+  const uriDb = uriPath.split("/")[0].trim();
+  if (!uriDb || (!new Set(["bushart-test", "bushart-e2e"]).has(uriDb) && !uriDb.endsWith("-test"))) {
+    console.error(
+      `Refusing to seed E2E data into non-test database "${uriDb || "(none)"}". Point MONGODB_URI at bushart-e2e.`,
+    );
+    process.exit(1);
+  }
+
   const client = new MongoClient(uri);
   await client.connect();
   const db = client.db();

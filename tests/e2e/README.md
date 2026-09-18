@@ -3,8 +3,9 @@
 ## Requirements
 
 - `npm run test:e2e:install` — install Chromium once
-- **`MONGODB_URI`** must be set for direct-URL tests that hit the real API (local runs seed via `tests/e2e/global-setup.ts`)
-- In CI, seed runs automatically when `CI` is set
+- **`MONGODB_URI`** must name a test database (`bushart-e2e` locally, see CI) for direct-URL tests that hit the real API (local runs seed via `tests/e2e/global-setup.ts`); `seed-e2e.ts` refuses any other database
+  - Set it in the shell/process, not only in `.env.local`: an explicitly provided `MONGODB_URI` wins, and `.env.local` is the fallback (its value points at the application database). `npm run test:all` rewrites it to `bushart-e2e` for this stage.
+- In CI, the workflow seeds explicitly via `scripts/seed-e2e.ts` before Playwright runs
 
 If `MONGODB_URI` is unset locally, mocked intercept-path tests still run; direct `/artwork/[slug]` visits may fail without a seeded database.
 

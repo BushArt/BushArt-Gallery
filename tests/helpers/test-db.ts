@@ -13,9 +13,36 @@ export async function getTestDb(): Promise<Db> {
 
   const uri =
     process.env.MONGODB_URI ?? "mongodb://localhost:27017/bushart-test";
+  // Fail before connecting when the URI names a non-test database: the
+  // destructive helpers below use deleteMany({}), so pointing them at the
+  // application database would wipe real content (see TODO-038 notes).
+  // NOTE: multi-host mongodb:// URIs are not parseable by WHATWG URL,
+  // so extract the path with a regex instead.
+  const uriPath = (uri.match(/^mongodb(?:\+srv)?:\/\/[^/]*\/([^?]*)/) || [])[1] || "";
+  const uriDb = uriPath.split("/")[0].trim();
+  const allowedTestDbs = new Set(["bushart-test", "bushart-e2e"]);
+  if (
+    !uriDb ||
+    (!allowedTestDbs.has(uriDb) && !uriDb.endsWith("-test"))
+  ) {
+    throw new Error(
+      `Refusing to run tests against non-test database "${uriDb || "(none)"}". ` +
+        `Point MONGODB_URI at bushart-test or bushart-e2e.`,
+    );
+  }
   client = new MongoClient(uri);
   await client.connect();
   db = client.db();
+  const name = db.databaseName;
+  if (!allowedTestDbs.has(name) && !name.endsWith("-test")) {
+    await client.close();
+    client = null;
+    db = null;
+    throw new Error(
+      `Refusing to run tests against non-test database "${name}". ` +
+        `Point MONGODB_URI at bushart-test or bushart-e2e.`,
+    );
+  }
   return db;
 }
 

@@ -6,6 +6,10 @@ const localEnv = loadEnvLocal();
 const e2eEnv: Record<string, string> = {
   ...process.env,
   ...localEnv,
+  // `...localEnv` would otherwise let `.env.local`'s MONGODB_URI (the application
+  // database) override the test database supplied by an explicit environment —
+  // CI, or `test:all`'s per-stage rewrite. Explicit wins, as in applyEnvLocal().
+  ...(process.env.MONGODB_URI ? { MONGODB_URI: process.env.MONGODB_URI } : {}),
   NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME:
     localEnv.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ??
     process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ??
