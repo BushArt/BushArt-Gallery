@@ -6,7 +6,7 @@
 
 ## 1. Local Setup
 
-**Prerequisites:** Node.js **24.14.1** — the version pinned in `.node-version`, used identically by Render, CI, and local development. Next.js 16 itself only requires 20.9+, but `npm run db:setup` and `npm run seed:admin` pass `--env-file-if-exists` and `--use-system-ca`, which older Node lines do not support. Git and a package manager (`npm` is assumed throughout; `pnpm`/`yarn` work identically).
+**Prerequisites:** Node.js **20.9+** (required by Next.js 16). Local development and CI are pinned to **24.14.1** via `.node-version`; Render's runtime is governed by the `NODE_VERSION` dashboard variable, which **overrides** `.node-version` if both are set — keep them equal. Git and a package manager (`npm` is assumed throughout; `pnpm`/`yarn` work identically). No npm script depends on Node-version-specific CLI flags, so any runtime in that range works (`12-Decision-Log.md` ADR-015).
 
 ```bash
 git clone <repository-url> bushart
@@ -24,7 +24,7 @@ The app runs at `http://localhost:3000`. `npm run dev` runs through `scripts/dev
 1. Create a free account at MongoDB Atlas (no credit card required for the M0 tier).
 2. Create a new **Project**, then **Build a Database** → select **M0 (Free)**, choose a cloud provider/region close to Render's deployment region to minimize latency.
 3. Create a **Database User** with a strong, generated password (not the same as the admin login password used inside BushArt itself — these are unrelated credentials).
-4. **Network Access:** add an IP allowlist entry. Render provides a documented set of static outbound egress IPs per region on the free tier. Allowlist those IPs in Atlas — this is a strict improvement over the previous platform, which had no static egress option on its free tier. Render's static egress IPs are listed in the Render Dashboard under your service's **Networking** settings.
+4. **Network Access:** add an IP allowlist entry. Render services send outbound traffic from **shared, per-region IP ranges** (CIDR notation) — find them in the Render Dashboard under your service's **Connect → Outbound** tab, and allowlist that list in Atlas. These are shared across all services in a region; exclusive static egress IPs are a paid workspace add-on. This is still a strict improvement over the previous platform, which had no egress option at all on its free tier.
    This tradeoff is recorded, not hidden — see `12-Decision-Log.md` if it needs revisiting as the project matures.
 5. Get the connection string (`mongodb+srv://...`) from **Connect → Drivers**, and set it as `MONGODB_URI`.
 6. No manual collection creation is required — `04-Database-Schema.md`'s collections are created implicitly on first write. Indexes, however, **are** created explicitly by an idempotent setup script (`npm run db:setup`, or run once as part of first deployment) rather than left to happen by accident — see `04-Database-Schema.md` §3–6 for the exact index list.
@@ -76,7 +76,7 @@ npm run start   # next start — production server
 5. Attach a custom domain if desired (Render supports this on the free tier via the **Settings** tab).
 6. **Free-tier behavior:** Render's free web service runs for 750 hours/month. The service **sleeps after 15 minutes of inactivity** and takes ~30–60 seconds to cold-start on the next request. This is the accepted trade-off for genuinely free hosting — see `12-Decision-Log.md` ADR-013 for the full rationale.
 7. **Mitigation (optional but recommended):** Set up a free UptimeRobot account to ping your site's URL every 5 minutes. This keep-alive prevents the service from sleeping and stays within the 750 free hours (5-minute pings consume ~8,640 minutes/month, well under the 45,000-minute monthly allowance). The ping target should be the homepage URL; no special endpoint is needed.
-8. **Post-deploy command:** set the service's post-deploy command to `npm run db:setup`. The script is idempotent and only creates the indexes defined in `04-Database-Schema.md` §3–6 — it never writes, migrates, or deletes documents — so running it after every deploy is safe and keeps index state from drifting.
+8. **Database indexes at boot, not at deploy time (ADR-015):** index creation is an application **boot task** (`src/instrumentation.ts`), not a build or deploy step. Render's build pipeline runs on separate compute without your service's environment variables, and a build/pre-deploy failure cancels the whole deploy — so database work must never block a deploy. The boot task is idempotent and **non-fatal**: if the database is unreachable at startup, the service still boots and serves (requests that need the database surface their existing 503s), the failure is logged at error level, and the next boot retries. `npm run db:setup` remains available to create the indexes explicitly, and is worth running once after provisioning a new database.
 
 ## 7. Monitoring
 
@@ -110,7 +110,7 @@ MongoDB Atlas's free M0 tier has **no automated backups** (`02-Technical-Specifi
 2. Cloudinary account created, credentials copied.
 3. All environment variables set in Render (§4).
 4. `npm run seed:admin` run once; `INITIAL_ADMIN_*` variables removed afterward.
-5. Database indexes created (`npm run db:setup` or equivalent, per §2).
+5. Database indexes created — automatically at app boot (ADR-015); run `npm run db:setup` once after provisioning a new database (per §2).
 6. First deploy succeeds; homepage loads; login works; a test upload succeeds end-to-end.
 7. Cloudinary usage alerts configured.
 8. Keep-alive ping (UptimeRobot or similar) set up to prevent free-tier idle sleep (§6 step 7).

@@ -91,6 +91,7 @@ bushart/
 │   │   ├── env.ts                            # Shared boot-time runtime environment validation
 │   │   ├── db/
 │   │   │   ├── mongodb.ts                 # Cached connection helper
+│   │   │   ├── indexes.ts                 # Index definitions + ensureIndexes() — boot task and db:setup share this spec
 │   │   │   └── models/
 │   │   │       ├── artwork.ts             # Data-access functions (not an ORM model class)
 │   │   │       ├── tag.ts
@@ -138,7 +139,8 @@ bushart/
 │
 ├── scripts/
 │   ├── dev.mjs                             # `npm run dev` wrapper — defaults NODE_USE_SYSTEM_CA on Windows
-│   ├── db-setup.mjs                        # Idempotent index creation (04-Database-Schema.md §3–6)
+│   ├── load-env.mjs                        # .env.local loader for standalone scripts (no-op when the file is absent)
+│   ├── db-setup.mjs                        # Idempotent index creation — delegates to src/lib/db/indexes.ts
 │   ├── seed-admin.ts                      # One-time admin bootstrap (02-Technical-Specification.md §9)
 │   ├── seed-e2e.ts                         # Minimal Playwright E2E seed data (test databases only)
 │   ├── test-all.mjs                        # Staged local runner for the full gate (lint → E2E → count guard)

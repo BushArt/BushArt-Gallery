@@ -242,3 +242,21 @@
 **Trade-offs:** The allow-list is deliberately narrow — a legitimately-named scratch database (e.g. `bushart-scratch`) is refused until it is renamed to end in `-test`. That friction is accepted: a false refusal is a recoverable annoyance, a false accept destroys real data.
 
 **Long-term Impact:** The guard is a property of the code that writes, not of the caller's intent, so any future destructive tooling inherits the same rule. Non-destructive scripts are unaffected. It also makes the `bushart` database name in `MONGODB_URI` (`10-Deployment-Guide.md` §4) a requirement rather than a convention.
+
+---
+
+## ADR-015 — Run Database Setup as an Application Boot Task, Never as a Build or Deploy Step
+
+**Date:** 2026-09-18
+**Decision:** Index creation (`ensureIndexes()` in `src/lib/db/indexes.ts`) runs as an idempotent, **non-fatal** application boot task from `src/instrumentation.ts`, and the same module backs the standalone `npm run db:setup` script. Database work never runs inside the build command, and operational npm scripts must not depend on Node-version-specific CLI flags (`--env-file-if-exists`, `--use-system-ca`); standalone scripts load `.env.local` themselves via `scripts/load-env.mjs`, which is a no-op when the file is absent.
+
+**Context:** The first production deployment failed because `npm run db:setup` was added to the Render build command. The build ran on Node 20.18.0 (`NODE_VERSION`, which overrides the repository's `.node-version`), where `--env-file-if-exists` did not provide its ignore-if-missing behaviour, and `.env.local` legitimately does not exist on Render — so the build failed with `node: .env.local: not found`. Render's free tier offers no pre-deploy command, one-off jobs, cron jobs, or shell access, so there is no deploy-time place to run database setup; and build/pipeline tasks run on compute separate from the service instance, where a deploy-time failure cancels the entire deploy.
+
+**Alternatives Considered:**
+- **Render pre-deploy command** (`npm run db:setup` there). Rejected: not available on the free instance type.
+- **Start-command wrapper** (`npm run db:setup && npm run start`). Rejected: a transient database outage would then prevent the service from starting at all, replacing the app's existing graceful 503 behaviour with a full outage.
+- **Manual script runs only.** Rejected: silent drift — a forgotten run leaves the unique slug indexes unenforced with no signal.
+
+**Trade-offs:** The boot task adds one database round trip's worth of work to each process boot, which on the free tier (sleeping after 15 minutes of idle) means most cold starts. It is bounded (parallel `createIndex` calls) and small relative to the 30–60s cold start. A database outage at boot no longer prevents the service from starting, at the cost of a loud error log until the next boot heals the indexes.
+
+**Long-term Impact:** Index definitions live in one module shared by the app and the setup script, so they cannot drift. Deploys and builds are free of database dependencies and reproducible, and the choice of Node runtime no longer affects operational scripts. If the project later upgrades to a paid plan with pre-deploy commands, the boot task can be supplemented — not replaced — by one.
