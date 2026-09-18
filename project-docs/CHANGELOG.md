@@ -9,7 +9,7 @@ Format: loosely follows [Keep a Changelog](https://keepachangelog.com/) conventi
 ## [Unreleased]
 
 ### Added
-- **TODO-038** — Deployed the application to Render: production is live at `https://bushart-gallery.onrender.com` over HTTPS with the documented environment variables set, a successful `npm run build`, and `npm run db:setup` configured as the post-deploy command. The Node.js runtime is now pinned to 24.14.1 across Render, CI, and local development (`.node-version`, `engines`, `ci.yml`).
+- **TODO-038** — Deployed the application to Render: production is live at `https://bushart-gallery.onrender.com` over HTTPS with the documented environment variables and a successful production build.
 - **TODO-001** — Scaffolded the repository: Next.js 16 App Router project with TypeScript strict mode, ESLint v9 flat config (`eslint.config.mjs`), and Tailwind v4 (PostCSS-based via `@tailwindcss/postcss`). Implemented the full empty directory skeleton per `08-Project-Structure.md` with App Router routes, library structure, and configuration files. `npm run build` succeeds on the scaffold.
 - **TODO-002** — Provisioned MongoDB Atlas M0 cluster and Cloudinary account; local environment wired and connectivity verified with `scripts/verify-env.mjs`.
 - **TODO-003** — Wired design tokens and self-hosted fonts via Tailwind v4 `@theme` and `next/font`.
@@ -49,7 +49,7 @@ Format: loosely follows [Keep a Changelog](https://keepachangelog.com/) conventi
 - **TODO-037** — Playwright E2E suite: 7 spec files covering login, full upload, NSFW toggle, artwork modal entry, admin edit-after-login, accessibility, and NSFW toggle; `tests/e2e/nsfw-toggle.spec.ts` added for the previously-missing NSFW toggle flow; `webServer` dev-server bootstrap and seeded global setup; CI `e2e` job runs after the unit/component gate.
 
 ### Fixed
-- **TODO-038** — Deployment-session fixes: `GET /api/auth/me` now calls `connection()` outside its `try` block so a prerender bail-out reaches Next.js instead of surfacing as a 500; `getDb()` resolves its database as explicit argument → URI path → `bushart` rather than the driver's implicit `test` database; `getTestDb()` (`tests/helpers/test-db.ts`) and `scripts/seed-e2e.ts` refuse to run against any non-test database; and standalone scripts load `.env.local` themselves (`--env-file-if-exists`) with `--use-system-ca` for Atlas TLS. `npm run dev` and `npm run test:all` were added, and `npm run lint` now also covers `scripts/`. The Playwright web server now honors an explicitly supplied `MONGODB_URI` over `.env.local`, so the E2E suite tests against the seeded `bushart-e2e` database instead of the application database (local full-gate run: 393 Vitest passed / 0 failed, 32 Playwright passed / 0 failed).
+- **TODO-038** — Deployment-session fixes: the auth `me` route no longer swallows the prerender bail-out, `getDb()` resolves the application database name instead of the driver's implicit `test`, destructive test paths refuse non-test databases, and the local `dev`/`test-all` runners were added.
 - [Phase 0 audit remediation] — Post-close-out audit fixes applied to the scaffold: typed `getDb()` in `src/lib/db/mongodb.ts`; implemented `scripts/seed-admin.ts` with bcrypt cost 12 and idempotency; added `npm run seed:admin`; removed duplicate legacy CSS var aliases from `src/app/globals.css`; replaced bare `proxy.ts` re-export with a documented placeholder referencing CVE-2025-29927; strengthened `tests/db-setup.test.ts` with idempotency, index option assertions, and deterministic `site_settings` coverage.
 - [Phase 1 audit remediation] — Fixed missing tag usageCount increment in `createArtwork`; added 34 mocked-driver unit tests covering tag reconciliation, featured artworks, settings zero-state, and tagSlugs resolution; updated CHANGELOG test count from 31 to 34
 - [Phase 2 audit remediation] — Added concurrent login TOCTOU race condition test (`tests/api/auth/login-race.test.ts`); verified 12 placeholder stub files are expected for Phase 3–5 and do not affect Phase 2 functionality.
@@ -61,15 +61,12 @@ Format: loosely follows [Keep a Changelog](https://keepachangelog.com/) conventi
 
 ### Documentation Updates
 
-#### TODO-038 — Deploy to Render
-- `02-Technical-Specification.md` §2 — kept the 20.9+ application minimum and recorded the pinned, verified runtime (24.14.1) plus the reason: the `db:setup`/`seed:admin` scripts use Node CLI flags from that line.
-- `08-Project-Structure.md` §1–2 — added `scripts/dev.mjs`, `scripts/db-setup.mjs`, `scripts/test-all.mjs`, and `.node-version` to the directory tree (`db-setup.mjs` was missing from it), and broadened the `scripts/` responsibility line to cover the new runners.
-- `10-Deployment-Guide.md` §1, §6 — corrected the prerequisite Node.js version to the pinned 24.14.1, documented the `scripts/dev.mjs` `NODE_USE_SYSTEM_CA` default, and added `npm run db:setup` as the documented post-deploy command.
-- `Testing-Infrastructure.md` §5 — documented `npm run test:all` (staged runner, `--from`/`--only`/`--skip`/`--timeout` flags) and its per-stage test-database rewriting.
-- `12-Decision-Log.md` — appended ADR-014: application database-name pinning and the guard confining destructive test paths to test databases. ADR-009 and ADR-013 are unchanged.
-- `01-Product-Definition.md`, `03-System-Architecture.md`, `04-Database-Schema.md`, `05-API-Specification.md`, `06-UI-Design-System.md`, `07-User-Flows.md`, `09-Coding-Standards.md`, `11-Project-Roadmap.md` — no change; verified against the implementation, which matched the documented contract.
-- `.github/workflows/ci.yml` — not a numbered doc; both jobs pinned to Node 24.14.1 to match `.node-version` and Render.
-- `tests/e2e/README.md` and `playwright.config.ts` — not numbered docs; recorded that `MONGODB_URI` must be set in the shell/process (`.env.local` is only the fallback, and it points at the application database).
+- `02-Technical-Specification.md` §2 — recorded the pinned runtime alongside Next.js's 20.9+ minimum.
+- `08-Project-Structure.md` §1–2 — added the new `scripts/` entries and `.node-version` to the layout and responsibilities.
+- `10-Deployment-Guide.md` §1, §2, §6 — documented the Node runtime and precedence, corrected the Atlas network-access guidance, and moved database setup from a deploy step to an application boot task (ADR-015).
+- `Testing-Infrastructure.md` §5 — documented `npm run test:all`.
+- `12-Decision-Log.md` — appended ADR-014 (database-name pinning and the destructive-test-path guard) and ADR-015 (index setup as a boot task, never a build or deploy step).
+- `01-Product-Definition.md`, `03-System-Architecture.md`, `04-Database-Schema.md`, `05-API-Specification.md`, `06-UI-Design-System.md`, `07-User-Flows.md`, `09-Coding-Standards.md`, `11-Project-Roadmap.md` — no change; implementation matched the documented contract.
 
 #### TODO-001 – TODO-037 close-outs
 
