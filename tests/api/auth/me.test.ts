@@ -12,6 +12,13 @@ import {
 // Mock the mongodb module to redirect to test database
 vi.mock("@/lib/db/mongodb", () => createMongodbMock());
 
+// connection() throws outside a Next request scope; the route calls it
+// unconditionally (outside try) so prerender bailout reaches Next.js.
+vi.mock("next/server", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("next/server")>();
+  return { ...actual, connection: vi.fn(async () => undefined) };
+});
+
 vi.mock("@/lib/auth/jwt", () => ({
   verifyToken: vi.fn((token: string) => {
     if (token === "valid-token") {

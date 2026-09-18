@@ -10,6 +10,8 @@ const SESSION_COOKIE = "bushart_session";
 // Cache Components, `connection()` marks this handler as request-time
 // executed so Next skips prerendering it during static generation.
 export async function GET(request: NextRequest): Promise<NextResponse> {
+  // Must stay outside try: a prerender bailout thrown here must reach Next.js,
+  // not handleRouteError (which would convert it to 500 INTERNAL_ERROR).
   await connection();
   try {
     const token = request.cookies.get(SESSION_COOKIE)?.value;
