@@ -6,7 +6,7 @@
 
 ## 1. Local Setup
 
-**Prerequisites:** Node.js **20.9+** (required by Next.js 16), Git, a package manager (`npm` is assumed throughout; `pnpm`/`yarn` work identically).
+**Prerequisites:** Node.js **24.14.1** — the version pinned in `.node-version`, used identically by Render, CI, and local development. Next.js 16 itself only requires 20.9+, but `npm run db:setup` and `npm run seed:admin` pass `--env-file-if-exists` and `--use-system-ca`, which older Node lines do not support. Git and a package manager (`npm` is assumed throughout; `pnpm`/`yarn` work identically).
 
 ```bash
 git clone <repository-url> bushart
@@ -17,7 +17,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-The app runs at `http://localhost:3000`. Local development connects to the **same** MongoDB Atlas and Cloudinary accounts used in production by default (both have generous-enough free tiers for solo development traffic) — there is no local database requirement for day-to-day feature work. Contributors who want full isolation may point `MONGODB_URI` at a local MongoDB instance instead; this is optional, not required.
+The app runs at `http://localhost:3000`. `npm run dev` runs through `scripts/dev.mjs`, which defaults `NODE_USE_SYSTEM_CA=1` so Node reads the OS certificate store — needed for Atlas TLS on Windows, and a harmless no-op on Linux/Render. An explicitly set value is respected, never overridden. Local development connects to the **same** MongoDB Atlas and Cloudinary accounts used in production by default (both have generous-enough free tiers for solo development traffic) — there is no local database requirement for day-to-day feature work. Contributors who want full isolation may point `MONGODB_URI` at a local MongoDB instance instead; this is optional, not required.
 
 ## 2. MongoDB Atlas Setup
 
@@ -76,6 +76,7 @@ npm run start   # next start — production server
 5. Attach a custom domain if desired (Render supports this on the free tier via the **Settings** tab).
 6. **Free-tier behavior:** Render's free web service runs for 750 hours/month. The service **sleeps after 15 minutes of inactivity** and takes ~30–60 seconds to cold-start on the next request. This is the accepted trade-off for genuinely free hosting — see `12-Decision-Log.md` ADR-013 for the full rationale.
 7. **Mitigation (optional but recommended):** Set up a free UptimeRobot account to ping your site's URL every 5 minutes. This keep-alive prevents the service from sleeping and stays within the 750 free hours (5-minute pings consume ~8,640 minutes/month, well under the 45,000-minute monthly allowance). The ping target should be the homepage URL; no special endpoint is needed.
+8. **Post-deploy command:** set the service's post-deploy command to `npm run db:setup`. The script is idempotent and only creates the indexes defined in `04-Database-Schema.md` §3–6 — it never writes, migrates, or deletes documents — so running it after every deploy is safe and keeps index state from drifting.
 
 ## 7. Monitoring
 

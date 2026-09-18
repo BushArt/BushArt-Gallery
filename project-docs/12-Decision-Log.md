@@ -224,3 +224,21 @@
 **Trade-offs:** Free-tier cold starts (~30–60s after 15 minutes of idle) are the accepted cost. Mitigated by a scheduled keep-alive ping (UptimeRobot or similar) that stays within the 750 free hours. The Constitution's "performance is a feature" principle is partially traded here — cold-start latency on the first request after idle is a real UX cost — but the mitigation (keep-alive) eliminates it for regular visitors, and the cost saving (literally $0 vs. ~$5/month) is judged worth the edge case of a cold start for a rare visitor after a long idle period.
 
 **Long-term Impact:** Nothing in the application architecture is Render-specific beyond deployment configuration — the same portability argument from ADR-009 still holds. If Render's free tier changes or a better option emerges, migrating remains a low-risk, configuration-only change.
+
+---
+
+## ADR-014 — Pin the Application Database Name and Confine Destructive Test Paths to Test Databases
+
+**Date:** 2026-09-18
+**Decision:** `getDb()` resolves its target database in a fixed order — explicit argument, then the database named in `MONGODB_URI`, then `bushart` — and never falls back to the MongoDB driver's implicit `test` database. Code that issues destructive writes refuses to run against a non-test database: `getTestDb()` in `tests/helpers/test-db.ts` and `scripts/seed-e2e.ts` accept only `bushart-test`, `bushart-e2e`, or a name ending in `-test`.
+
+**Context:** During TODO-038, a `MONGODB_URI` with no database path made the driver select its implicit `test` database, which is not the application's database. Separately, test helpers pointed at the application database cleared real content before this guard existed. Both failure modes are silent — the wrong database connects successfully and looks healthy.
+
+**Alternatives Considered:**
+- **Rely on environment discipline** (always name the database in `MONGODB_URI`). Rejected: a URI with no path is valid and looks correct, so the mistake stays invisible until data has landed in the wrong place.
+- **Guard only in the seed script.** Rejected: the destructive `deleteMany({})` calls live in the shared test helpers, which is the path that actually lost data.
+- **Key the guard off `NODE_ENV=test`.** Rejected: `NODE_ENV` describes which runner is executing, not which database is being written to, so it cannot catch a mis-pointed URI.
+
+**Trade-offs:** The allow-list is deliberately narrow — a legitimately-named scratch database (e.g. `bushart-scratch`) is refused until it is renamed to end in `-test`. That friction is accepted: a false refusal is a recoverable annoyance, a false accept destroys real data.
+
+**Long-term Impact:** The guard is a property of the code that writes, not of the caller's intent, so any future destructive tooling inherits the same rule. Non-destructive scripts are unaffected. It also makes the `bushart` database name in `MONGODB_URI` (`10-Deployment-Guide.md` §4) a requirement rather than a convention.

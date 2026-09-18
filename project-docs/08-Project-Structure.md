@@ -137,8 +137,11 @@ bushart/
 │   └── instrumentation.ts                  # Boot-time runtime environment validation hook
 │
 ├── scripts/
+│   ├── dev.mjs                             # `npm run dev` wrapper — defaults NODE_USE_SYSTEM_CA on Windows
+│   ├── db-setup.mjs                        # Idempotent index creation (04-Database-Schema.md §3–6)
 │   ├── seed-admin.ts                      # One-time admin bootstrap (02-Technical-Specification.md §9)
-│   ├── seed-e2e.ts                         # Minimal Playwright E2E seed data
+│   ├── seed-e2e.ts                         # Minimal Playwright E2E seed data (test databases only)
+│   ├── test-all.mjs                        # Staged local runner for the full gate (lint → E2E → count guard)
 │   ├── check-test-counts.mjs               # CI regression guard for test files and outcomes
 │   └── test-count-baseline.json            # Minimum protected test counts
 │
@@ -162,6 +165,7 @@ bushart/
 ├── tsconfig.json
 ├── package.json
 ├── .env.example
+├── .node-version                          # Pinned Node.js runtime, for Render/CI/local parity
 ├── .eslintrc.json
 └── .prettierrc
 ```
@@ -177,7 +181,7 @@ bushart/
 | `lib/` | All business logic: database access, auth, media, validation. This is the layer `09-Coding-Standards.md` holds to the strictest testing expectations, since it's where correctness actually matters most. |
 | `hooks/` | Client-side state and data-fetching glue between components and the API. |
 | `types/` | Shared TypeScript types, kept in sync with `04-Database-Schema.md` and `05-API-Specification.md` by convention — a schema change and its type update ship in the same commit. |
-| `scripts/` | One-off operational scripts run manually via `npm run <script>`, never imported by the application itself. |
+| `scripts/` | Operational scripts run via `npm run <script>` — the `dev`/`test-all` runners plus one-off setup and seed helpers — never imported by the application itself. |
 
 ## 3. Naming Conventions
 

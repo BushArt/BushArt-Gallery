@@ -26,7 +26,7 @@ Rationale for each major choice is recorded in `12-Decision-Log.md`. This docume
 
 ## 2. Frontend
 
-- **Next.js 16**, App Router only (no Pages Router). The current stable line ships Turbopack as the default bundler, React 19.2 support, and an opt-in caching model via Cache Components (see §8). Minimum Node.js runtime: **20.9+**.
+- **Next.js 16**, App Router only (no Pages Router). The current stable line ships Turbopack as the default bundler, React 19.2 support, and an opt-in caching model via Cache Components (see §8). **Minimum Node.js runtime: 20.9+** for the application itself; the pinned, verified runtime is **24.14.1** (see `10-Deployment-Guide.md` §1), because the `db:setup`/`seed:admin` scripts rely on Node CLI flags from that line.
 - **TypeScript strict mode** end to end — see `09-Coding-Standards.md`.
 - **Tailwind CSS** for styling, driven by the design tokens defined in `06-UI-Design-System.md`. No CSS-in-JS runtime.
 - **Framer Motion** for the animation vocabulary described in `06-UI-Design-System.md` §Motion — gallery entrance transitions, popup open/close, the signature "sketch-in" reveal, and filter transitions. All motion respects `prefers-reduced-motion`.

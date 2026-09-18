@@ -116,8 +116,11 @@ Authoritative repo layout: `08-Project-Structure.md`.
 | `npm run test:coverage` | Vitest with coverage gate on required paths |
 | `npm run test:e2e` | Playwright E2E (starts dev server automatically) |
 | `npm run test:e2e:install` | Install Chromium browser once |
+| `npm run test:all` | Staged local gate runner: lint+typecheck → unit → component → integration (`bushart-test`) → coverage → build → seed + E2E (`bushart-e2e`) → count guard. `--from=<n>`, `--only=<n>`, `--skip=<n,n>` resume or skip stages; `--timeout=<ms>` raises the per-stage limit for build/E2E |
 
 **Local E2E:** set `MONGODB_URI` for direct-URL tests; otherwise intercept-path tests still run with mocked APIs. See `tests/e2e/README.md`.
+
+`test:all` rewrites `MONGODB_URI` per stage (`bushart-test` for integration/coverage, `bushart-e2e` for the E2E stage), so a local `.env.local` pointed at the application database can never be seeded or wiped by a test run.
 
 ---
 

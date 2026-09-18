@@ -88,44 +88,6 @@ _(No currently active items — pick up the next Not Started item from the phase
 
 ### Phase 10 — Deployment
 
-#### TODO-038 — Deploy to Render
-**Status:** Not Started · **Est. time:** 2h · **Depends on:** TODO-001 through TODO-037; the pending Railway→Render documentation update (`02`, `03`, `08`, `10`, `12`, `CHANGELOG.md`) applied first
-**Spec reference:** `10-Deployment-Guide.md` §6 (Render version), `12-Decision-Log.md` ADR-013
-
-**Success conditions:**
-- Production app is live on Render with a custom domain (or `*.onrender.com` URL) and HTTPS
-- `MONGODB_URI`, `JWT_SECRET`, Cloudinary env vars set in Render dashboard
-- `npm run build` succeeds in Render's environment; `db:setup` runs as a post-deploy hook
-
-**Tests:** Deployed site is reachable and serves the gallery.
-**Notes / Results:** Requires all prior phases complete; the documentation update (Railway→Render) is
-part of this task's dependency chain. CI note (2026-09-17): fixed the `test` job's failing coverage
-gate — vitest file parallelism is now disabled at the root config (per-project `fileParallelism`/
-`maxWorkers` are ignored), and 7 integration tests were added to cover the `src/app/api/artworks/**`
-gate: 85% lines/statements/functions, 80% branches).
-- Debug round (2026-09-17, Render deploy + IDE diagnostics):
-  - **Render build:** `npm run build` succeeds on Render (Next 16.2.10, Turbopack, Cache
-    Components/PPR enabled) and the service deploys live at `https://bushart-gallery.onrender.com`.
-    However, prerendering logs repeated bail-out errors for `/api/auth/me` ("needs to bail out of
-    prerendering because it used request.cookies"). Fix: import `connection` from `next/server`
-    and `await connection()` at the top of the GET handler in
-    `src/app/api/auth/me/route.ts`. (Cache Components forbids the route segment config
-    `export const dynamic = "force-dynamic"` — first attempt failed the build with
-    "Route segment config \"dynamic\" is not compatible with nextConfig.cacheComponents".)
-    Verified locally: `npm run build` exits 0 with zero bail-out errors and the route
-    resolves as ƒ (Dynamic).
-  - **IDE false positive (ci.yml):** the "Unable to resolve action `actions/checkout@v4` /
-    `setup-node@v4` / `upload-artifact@v4` / `download-artifact@v4`" diagnostics from the VS Code
-    GitHub Actions extension are environmental (API/network resolution failure), not real — those
-    actions and versions exist and the workflow is valid. No change to `ci.yml`.
-  - **IDE real error (vitest.config.mts):** TS1259 "Module 'path' can only be default-imported using
-    the 'esModuleInterop' flag" — `tsconfig.json` `include` glob `**/*.ts` does not match `.mts`, so
-    `vitest.config.mts` was type-checked as a standalone file without the project's
-    `esModuleInterop: true`. Fix: add `vitest.config.mts` to tsconfig `include`.
-  - **Observation (out of scope):** `npm install` on Render reports 11 vulnerabilities (4 moderate /
-    6 high / 1 critical) — audit/fix tracked separately, not part of TODO-038.
-error/featured branches (gate: 85% lines/statements/functions, 80% branches).
-
 #### TODO-039 — Environment parity verification
 **Status:** Not Started · **Est. time:** 1h · **Depends on:** TODO-038
 **Spec reference:** `10-Deployment-Guide.md` §6, `02-Technical-Specification.md` §9
@@ -135,7 +97,7 @@ error/featured branches (gate: 85% lines/statements/functions, 80% branches).
 - No env-var mismatches between local `.env.local` and Render dashboard
 
 **Tests:** None — operational verification.
-**Notes / Results:** Requires production deploy (TODO-038) live first.
+**Notes / Results:** Production deploy (TODO-038) is live. Carried over from TODO-038, since these could not be confirmed from the repository: confirm Render's build log reports the pinned Node runtime (`.node-version`, 24.14.1) for both build and post-deploy; re-confirm the deployed `MONGODB_URI` names `bushart`; verify `INITIAL_ADMIN_*` were removed after seeding; and compare every variable in `10-Deployment-Guide.md` §4 against the Render dashboard. Render does not receive `.env.local` — the dashboard is the only source of truth for production.
 
 #### TODO-040 — Cloudinary usage alerts + Render keep-alive
 **Status:** Not Started · **Est. time:** 1h · **Depends on:** TODO-038
@@ -215,6 +177,20 @@ error/featured branches (gate: 85% lines/statements/functions, 80% branches).
 
 **Tests:** None — infrastructure configuration.
 **Notes / Results:** _(none yet)_
+
+### Phase 12 — Post-Deploy Operations
+
+#### TODO-047 — Production content inventory & preservation check
+**Status:** Not Started · **Est. time:** 2h · **Depends on:** TODO-038
+**Spec reference:** `04-Database-Schema.md` §8, `10-Deployment-Guide.md` §8
+
+**Success conditions:**
+- The artwork reported missing during the TODO-038 session is either located or confirmed lost, and the answer is recorded
+- A current count of `artworks`/`tags`/`site_settings` in the `bushart` database is captured and compared against the Cloudinary assets, so orphaned or unlisted media is identified
+- No deletion, migration, or reseeding is performed without separate approval
+
+**Tests:** None — operational inventory.
+**Notes / Results:** Opened at TODO-038 close-out. During that session, agent-run tests were pointed at the application database and destroyed data; the admin was restored, but the fate of a missing E2E artwork and the full extent of content loss were never established, and earlier empty-collection observations are not a current inventory. The `getTestDb()`/`seed-e2e.ts` guards (`12-Decision-Log.md` ADR-014) prevent recurrence on those paths only.
 
 ---
 
