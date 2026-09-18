@@ -11,9 +11,14 @@
  * Env:   MONGODB_URI, INITIAL_ADMIN_USERNAME, INITIAL_ADMIN_PASSWORD must be set.
  */
 
+import { loadEnvLocal } from "./load-env.mjs";
 import { hashPassword } from "@/lib/auth/password";
 import { findByUsername, createAdmin } from "@/lib/db/models/admin";
 import { getClient, getDb } from "@/lib/db/mongodb";
+
+// `.env.local` is loaded for local runs without overriding the environment;
+// on Render the dashboard supplies the variables and this is a no-op.
+loadEnvLocal();
 
 const RAW_URI = process.env.MONGODB_URI;
 const RAW_USERNAME = process.env.INITIAL_ADMIN_USERNAME;

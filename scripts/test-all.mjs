@@ -26,14 +26,17 @@
  *   npm run test:all -- --skip=6            # skip comma-separated stages
  *   npm run test:all -- --timeout=1800000   # per-stage timeout in ms
  *
- * `npm run test:all` loads `.env.local` via Node's `--env-file-if-exists` and
- * `--use-system-ca`. Invoking this file directly (`node scripts/test-all.mjs`)
- * requires `MONGODB_URI` to already be in the environment — the database-backed
- * stages skip themselves rather than guessing a target.
+ * `npm run test:all` loads `.env.local` itself (via `scripts/load-env.mjs`);
+ * invoking this file directly (`node scripts/test-all.mjs`) without that file
+ * present requires `MONGODB_URI` to already be in the environment — the
+ * database-backed stages skip themselves rather than guessing a target.
  */
 import { spawnSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
+import { loadEnvLocal } from "./load-env.mjs";
+
+loadEnvLocal();
 
 if (!process.env.NODE_USE_SYSTEM_CA) process.env.NODE_USE_SYSTEM_CA = "1";
 mkdirSync("ci-reports", { recursive: true });

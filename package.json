@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "engines": {
-    "node": ">=24.14.1 <25"
+    "node": ">=20.9.0 <25"
   },
   "description": "BushArt — Digital Sketchbook & Gallery. A minimalist, dark-themed digital art portfolio and CMS.",
   "type": "module",
@@ -13,10 +13,10 @@
     "start": "node ./node_modules/next/dist/bin/next start",
     "lint": "eslint src/ tests/ scripts/",
     "format": "prettier --write .",
-    "db:setup": "node --env-file-if-exists=.env.local --use-system-ca scripts/db-setup.mjs",
-    "seed:admin": "node --env-file-if-exists=.env.local --use-system-ca ./node_modules/tsx/dist/cli.mjs scripts/seed-admin.ts",
+    "db:setup": "node ./node_modules/tsx/dist/cli.mjs scripts/db-setup.mjs",
+    "seed:admin": "node ./node_modules/tsx/dist/cli.mjs scripts/seed-admin.ts",
     "test": "node ./node_modules/vitest/vitest.mjs run",
-    "test:all": "node --env-file-if-exists=.env.local --use-system-ca scripts/test-all.mjs",
+    "test:all": "node scripts/test-all.mjs",
     "test:coverage": "node ./node_modules/vitest/vitest.mjs run --coverage",
     "test:counts": "node scripts/check-test-counts.mjs",
     "test:watch": "node ./node_modules/vitest/vitest.mjs",
