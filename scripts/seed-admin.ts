@@ -13,7 +13,7 @@
 
 import { hashPassword } from "@/lib/auth/password";
 import { findByUsername, createAdmin } from "@/lib/db/models/admin";
-import { getDb } from "@/lib/db/mongodb";
+import { getClient, getDb } from "@/lib/db/mongodb";
 
 const RAW_URI = process.env.MONGODB_URI;
 const RAW_USERNAME = process.env.INITIAL_ADMIN_USERNAME;
@@ -55,7 +55,13 @@ async function main() {
   console.log(`✅ Admin "${USERNAME}" created successfully.`);
 }
 
-main().catch((err) => {
-  console.error("❌ Admin seed failed:", err.message);
-  process.exit(1);
-});
+main()
+  .then(async () => {
+    // Close the pooled client so the event loop can drain instead of
+    // masking a hanging handle with a forced process.exit(0).
+    await getClient().then((c) => c.close()).catch(() => undefined);
+  })
+  .catch((err) => {
+    console.error("❌ Admin seed failed:", err.message);
+    process.exit(1);
+  });
