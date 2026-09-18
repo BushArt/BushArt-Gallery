@@ -22,7 +22,13 @@ if (!MONGODB_URI) {
 async function main() {
   const client = new MongoClient(MONGODB_URI);
   await client.connect();
-  const db = client.db();
+  // Same defaulting rule as getUriDbName(): a URI without a path must target
+  // "bushart", never the driver's implicit "test" database.
+  // NOTE: multi-host mongodb:// URIs are not parseable by WHATWG URL,
+  // so extract the path with a regex instead.
+  const uriPath = (MONGODB_URI.match(/^mongodb(?:\+srv)?:\/\/[^/]*\/([^?]*)/) || [])[1] || "";
+  const uriDb = uriPath.split("/")[0].trim();
+  const db = client.db(uriDb || "bushart");
 
   console.log("📦 Connected to MongoDB — creating indexes...\n");
 
