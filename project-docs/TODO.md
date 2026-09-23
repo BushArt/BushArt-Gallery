@@ -88,17 +88,6 @@ _(No currently active items — pick up the next Not Started item from the phase
 
 ### Phase 10 — Deployment
 
-#### TODO-039 — Environment parity verification
-**Status:** Not Started · **Est. time:** 1h · **Depends on:** TODO-038
-**Spec reference:** `10-Deployment-Guide.md` §6, `02-Technical-Specification.md` §9
-
-**Success conditions:**
-- Production `npm run build` succeeds with the same Next.js config used locally
-- No env-var mismatches between local `.env.local` and Render dashboard
-
-**Tests:** None — operational verification.
-**Notes / Results:** Production deploy (TODO-038) is live. Carried over from TODO-038, since these could not be confirmed from the repository: confirm Render's build log reports the pinned Node runtime (`.node-version`, 24.14.1) for both build and post-deploy; re-confirm the deployed `MONGODB_URI` names `bushart`; verify `INITIAL_ADMIN_*` were removed after seeding; and compare every variable in `10-Deployment-Guide.md` §4 against the Render dashboard. Render does not receive `.env.local` — the dashboard is the only source of truth for production.
-
 #### TODO-040 — Cloudinary usage alerts + Render keep-alive
 **Status:** Not Started · **Est. time:** 1h · **Depends on:** TODO-038
 **Spec reference:** `10-Deployment-Guide.md` §7

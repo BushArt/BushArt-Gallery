@@ -49,6 +49,7 @@ Format: loosely follows [Keep a Changelog](https://keepachangelog.com/) conventi
 - **TODO-037** — Playwright E2E suite: 7 spec files covering login, full upload, NSFW toggle, artwork modal entry, admin edit-after-login, accessibility, and NSFW toggle; `tests/e2e/nsfw-toggle.spec.ts` added for the previously-missing NSFW toggle flow; `webServer` dev-server bootstrap and seeded global setup; CI `e2e` job runs after the unit/component gate.
 
 ### Fixed
+- **TODO-039** — Environment parity verification: production's `NEXT_PUBLIC_SITE_URL` held the local `http://localhost:3000` value — silently breaking the artwork share link and Open Graph URL — and was corrected to the production origin; the Node runtime pin, database target, build command, and remaining variables were confirmed against the Render dashboard.
 - **TODO-038** — Deployment-session fixes: the auth `me` route no longer swallows the prerender bail-out, `getDb()` resolves the application database name instead of the driver's implicit `test`, destructive test paths refuse non-test databases, and the local `dev`/`test-all` runners were added.
 - [Phase 0 audit remediation] — Post-close-out audit fixes applied to the scaffold: typed `getDb()` in `src/lib/db/mongodb.ts`; implemented `scripts/seed-admin.ts` with bcrypt cost 12 and idempotency; added `npm run seed:admin`; removed duplicate legacy CSS var aliases from `src/app/globals.css`; replaced bare `proxy.ts` re-export with a documented placeholder referencing CVE-2025-29927; strengthened `tests/db-setup.test.ts` with idempotency, index option assertions, and deterministic `site_settings` coverage.
 - [Phase 1 audit remediation] — Fixed missing tag usageCount increment in `createArtwork`; added 34 mocked-driver unit tests covering tag reconciliation, featured artworks, settings zero-state, and tagSlugs resolution; updated CHANGELOG test count from 31 to 34
@@ -61,6 +62,8 @@ Format: loosely follows [Keep a Changelog](https://keepachangelog.com/) conventi
 
 ### Documentation Updates
 
+- `10-Deployment-Guide.md` §6 step 8 — corrected: Render's build pipeline does run with the service's environment variables (a production client bundle inlines the dashboard-provided `NEXT_PUBLIC_*` values at build time); ADR-015's decision that database setup never runs in the build is unchanged.
+- `02-Technical-Specification.md` §9, `10-Deployment-Guide.md` §1, §4 — no change; the runtime environment-variable contract, the Node runtime pin (`NODE_VERSION` = `.node-version` = CI = 24.14.1), and the variable list all matched the documented behaviour.
 - `02-Technical-Specification.md` §2 — recorded the pinned runtime alongside Next.js's 20.9+ minimum.
 - `08-Project-Structure.md` §1–2 — added the new `scripts/` entries and `.node-version` to the layout and responsibilities.
 - `10-Deployment-Guide.md` §1, §2, §6 — documented the Node runtime and precedence, corrected the Atlas network-access guidance, and moved database setup from a deploy step to an application boot task (ADR-015).
