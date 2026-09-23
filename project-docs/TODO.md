@@ -88,16 +88,7 @@ _(No currently active items — pick up the next Not Started item from the phase
 
 ### Phase 10 — Deployment
 
-#### TODO-040 — Cloudinary usage alerts + Render keep-alive
-**Status:** Not Started · **Est. time:** 1h · **Depends on:** TODO-038
-**Spec reference:** `10-Deployment-Guide.md` §7
-
-**Success conditions:**
-- Cloudinary usage-alert emails enabled
-- A scheduled keep-alive ping configured to stay within Render's included monthly hours while avoiding the 15-minute sleep in practice
-
-**Tests:** None — operational configuration.
-**Notes / Results:** Requires production deploy (TODO-038) live first.
+_(No open items — the Cloudinary usage-alert and Render keep-alive steps are operator tasks, tracked in `10-Deployment-Guide.md` §3 step 4, §6 step 7, §7, and §10 items 7–8.)_
 
 ### Phase 11 — Advanced Testing Infrastructure
 
