@@ -9,6 +9,7 @@ Format: loosely follows [Keep a Changelog](https://keepachangelog.com/) conventi
 ## [Unreleased]
 
 ### Added
+- **TODO-048** — Database index setup moved off the deploy path and onto an idempotent, non-fatal application boot task (`src/lib/db/indexes.ts` + `src/instrumentation.ts`), with `npm run db:setup` delegating to the same shared index spec and no npm script depending on Node-version-specific CLI flags (ADR-015); the deploy that previously failed now builds cleanly and logs `Database indexes ensured {"database":"bushart"}` on every boot.
 - **TODO-038** — Deployed the application to Render: production is live at `https://bushart-gallery.onrender.com` over HTTPS with the documented environment variables and a successful production build.
 - **TODO-001** — Scaffolded the repository: Next.js 16 App Router project with TypeScript strict mode, ESLint v9 flat config (`eslint.config.mjs`), and Tailwind v4 (PostCSS-based via `@tailwindcss/postcss`). Implemented the full empty directory skeleton per `08-Project-Structure.md` with App Router routes, library structure, and configuration files. `npm run build` succeeds on the scaffold.
 - **TODO-002** — Provisioned MongoDB Atlas M0 cluster and Cloudinary account; local environment wired and connectivity verified with `scripts/verify-env.mjs`.
@@ -62,6 +63,7 @@ Format: loosely follows [Keep a Changelog](https://keepachangelog.com/) conventi
 
 ### Documentation Updates
 
+- `04-Database-Schema.md` §3–6, `10-Deployment-Guide.md` §1, §6 (ADR-015 boot-task guidance), `12-Decision-Log.md` — no change; the shared index module matches the documented index list, and the boot-task and Node-pin guidance already described the shipped behaviour. (The separate §6 correction to the build-environment rationale is recorded under TODO-039.)
 - `10-Deployment-Guide.md` §6 step 8 — corrected: Render's build pipeline does run with the service's environment variables (a production client bundle inlines the dashboard-provided `NEXT_PUBLIC_*` values at build time); ADR-015's decision that database setup never runs in the build is unchanged.
 - `02-Technical-Specification.md` §9, `10-Deployment-Guide.md` §1, §4 — no change; the runtime environment-variable contract, the Node runtime pin (`NODE_VERSION` = `.node-version` = CI = 24.14.1), and the variable list all matched the documented behaviour.
 - `02-Technical-Specification.md` §2 — recorded the pinned runtime alongside Next.js's 20.9+ minimum.

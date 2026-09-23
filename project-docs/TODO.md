@@ -181,19 +181,6 @@ _(No currently active items — pick up the next Not Started item from the phase
 **Tests:** None — operational inventory.
 **Notes / Results:** Opened at TODO-038 close-out. During that session, agent-run tests were pointed at the application database and destroyed data; the admin was restored, but the fate of a missing E2E artwork and the full extent of content loss were never established, and earlier empty-collection observations are not a current inventory. The `getTestDb()`/`seed-e2e.ts` guards (`12-Decision-Log.md` ADR-014) prevent recurrence on those paths only.
 
-#### TODO-048 — Database index setup as an application boot task
-**Status:** Done — Awaiting Close-Out · **Est. time:** 2h · **Depends on:** TODO-038
-**Spec reference:** `04-Database-Schema.md` §3–6, `10-Deployment-Guide.md` §6, `12-Decision-Log.md` ADR-015
-
-**Success conditions:**
-- The first Render deploy after the fix completes without database commands in the build command, and the boot log shows the index task running (or failing loudly but non-fatally)
-- The homepage returns 200 and admin login works against production
-- No npm script depends on Node-version-specific CLI flags; `npm run db:setup` works on the app's minimum supported Node (20.9+) with no `.env.local` present
-- Index definitions live in one shared module used by both the boot task and `db:setup` (`04-Database-Schema.md` §3–6 unchanged)
-
-**Tests:** `tests/db-setup.test.ts` (index creation against a real database); full gate via `npm run test:all`.
-**Notes / Results:** Implementation 2026-09-18. Root cause of the failed deploy: `db:setup` ran in Render's build command on Node 20.18.0, where `--env-file-if-exists` failed hard on the (legitimately absent) `.env.local`. Free tier has no pre-deploy command, one-off jobs, or shell access, so index setup moved into the app boot path (`src/lib/db/indexes.ts` + `src/instrumentation.ts`), non-fatal and idempotent; the standalone script now delegates to the same spec. `engines` relaxed to `>=20.9.0`; the Node CLI flags were removed from every npm script. Verified locally: lint/typecheck clean, `tests/db-setup.test.ts` 8/8 vs `bushart-test`, flag-free `npm run db:setup` exit 0, full gate PASS. Render-side observation (clean build, boot-log index task, homepage 200 + login) still pending on the next deploy.
-
 #### TODO-049 — Dependency security remediation (`npm audit`)
 **Status:** Not Started · **Est. time:** 2h · **Depends on:** None
 **Spec reference:** `02-Technical-Specification.md` §11, `09-Coding-Standards.md` §14
