@@ -47,7 +47,7 @@ function sanitizeValue(value: unknown, depth = 0): unknown {
     return {
       name: value.name,
       message: value.message,
-      stack: value.stack,
+      ...(process.env.NODE_ENV !== "production" && { stack: value.stack }),
     };
   }
 
