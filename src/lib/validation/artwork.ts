@@ -1,16 +1,16 @@
 import { z } from "zod";
 
 export const ImageAssetSchema = z.object({
-  publicId: z.string(),
-  url: z.string().url(),
+  publicId: z.string().regex(/^bushart\//, "publicId must start with bushart/"),
+  url: z.string().url().refine((u) => u.includes("res.cloudinary.com"), "url must be from res.cloudinary.com"),
   width: z.number().int().positive(),
   height: z.number().int().positive(),
   order: z.number().int().nonnegative(),
 });
 
 export const VideoAssetSchema = z.object({
-  publicId: z.string(),
-  url: z.string().url(),
+  publicId: z.string().regex(/^bushart\//, "publicId must start with bushart/"),
+  url: z.string().url().refine((u) => u.includes("res.cloudinary.com"), "url must be from res.cloudinary.com"),
   durationSeconds: z.number().positive(),
   width: z.number().int().positive(),
   height: z.number().int().positive(),
@@ -121,6 +121,25 @@ export type Artwork = z.infer<typeof ArtworkSchema>;
 export type ArtworkListItem = z.output<typeof ArtworkListItemSchema>;
 export type ImageAsset = z.infer<typeof ImageAssetSchema>;
 export type VideoAsset = z.infer<typeof VideoAssetSchema>;
+
+/**
+ * Lightweight hover-preview payload (GET /api/artworks/:slug/preview).
+ *
+ * A strict subset of ArtworkListItem — enough to render a preview card without
+ * the full detail document. Kept in the validation module so the shape has one
+ * definition shared by the DB layer, the route, and the client.
+ */
+export interface ArtworkPreview {
+  slug: string;
+  title: string;
+  nsfw: boolean;
+  coverImage: {
+    publicId: string;
+    width: number;
+    height: number;
+  };
+  descriptionPreview: string | null;
+}
 
 /** Writable fields for POST /api/artworks (05 §7.1) */
 const tagIdsField = z
