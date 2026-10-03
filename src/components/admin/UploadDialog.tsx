@@ -21,6 +21,44 @@ interface UploadedImage {
   order: number;
 }
 
+interface UploadedVideo {
+  publicId: string;
+  url: string;
+  durationSeconds: number;
+  width: number;
+  height: number;
+}
+
+/**
+ * Ask the server to destroy uploads that will never be persisted.
+ *
+ * Destroy needs the Cloudinary API secret, so it cannot run from the browser —
+ * see DELETE /api/upload/cleanup. Best-effort: a failed cleanup is logged
+ * server-side for reconciliation and must not mask the original save error,
+ * so this never throws.
+ */
+async function discardUploadedAssets(
+  images: UploadedImage[],
+  timelapse: UploadedVideo | null,
+): Promise<void> {
+  if (images.length === 0 && !timelapse) return;
+
+  try {
+    await fetch("/api/upload/cleanup", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        assets: [
+          ...images.map(({ publicId }) => ({ publicId, resourceType: "image" as const })),
+          ...(timelapse ? [{ publicId: timelapse.publicId, resourceType: "video" as const }] : []),
+        ],
+      }),
+    });
+  } catch {
+    // Intentionally swallowed — see the doc comment above.
+  }
+}
+
 export function UploadDialog({ onClose, onSuccess }: UploadDialogProps) {
   const titleId = useId();
   const { tags, createTag } = useTagsList();
@@ -33,13 +71,7 @@ export function UploadDialog({ onClose, onSuccess }: UploadDialogProps) {
   const [nsfw, setNsfw] = useState(false);
   const [tagIds, setTagIds] = useState<string[]>([]);
   const [images, setImages] = useState<UploadedImage[]>([]);
-  const [timelapse, setTimelapse] = useState<{
-    publicId: string;
-    url: string;
-    durationSeconds: number;
-    width: number;
-    height: number;
-  } | null>(null);
+  const [timelapse, setTimelapse] = useState<UploadedVideo | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [canRetrySave, setCanRetrySave] = useState(false);
@@ -79,10 +111,14 @@ export function UploadDialog({ onClose, onSuccess }: UploadDialogProps) {
     setError(null);
     try {
       const result = await uploadFileToCloudinary(files[0], "video");
+      if (result.duration === undefined || result.duration <= 0) {
+        setError("Timelapse missing duration; please re-upload or remove");
+        return;
+      }
       setTimelapse({
         publicId: result.public_id,
         url: result.secure_url,
-        durationSeconds: result.duration ?? 0,
+        durationSeconds: result.duration,
         width: result.width,
         height: result.height,
       });
@@ -128,8 +164,19 @@ export function UploadDialog({ onClose, onSuccess }: UploadDialogProps) {
       onSuccess();
       onClose();
     } catch (err) {
+      const retryable = isRetryableStatus(statusFromError(err));
       setError(err instanceof Error ? err.message : "Failed to create artwork");
-      setCanRetrySave(isRetryableStatus(statusFromError(err)));
+      setCanRetrySave(retryable);
+
+      // Only a terminal failure means the save will not be retried with these
+      // same assets, so only then are they orphaned and worth destroying.
+      // A retryable failure (network drop, 5xx) keeps them so "Retry save"
+      // reuses the existing uploads instead of re-quota-charging the upload.
+      if (!retryable && images.length > 0) {
+        await discardUploadedAssets(images, timelapse);
+        setImages([]);
+        setTimelapse(null);
+      }
     } finally {
       setIsSubmitting(false);
     }
