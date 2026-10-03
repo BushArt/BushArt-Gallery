@@ -24,11 +24,12 @@ export default defineConfig({
       provider: "v8",
       include: [
         "src/lib/auth/**",
-        "src/lib/db/models/artwork.ts",
-        "src/app/api/artworks/**",
+        "src/lib/db/models/**",
+        "src/lib/cloudinary/**",
+        "src/app/api/**",
+        "src/instrumentation.ts",
       ],
       exclude: [
-        "src/lib/auth/session.ts",
         "src/lib/auth/index.ts",
       ],
       thresholds: {

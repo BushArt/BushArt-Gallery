@@ -28,6 +28,9 @@ export default defineConfig({
   globalSetup: "./tests/e2e/global-setup.ts",
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
+  // Flaky test policy: retries=2 allowed during stabilization (TODO-046).
+  // After suite exceeds ~20 tests without flaky failures, set retries: 0 and
+  // enforce fail-on-flaky in CI.
   retries: process.env.CI ? 2 : 0,
   workers: 1,
   reporter: "list",
@@ -37,10 +40,10 @@ export default defineConfig({
     trace: "on-first-retry",
   },
   webServer: {
-    command: "npm run dev",
+    command: "npm run build && npm run start",
     url: "http://localhost:3000",
     reuseExistingServer: false,
-    timeout: 180_000,
+    timeout: 300_000,
     env: e2eEnv,
   },
   projects: [

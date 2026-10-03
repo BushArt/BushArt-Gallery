@@ -39,6 +39,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: npm audit gate
+        run: npm audit --audit-level=high
+
       - name: Prepare test reports
         run: mkdir -p ci-reports
 
