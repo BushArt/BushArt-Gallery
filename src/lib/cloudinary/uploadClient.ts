@@ -4,6 +4,10 @@ export interface UploadSignatureResponse {
   apiKey: string;
   cloudName: string;
   folder: string;
+  allowedFormats: string;
+  maxFileSize: number;
+  overwrite: boolean;
+  uniqueFilename: boolean;
 }
 
 export interface CloudinaryUploadResult {
@@ -17,12 +21,11 @@ export interface CloudinaryUploadResult {
 
 export async function requestUploadSignature(
   resourceType: "image" | "video",
-  folder = "bushart/uploads",
 ): Promise<UploadSignatureResponse> {
   const res = await fetch("/api/upload/signature", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ resourceType, folder }),
+    body: JSON.stringify({ resourceType }),
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
@@ -42,7 +45,13 @@ export async function uploadFileToCloudinary(
   formData.append("api_key", sig.apiKey);
   formData.append("timestamp", String(sig.timestamp));
   formData.append("signature", sig.signature);
+  // Every field that was signed must be echoed back, or Cloudinary recomputes a
+  // different signature and rejects the upload ("Invalid Signature").
   formData.append("folder", sig.folder);
+  formData.append("allowed_formats", sig.allowedFormats);
+  formData.append("max_file_size", String(sig.maxFileSize));
+  formData.append("overwrite", String(sig.overwrite));
+  formData.append("unique_filename", String(sig.uniqueFilename));
 
   const endpoint = `https://api.cloudinary.com/v1_1/${sig.cloudName}/${resourceType}/upload`;
   const res = await fetch(endpoint, { method: "POST", body: formData });

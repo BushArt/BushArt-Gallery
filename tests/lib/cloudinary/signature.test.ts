@@ -1,5 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { signUploadSignature, SignUploadSignatureParams, FolderValidationError } from "@/lib/cloudinary/signature";
+import {
+  signUploadSignature,
+  validateFolder,
+  SignUploadSignatureParams,
+  FolderValidationError,
+  IMAGE_ALLOWED_FORMATS,
+  VIDEO_ALLOWED_FORMATS,
+  UPLOAD_FOLDER,
+  UPLOAD_MAX_FILE_SIZE,
+} from "@/lib/cloudinary/signature";
 
 // ── Mocks ──────────────────────────────────────────────────────────────────
 
@@ -21,10 +30,6 @@ vi.mock("@/lib/cloudinary/client", () => ({
   apiKey: "test-key",
 }));
 
-// ── Import after mock ───────────────────────────────────────────────────────
-
-import { getCloudinary } from "@/lib/cloudinary/client";
-
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function mockSignature(signatureValue: string) {
@@ -33,7 +38,6 @@ function mockSignature(signatureValue: string) {
 
 const baseParams: SignUploadSignatureParams = {
   resourceType: "image",
-  folder: "bushart/artworks/test",
 };
 
 // ── Tests ──────────────────────────────────────────────────────────────────
@@ -53,7 +57,11 @@ describe("signUploadSignature", () => {
       timestamp: expect.any(Number),
       apiKey: "test-key",
       cloudName: "test-cloud",
-      folder: "bushart/artworks/test",
+      folder: UPLOAD_FOLDER,
+      allowedFormats: IMAGE_ALLOWED_FORMATS,
+      maxFileSize: UPLOAD_MAX_FILE_SIZE,
+      overwrite: false,
+      uniqueFilename: true,
     });
 
     expect(result.timestamp).toBeGreaterThan(0);
@@ -62,36 +70,42 @@ describe("signUploadSignature", () => {
     expect(mockCloudinaryInstance.utils.api_sign_request).toHaveBeenCalledTimes(1);
     const callArgs = vi.mocked(mockCloudinaryInstance.utils.api_sign_request).mock.calls[0];
     expect(callArgs[1]).toBe("test-secret");
-    expect(callArgs[0]).toHaveProperty("folder", "bushart/artworks/test");
+    expect(callArgs[0]).toHaveProperty("folder", UPLOAD_FOLDER);
     expect(callArgs[0]).toHaveProperty("timestamp", String(result.timestamp));
+    // Every signed field must be returned so the client can echo it back, or
+    // Cloudinary recomputes a different signature and rejects the upload.
+    expect(callArgs[0]).toHaveProperty("allowed_formats", IMAGE_ALLOWED_FORMATS);
+    expect(callArgs[0]).toHaveProperty("max_file_size", String(UPLOAD_MAX_FILE_SIZE));
+    expect(callArgs[0]).toHaveProperty("overwrite", "false");
+    expect(callArgs[0]).toHaveProperty("unique_filename", "true");
   });
 
-  it("includes resource_type in signature for video uploads", async () => {
+  it("includes resource_type and the video allow-list for video uploads", async () => {
     mockSignature("videosig789");
 
-    const result = await signUploadSignature({
-      resourceType: "video",
-      folder: "bushart/artworks/timelapse",
-    });
+    const result = await signUploadSignature({ resourceType: "video" });
 
     expect(result.signature).toBe("videosig789");
+    expect(result.folder).toBe(UPLOAD_FOLDER);
+    expect(result.allowedFormats).toBe(VIDEO_ALLOWED_FORMATS);
     expect(mockCloudinaryInstance.utils.api_sign_request).toHaveBeenCalledTimes(1);
     const callArgs = vi.mocked(mockCloudinaryInstance.utils.api_sign_request).mock.calls[0];
     expect(callArgs[0]).toHaveProperty("resource_type", "video");
-    expect(callArgs[0]).toHaveProperty("folder", "bushart/artworks/timelapse");
+    expect(callArgs[0]).toHaveProperty("folder", UPLOAD_FOLDER);
+    expect(callArgs[0]).toHaveProperty("allowed_formats", VIDEO_ALLOWED_FORMATS);
   });
 
-  it("includes resource_type for raw uploads", async () => {
-    mockSignature("rawsig012");
+  it("ignores any client-supplied folder and always signs the fixed upload folder", async () => {
+    mockSignature("fixedfoldersig");
 
     const result = await signUploadSignature({
-      resourceType: "raw",
-      folder: "bushart/raw-assets",
-    });
+      resourceType: "image",
+      folder: "evil.com/",
+    } as never);
 
-    expect(result.signature).toBe("rawsig012");
+    expect(result.folder).toBe(UPLOAD_FOLDER);
     const callArgs = vi.mocked(mockCloudinaryInstance.utils.api_sign_request).mock.calls[0];
-    expect(callArgs[0]).toHaveProperty("resource_type", "raw");
+    expect(callArgs[0]).toHaveProperty("folder", UPLOAD_FOLDER);
   });
 
   it("does not include resource_type for image uploads", async () => {
@@ -101,24 +115,6 @@ describe("signUploadSignature", () => {
 
     const callArgs = vi.mocked(mockCloudinaryInstance.utils.api_sign_request).mock.calls[0];
     expect(callArgs[0]).not.toHaveProperty("resource_type");
-  });
-
-  it("throws for folders outside the bushart/ namespace", async () => {
-    const invalidFolders = [
-      "artworks/test",
-      "../etc/passwd",
-      "uploads/images",
-      "/absolute/path",
-    ];
-
-    for (const folder of invalidFolders) {
-      await expect(
-        signUploadSignature({
-          resourceType: "image",
-          folder,
-        }),
-      ).rejects.toThrow(`Invalid folder: must start with "bushart/", got "${folder}"`);
-    }
   });
 
   it("passes the API secret to the SDK but never returns it", async () => {
@@ -134,33 +130,14 @@ describe("signUploadSignature", () => {
       "apiKey",
       "cloudName",
       "folder",
+      "allowedFormats",
+      "maxFileSize",
+      "overwrite",
+      "uniqueFilename",
     ]);
 
     const callArgs = vi.mocked(mockCloudinaryInstance.utils.api_sign_request).mock.calls[0];
     expect(callArgs[1]).toBe("test-secret");
-  });
-
-  it("throws FolderValidationError for invalid folders", async () => {
-    await expect(
-      signUploadSignature({
-        resourceType: "image",
-        folder: "not-bushart/test",
-      }),
-    ).rejects.toThrow(FolderValidationError);
-  });
-
-  it("returns a valid signature for mixed-case resource_type", async () => {
-    mockSignature("mixedcasesig");
-
-    const result = await signUploadSignature({
-      resourceType: "video",
-      folder: "bushart/artworks/test",
-    });
-
-    expect(result.signature).toBe("mixedcasesig");
-    expect(mockCloudinaryInstance.utils.api_sign_request).toHaveBeenCalledTimes(1);
-    const callArgs = vi.mocked(mockCloudinaryInstance.utils.api_sign_request).mock.calls[0];
-    expect(callArgs[0]).toHaveProperty("resource_type", "video");
   });
 
   it("returns undefined apiKey when CLOUDINARY_API_KEY is missing", async () => {
@@ -189,5 +166,27 @@ describe("signUploadSignature", () => {
     expect(result.cloudName).toBeUndefined();
 
     mockCloudinaryInstance.config = originalConfig;
+  });
+});
+
+describe("validateFolder", () => {
+  it("accepts exactly the fixed upload folder", () => {
+    expect(() => validateFolder(UPLOAD_FOLDER)).not.toThrow();
+  });
+
+  it("rejects path traversal, nesting, and foreign folders", () => {
+    const invalidFolders = [
+      "bushart/artworks/test",
+      "artworks/test",
+      "bushart/uploads/nested",
+      "bushart/uploads/../etc",
+      "../etc/passwd",
+      "/absolute/path",
+      "not-bushart/uploads",
+    ];
+
+    for (const folder of invalidFolders) {
+      expect(() => validateFolder(folder)).toThrow(FolderValidationError);
+    }
   });
 });

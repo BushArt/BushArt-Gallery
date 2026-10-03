@@ -47,6 +47,18 @@ function createSignatureRequest(body: unknown): NextRequest {
   });
 }
 
+const fullSignatureResult = {
+  signature: "sig",
+  timestamp: 1751500000,
+  apiKey: "key",
+  cloudName: "cloud",
+  folder: "bushart/uploads",
+  allowedFormats: "jpg,jpeg,png,gif,webp,avif",
+  maxFileSize: 50 * 1024 * 1024,
+  overwrite: false,
+  uniqueFilename: true,
+};
+
 describe("POST /api/upload/signature", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -75,17 +87,18 @@ describe("POST /api/upload/signature", () => {
     expect(json.error.code).toBe("UNAUTHENTICATED");
   });
 
-  it("returns 400 VALIDATION_ERROR when body is missing folder", async () => {
+  it("succeeds when folder is omitted (the folder is server-fixed, not client-supplied)", async () => {
     vi.mocked(requireAdmin).mockResolvedValue({
       id: "admin1",
       username: "bush",
     });
+    vi.mocked(signUploadSignature).mockResolvedValue(fullSignatureResult);
 
     const req = createSignatureRequest({ resourceType: "image" });
     const res = await POST(req);
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json.error.code).toBe("VALIDATION_ERROR");
+    expect(json.folder).toBe("bushart/uploads");
   });
 
   it("returns 400 VALIDATION_ERROR on invalid JSON body", async () => {
@@ -111,19 +124,10 @@ describe("POST /api/upload/signature", () => {
       username: "bush",
     });
 
-    const mockSignatureResult = {
-      signature: "abc123signature",
-      timestamp: 1751500000,
-      apiKey: "142857396215",
-      cloudName: "bushart",
-      folder: "bushart/artworks/main",
-    };
+    const mockSignatureResult = { ...fullSignatureResult, signature: "abc123signature" };
     vi.mocked(signUploadSignature).mockResolvedValue(mockSignatureResult);
 
-    const req = createSignatureRequest({
-      resourceType: "image",
-      folder: "bushart/artworks/main",
-    });
+    const req = createSignatureRequest({ resourceType: "image" });
     const res = await POST(req);
     expect(res.status).toBe(200);
     const json = await res.json();
@@ -136,18 +140,9 @@ describe("POST /api/upload/signature", () => {
       username: "bush",
     });
 
-    vi.mocked(signUploadSignature).mockResolvedValue({
-      signature: "sig",
-      timestamp: 1751500000,
-      apiKey: "key",
-      cloudName: "cloud",
-      folder: "bushart/test",
-    });
+    vi.mocked(signUploadSignature).mockResolvedValue(fullSignatureResult);
 
-    const req = createSignatureRequest({
-      resourceType: "image",
-      folder: "bushart/test",
-    });
+    const req = createSignatureRequest({ resourceType: "image" });
     const res = await POST(req);
     const json = await res.json();
     const responseText = JSON.stringify(json);
@@ -159,6 +154,10 @@ describe("POST /api/upload/signature", () => {
       "apiKey",
       "cloudName",
       "folder",
+      "allowedFormats",
+      "maxFileSize",
+      "overwrite",
+      "uniqueFilename",
     ]);
   });
 
@@ -187,19 +186,10 @@ describe("POST /api/upload/signature", () => {
       username: "bush",
     });
 
-    const mockSignatureResult = {
-      signature: "videosig",
-      timestamp: 1751500000,
-      apiKey: "142857396215",
-      cloudName: "bushart",
-      folder: "bushart/artworks/timelapse",
-    };
+    const mockSignatureResult = { ...fullSignatureResult, signature: "videosig" };
     vi.mocked(signUploadSignature).mockResolvedValue(mockSignatureResult);
 
-    const req = createSignatureRequest({
-      resourceType: "video",
-      folder: "bushart/artworks/timelapse",
-    });
+    const req = createSignatureRequest({ resourceType: "video" });
     const res = await POST(req);
     expect(res.status).toBe(200);
     const json = await res.json();

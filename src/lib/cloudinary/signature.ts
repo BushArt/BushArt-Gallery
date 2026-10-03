@@ -12,9 +12,31 @@ import { getCloudinary } from "./client";
  * @returns Signature payload matching 05-API-Specification.md §6.1
  */
 
+export const UPLOAD_FOLDER = "bushart/uploads";
+
+/** Image formats a signed upload may produce. */
+export const IMAGE_ALLOWED_FORMATS = "jpg,jpeg,png,gif,webp,avif";
+
+/** Video formats a signed upload may produce. */
+export const VIDEO_ALLOWED_FORMATS = "mp4,mov,webm";
+
+export const UPLOAD_MAX_FILE_SIZE = 50 * 1024 * 1024;
+
+export class FolderValidationError extends Error {
+  constructor(folder: string) {
+    super(`Invalid folder: must start with "bushart/uploads/", got "${folder}"`);
+    this.name = "FolderValidationError";
+  }
+}
+
+export function validateFolder(folder: string): void {
+  if (folder !== UPLOAD_FOLDER) {
+    throw new FolderValidationError(folder);
+  }
+}
+
 export interface SignUploadSignatureParams {
-  resourceType: "image" | "video" | "raw";
-  folder: string;
+  resourceType: "image" | "video";
 }
 
 export interface SignUploadSignatureResult {
@@ -23,51 +45,42 @@ export interface SignUploadSignatureResult {
   apiKey: string;
   cloudName: string;
   folder: string;
-}
-
-/**
- * Thrown when a folder path fails namespace validation.
- * Allows route handlers to distinguish 400 VALIDATION_ERROR from 500 INTERNAL_ERROR.
- */
-export class FolderValidationError extends Error {
-  constructor(folder: string) {
-    super(`Invalid folder: must start with "bushart/", got "${folder}"`);
-    this.name = "FolderValidationError";
-  }
-}
-
-/**
- * Validate that the folder is within the allowed `bushart/` namespace.
- * Prevents path traversal or uploads to unexpected locations.
- * @throws FolderValidationError if folder does not start with "bushart/"
- */
-export function validateFolder(folder: string): void {
-  if (!folder.startsWith("bushart/")) {
-    throw new FolderValidationError(folder);
-  }
+  /**
+   * The remaining signed parameters. Cloudinary recomputes the signature from
+   * the parameters actually present in the upload request, so every signed
+   * field MUST be echoed back by the client or the upload is rejected with
+   * "Invalid Signature". These are returned so the client forwards the exact
+   * values that were signed.
+   */
+  allowedFormats: string;
+  maxFileSize: number;
+  overwrite: boolean;
+  uniqueFilename: boolean;
 }
 
 export async function signUploadSignature(
   params: SignUploadSignatureParams,
 ): Promise<SignUploadSignatureResult> {
-  validateFolder(params.folder);
+  const folder = UPLOAD_FOLDER;
 
   const timestamp = Math.floor(Date.now() / 1000);
 
-  // Build parameters to sign. Only include parameters that affect the upload.
+  const allowedFormats =
+    params.resourceType === "video" ? VIDEO_ALLOWED_FORMATS : IMAGE_ALLOWED_FORMATS;
+
   const signableParams: Record<string, string> = {
-    folder: params.folder,
+    folder,
     timestamp: String(timestamp),
+    allowed_formats: allowedFormats,
+    max_file_size: String(UPLOAD_MAX_FILE_SIZE),
+    overwrite: "false",
+    unique_filename: "true",
   };
 
-  // Cloudinary expects resource_type in the signature for certain upload types.
-  // For MVP (images/videos), include it to restrict the signature scope.
   if (params.resourceType !== "image") {
     signableParams.resource_type = params.resourceType;
   }
 
-  // Cloudinary v2: use utils.api_sign_request to compute the SHA-1 HMAC signature.
-  // Retrieve the secret from the configured SDK instance rather than from env directly.
   const cloudinary = getCloudinary();
   const apiSecret = cloudinary.config().api_secret!;
   const signature = cloudinary.utils.api_sign_request(signableParams, apiSecret);
@@ -77,6 +90,10 @@ export async function signUploadSignature(
     timestamp,
     apiKey: cloudinary.config().api_key!,
     cloudName: cloudinary.config().cloud_name!,
-    folder: params.folder,
+    folder,
+    allowedFormats,
+    maxFileSize: UPLOAD_MAX_FILE_SIZE,
+    overwrite: false,
+    uniqueFilename: true,
   };
 }

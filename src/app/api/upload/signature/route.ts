@@ -17,8 +17,7 @@ import { apiError, handleRouteError } from "@/lib/api/errors";
  */
 
 const requestSchema = z.object({
-  resourceType: z.enum(["image", "video", "raw"]).default("image"),
-  folder: z.string().min(1),
+  resourceType: z.enum(["image", "video"]).default("image"),
 });
 
 export async function POST(request: NextRequest): Promise<Response> {
@@ -47,7 +46,6 @@ export async function POST(request: NextRequest): Promise<Response> {
     // 3. Generate scoped signature
     const result = await signUploadSignature({
       resourceType: parsed.data.resourceType,
-      folder: parsed.data.folder,
     });
 
     // 4. Return signature payload (API secret never included)
