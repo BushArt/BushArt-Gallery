@@ -113,17 +113,15 @@ describe("auth/lockout — recordFailedAttempt", () => {
     expect(result.lockUntil).toEqual(lockUntil);
   });
 
-  it("re-locks immediately when lock has expired but count is still ≥ 5", () => {
-    // Lock expired 5 minutes ago, but failedLoginAttempts was never reset
+  it("resets the counter after an expired lock so the next failure starts a fresh streak", () => {
+    // Lock expired 5 minutes ago — the previous streak no longer counts
     const expiredLock = new Date("2026-01-01T11:55:00Z");
     const result = recordFailedAttempt(
       { failedLoginAttempts: 5, lockUntil: expiredLock },
       now,
     );
-    expect(result.failedLoginAttempts).toBe(6);
-    expect(result.lockUntil).not.toBeNull();
-    // New lock is now + 15 minutes
-    expect(result.lockUntil!.getTime()).toBe(now.getTime() + LOCK_DURATION_MS);
+    expect(result.failedLoginAttempts).toBe(1);
+    expect(result.lockUntil).toBeNull();
   });
 
   it("does not lock when lock expired and count is below threshold", () => {
@@ -132,7 +130,7 @@ describe("auth/lockout — recordFailedAttempt", () => {
       { failedLoginAttempts: 2, lockUntil: expiredLock },
       now,
     );
-    expect(result.failedLoginAttempts).toBe(3);
+    expect(result.failedLoginAttempts).toBe(1);
     expect(result.lockUntil).toBeNull();
   });
 });

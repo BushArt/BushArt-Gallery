@@ -11,7 +11,10 @@ import {
 // Mock the mongodb module to redirect to test database
 vi.mock("@/lib/db/mongodb", () => createMongodbMock());
 
-vi.mock("@/lib/auth/password", () => ({
+vi.mock("@/lib/auth/password", async (importOriginal) => ({
+  // Keep the real DUMMY_PASSWORD_HASH (used for the unknown-user timing-safe
+  // compare) while stubbing the expensive bcrypt comparison itself.
+  ...(await importOriginal<typeof import("@/lib/auth/password")>()),
   verifyPassword: vi.fn(
     async (password: string, hash: string) => password === "correct-password",
   ),

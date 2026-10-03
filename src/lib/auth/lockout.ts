@@ -46,25 +46,26 @@ export function isLocked(lockUntil: Date | null, now: Date): boolean {
  *   `now + LOCK_DURATION_MS`.
  * - If the account is already locked (count ≥ 5 and lock not expired), the
  *   lock is **not** extended — the existing `lockUntil` is preserved.
- * - If a previous lock has expired but the count was never reset (no
- *   successful login since), the count continues from its current value;
- *   reaching ≥ 5 again re-locks immediately.
+ * - If a previous lock has expired, `failedLoginAttempts` is reset to 0
+ *   before counting the current attempt.
  */
 export function recordFailedAttempt(
   state: LockoutState,
   now: Date,
 ): LockoutState {
-  const newAttempts = state.failedLoginAttempts + 1;
-
-  // Already locked and lock hasn't expired — preserve the existing lockUntil.
   if (isLocked(state.lockUntil, now)) {
     return {
-      failedLoginAttempts: newAttempts,
+      failedLoginAttempts: state.failedLoginAttempts + 1,
       lockUntil: state.lockUntil,
     };
   }
 
-  // Not locked (or lock expired): set lockUntil only when threshold is reached.
+  if (state.lockUntil !== null && state.lockUntil.getTime() <= now.getTime()) {
+    return recordFailedAttempt({ failedLoginAttempts: 0, lockUntil: null }, now);
+  }
+
+  const newAttempts = state.failedLoginAttempts + 1;
+
   if (newAttempts >= MAX_FAILED_ATTEMPTS) {
     return {
       failedLoginAttempts: newAttempts,

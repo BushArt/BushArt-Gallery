@@ -8,6 +8,7 @@ type ErrorCode =
   | "NOT_FOUND"
   | "CONFLICT"
   | "LOCKED"
+  | "TOO_MANY_REQUESTS"
   | "INTERNAL_ERROR"
   | "SERVICE_UNAVAILABLE";
 

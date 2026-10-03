@@ -12,7 +12,10 @@ import {
 // Mock the mongodb module to redirect to test database
 vi.mock("@/lib/db/mongodb", () => createMongodbMock());
 
-vi.mock("@/lib/auth/password", () => ({
+vi.mock("@/lib/auth/password", async (importOriginal) => ({
+  // Keep the real DUMMY_PASSWORD_HASH (used for the unknown-user timing-safe
+  // compare) while stubbing the expensive bcrypt comparison itself.
+  ...(await importOriginal<typeof import("@/lib/auth/password")>()),
   verifyPassword: vi.fn(
     async (password: string, hash: string) => password === "correct-password",
   ),
@@ -164,10 +167,13 @@ describe("POST /api/auth/login", () => {
       expect(hasSecure).toBe(true);
     }
 
-    expect(signToken).toHaveBeenCalledWith({
-      id: admin.id,
-      username: "bush",
-    });
+    expect(signToken).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: admin.id,
+        username: "bush",
+        jti: expect.any(String),
+      }),
+    );
     expect(res.headers.get("Cache-Control")).toBe("no-store");
   });
 
@@ -241,10 +247,13 @@ describe("POST /api/auth/login", () => {
     expect(verifyPassword).not.toHaveBeenCalled();
   });
 
-  it("does not call verifyPassword when username does not exist", async () => {
+  it("still runs a bcrypt comparison against a dummy hash when the username does not exist (timing safety)", async () => {
     const req = createLoginRequest({ username: "ghost", password: "any" });
-    await POST(req);
+    const res = await POST(req);
 
-    expect(verifyPassword).not.toHaveBeenCalled();
+    expect(res.status).toBe(401);
+    // H3: the same bcrypt work happens whether or not the username exists, so
+    // response timing cannot reveal which usernames are real.
+    expect(verifyPassword).toHaveBeenCalledTimes(1);
   });
 });

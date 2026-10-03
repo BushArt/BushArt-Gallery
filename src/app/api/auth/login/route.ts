@@ -6,11 +6,28 @@ import {
   findLockoutStateByUsername,
 } from "@/lib/db/models/admin";
 import { verifyPassword } from "@/lib/auth/password";
+import { DUMMY_PASSWORD_HASH } from "@/lib/auth/password";
 import { signToken, TOKEN_EXPIRY_SECONDS } from "@/lib/auth/jwt";
 import { isLocked, recordFailedAttempt, recordSuccessfulLogin } from "@/lib/auth/lockout";
+import { checkRateLimit, resetRateLimit } from "@/lib/auth/rateLimit";
 import { apiError, handleRouteError } from "@/lib/api/errors";
 
 const SESSION_COOKIE = "bushart_session";
+
+function getClientIp(request: NextRequest): string {
+  const forwarded = request.headers.get("x-forwarded-for");
+  if (forwarded) {
+    return forwarded.split(",")[0]?.trim() ?? "unknown";
+  }
+  // `NextRequest.ip` was removed in Next 16; the platform-provided headers are
+  // the supported sources. Render always sets X-Forwarded-For, so the
+  // fallbacks here only matter for local/self-hosted requests.
+  return (
+    request.headers.get("x-real-ip")?.trim() ??
+    request.headers.get("cf-connecting-ip")?.trim() ??
+    "unknown"
+  );
+}
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   let body: unknown;
@@ -31,37 +48,41 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const { username, password } = parsed.data;
   const now = new Date();
+  const clientIp = getClientIp(request);
 
   try {
     const admin = await getAdminByUsername(username);
 
-    // Check lockout status before password verification to avoid unnecessary
-    // bcrypt work and to avoid revealing whether the username exists.
     if (admin && isLocked(admin.lockUntil, now)) {
       const retryAfterSeconds = Math.ceil((admin.lockUntil!.getTime() - now.getTime()) / 1000);
       return apiError(423, "LOCKED", "Account is temporarily locked", { retryAfterSeconds });
     }
 
-    // If admin not found, return the identical 401 response as wrong password.
-    // This prevents username enumeration.
-    if (!admin) {
-      return apiError(401, "UNAUTHENTICATED", "Invalid username or password");
+    const rateCheck = checkRateLimit(clientIp, username);
+    if (!rateCheck.allowed) {
+      return apiError(429, "TOO_MANY_REQUESTS", "Too many login attempts", {
+        retryAfterSeconds: rateCheck.retryAfterSeconds,
+      });
     }
 
-    const passwordValid = await verifyPassword(password, admin.passwordHash);
+    const passwordValid = await verifyPassword(password, admin?.passwordHash ?? DUMMY_PASSWORD_HASH);
 
-    if (!passwordValid) {
+    if (!admin || !passwordValid) {
       const failedState = recordFailedAttempt(
-        { failedLoginAttempts: admin.failedLoginAttempts, lockUntil: admin.lockUntil },
+        admin
+          ? { failedLoginAttempts: admin.failedLoginAttempts, lockUntil: admin.lockUntil }
+          : { failedLoginAttempts: 0, lockUntil: null },
         now,
       );
-      await updateLoginState(admin.id, {
-        failedLoginAttempts: failedState.failedLoginAttempts,
-        lockUntil: failedState.lockUntil,
-        lastLoginAt: admin.lastLoginAt,
-      });
 
-      // If the failed attempt triggered a lock, return 423 instead of 401.
+      if (admin) {
+        await updateLoginState(admin.id, {
+          failedLoginAttempts: failedState.failedLoginAttempts,
+          lockUntil: failedState.lockUntil,
+          lastLoginAt: admin.lastLoginAt,
+        });
+      }
+
       if (isLocked(failedState.lockUntil, now)) {
         const retryAfterSeconds = Math.ceil(
           (failedState.lockUntil!.getTime() - now.getTime()) / 1000,
@@ -72,9 +93,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return apiError(401, "UNAUTHENTICATED", "Invalid username or password");
     }
 
-    // Success — re-check lockout atomically after password verification to
-    // close a TOCTOU window where a concurrent login could have reset the
-    // attempt counter while this request was verifying the password.
+    resetRateLimit(clientIp, username);
+
     const currentLockout = await findLockoutStateByUsername(admin.username);
     if (currentLockout && isLocked(currentLockout.lockUntil, now)) {
       const retryAfterSeconds = Math.ceil(
@@ -90,13 +110,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       lastLoginAt: successState.lastLoginAt,
     });
 
-    const token = signToken({ id: admin.id, username: admin.username });
+    const token = signToken({
+      id: admin.id,
+      username: admin.username,
+      jti: crypto.randomUUID(),
+      tokenVersion: admin.tokenVersion,
+    });
 
     const response = new NextResponse(null, { status: 200 });
     response.headers.set("Cache-Control", "no-store");
     response.cookies.set(SESSION_COOKIE, token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: process.env.NEXT_PUBLIC_SITE_URL?.startsWith("https:") ?? process.env.NODE_ENV === "production",
       sameSite: "lax",
       maxAge: TOKEN_EXPIRY_SECONDS,
       path: "/",
