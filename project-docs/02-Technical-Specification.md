@@ -31,7 +31,7 @@ Rationale for each major choice is recorded in `12-Decision-Log.md`. This docume
 - **Tailwind CSS** for styling, driven by the design tokens defined in `06-UI-Design-System.md`. No CSS-in-JS runtime.
 - **Framer Motion** for the animation vocabulary described in `06-UI-Design-System.md` §Motion — gallery entrance transitions, popup open/close, the signature "sketch-in" reveal, and filter transitions. All motion respects `prefers-reduced-motion`.
 - **Zod** schemas define both client-side form validation and server-side request validation from a single shared definition, so the two never drift apart.
-- Images are rendered through `next/image` wherever practical, backed by Cloudinary-hosted sources (see §6).
+- Images are rendered through plain `<img>` against Cloudinary-hosted delivery URLs, with `next/image` disabled (`images.unoptimized: true`) so Cloudinary does all resizing and format negotiation (see §6).
 
 ## 3. Backend
 
@@ -45,9 +45,9 @@ BushArt uses a **custom, lightweight JWT-based session** rather than Auth.js (Ne
 
 **Mechanics:**
 - Credentials are checked against the `admins` collection (`04-Database-Schema.md`); passwords are hashed with **bcrypt** (cost factor 12) via `bcryptjs`, never stored or logged in plaintext.
-- On success, the server issues a JWT (`HS256`, signed with `JWT_SECRET`) containing the admin's id, username, issued-at, and a 7-day expiry.
+- On success, the server issues a JWT (`HS256`, signed with `JWT_SECRET`) containing the admin's id, username, a unique `jti`, the current `tokenVersion`, issued-at, and an 8-hour expiry.
 - The token is set as an **httpOnly, Secure, SameSite=Lax** cookie named `bushart_session`. It is never exposed to client-side JavaScript.
-- There is no refresh-token machinery in the MVP — sessions simply expire after 7 days and the artist logs in again. This is a deliberate scope cut (see `12-Decision-Log.md` ADR-004) appropriate for a single low-frequency user; refresh tokens are a documented future option if session length becomes annoying in practice.
+- Sessions are revocable: logging in again or changing the password increments `tokenVersion` on the admin doc. `requireAdmin()` compares the token's `tokenVersion` against the doc; a mismatch rejects the token. There is no server-side denylist — revocation is via `tokenVersion` bump.
 - Brute-force protection: the `admins` document tracks `failedLoginAttempts` and `lockUntil`. Five consecutive failures locks the account for 15 minutes. This is intentionally simple rather than a general-purpose rate limiter, since there is exactly one account to protect.
 
 **A specific, documented security requirement:** route protection **must not** rely solely on Next.js's `proxy.ts` (the framework's edge-middleware entry point, renamed from `middleware.ts` as of Next.js 16). A publicly disclosed vulnerability class (CVE-2025-29927) demonstrated that middleware-only session gating in Next.js could be bypassed by a spoofed internal header. BushArt therefore treats `proxy.ts` as a **first line of defense and a UX convenience only** (e.g., redirecting an unauthenticated visitor away from an admin-only page before it renders) — every admin Route Handler independently re-verifies the session server-side before performing any read of admin-only data or any write. This defense-in-depth requirement is non-negotiable; see `09-Coding-Standards.md` §Security.
@@ -69,7 +69,7 @@ All delivered media (not originals) is served with:
 - `f_auto` — automatic format negotiation (AVIF/WebP where the requesting browser supports it, falling back gracefully).
 - `q_auto` — automatic, perceptually-tuned quality/compression.
 - Explicit `width`/`height`/`crop` parameters per context (grid thumbnail, list thumbnail, popup enlarged view, fullscreen), defined centrally in a small `lib/cloudinary/transformations.ts` module so every part of the app requests media the same way.
-- `loading="lazy"` (via `next/image`) for everything below the fold, with the gallery's own intersection-observer-driven infinite scroll (see `03-System-Architecture.md`) controlling when new items enter the DOM at all.
+- `loading="lazy"` on below-the-fold images, with the gallery's own intersection-observer-driven infinite scroll (see `03-System-Architecture.md`) controlling when new items enter the DOM at all.
 
 Originals are retained at full resolution for the **Download** action, delivered via a Cloudinary `fl_attachment` URL rather than duplicated into a second storage location.
 
@@ -122,7 +122,11 @@ This update is recorded in `12-Decision-Log.md` ADR-013, which supersedes ADR-00
 - All Cloudinary uploads from the browser are authorized by short-lived, single-use signed parameters — the API secret never reaches the client.
 - Input validation via Zod on every Route Handler that accepts a body; invalid input is rejected before it reaches any database or Cloudinary call.
 - MongoDB Atlas network access is restricted to an IP allowlist appropriate for Render's deployment model (documented concretely in `10-Deployment-Guide.md` — Render provides static outbound egress IPs per region on the free tier, which is a strict improvement over the previous platform).
-- Responses include baseline `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, and Cloudinary-compatible `Content-Security-Policy` headers; HSTS remains enforced at the Render/proxy boundary.
+- Responses include baseline `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Strict-Transport-Security` (`max-age=31536000; includeSubDomains; preload`), and a Cloudinary-compatible `Content-Security-Policy`. HSTS is set by the app in `next.config.ts` rather than relying on the Render edge, so the guarantee is identical across deployment targets and verifiable in the config.
+- CSP specifics: `script-src 'self'` — no `'unsafe-inline'`, no `'unsafe-eval'` (there is no build-time inline script and no runtime code generation in this app). `object-src 'none'`. `style-src` intentionally retains `'unsafe-inline'`: Tailwind v4 and `next/font` emit runtime-injected `<style>` elements and React inlines style attributes, neither of which carries a hash or nonce. Removing it would blank the site's styling. This is an accepted trade-off — an injected `<style>` cannot execute script, so the XSS-relevant tightening lives in `script-src`.
+- A per-request CSP nonce (supported by Next.js via the Edge proxy) was evaluated and rejected: a nonce can only be attached to a request-dynamic render, which would force every route out of the partial-prerendering path that `cacheComponents: true` (§8) exists to enable. The static-header approach keeps that benefit across the whole site.
+- NSFW artwork metadata is gated: `/artwork/[slug]` resolves an admin session before lookup, so a non-admin request for NSFW artwork returns placeholder metadata with no title, description, or OG image, plus `robots: noindex`. Crawlers are unauthenticated, so any real detail there would reproduce the artwork on third-party surfaces before the in-app consent interstitial renders.
+- Cloudinary assets referenced by an artwork write are verified against the Admin API (`lib/cloudinary/verify.ts`) before the document is persisted, and must live under the `bushart/` namespace. This proves the asset exists in this cloud rather than trusting a client-supplied `publicId`.
 - Cookies: `httpOnly`, `Secure` (in production), `SameSite=Lax`.
 - No secrets are ever committed to the repository; `.env.example` documents every variable's shape without real values.
 

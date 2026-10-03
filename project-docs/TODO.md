@@ -84,12 +84,9 @@ _(No currently active items — pick up the next Not Started item from the phase
 
 ### [Done] Phase 9 — Testing Infrastructure
 
+### [Done] Phase 10 — Deployment
+
 ---
-
-### Phase 10 — Deployment
-
-_(No open items — the Cloudinary usage-alert and Render keep-alive steps are operator tasks, tracked in `10-Deployment-Guide.md` §3 step 4, §6 step 7, §7, and §10 items 7–8.)_
-
 ### Phase 11 — Advanced Testing Infrastructure
 
 #### TODO-041 — MSW integration layer for hook/component tests

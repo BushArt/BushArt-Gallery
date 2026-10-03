@@ -202,7 +202,7 @@ Anything used by more than one feature domain belongs in `components/ui/` or `li
 
 ## 6. Configuration
 
-- `next.config.ts` enables `cacheComponents: true` (`02-Technical-Specification.md` §8) and configures the Cloudinary remote image pattern for `next/image`.
+- `next.config.ts` enables `cacheComponents: true` (`02-Technical-Specification.md` §8), sets the security response headers including the CSP and HSTS (§12), and disables the Next image optimizer (`images.unoptimized: true`) — Cloudinary serves every derived size directly, so no remote image pattern is used for rendering.
 - `postcss.config.mjs` sets up Tailwind v4 via `@tailwindcss/postcss`; design tokens from `06-UI-Design-System.md` — colors, spacing, radii, and type scale — are defined in `globals.css` and referenced by name, never hard-coded as raw hex/pixel values in component files.
 - `eslint.config.mjs` is the ESLint v9 flat config; it extends `eslint-config-next/core-web-vitals` and `eslint-config-prettier` directly.
 - `.env.example` enumerates every variable from `02-Technical-Specification.md` §9 with placeholder values and a one-line comment each — it is kept in sync with that document as a hard rule, not a suggestion.

@@ -323,9 +323,11 @@ The signature is computed server-side using `CLOUDINARY_API_SECRET`, which never
 
 **Behavior:** deletes the MongoDB document, decrements `usageCount` on every referenced tag, and issues Cloudinary `destroy` calls for every associated image and the timelapse (if present) so orphaned media doesn't silently consume the Cloudinary storage quota (`02-Technical-Specification.md` §11).
 
+**Ordering:** the MongoDB document is removed **before** the Cloudinary `destroy` calls. A partially successful destroy must never leave a live document whose `publicId`s point at missing originals; if any `destroy` call fails the API responds `503` and the now-orphaned media is left for reconciliation (`production-deployment-audit.md` H4).
+
 **Response `200`:** `{ "deleted": true, "id": "66a1f2b3c4d5e6f7a8b9c0d1" }`
 
-**Errors:** `401 UNAUTHENTICATED`, `404 NOT_FOUND`.
+**Errors:** `401 UNAUTHENTICATED`, `404 NOT_FOUND`, `503 SERVICE_UNAVAILABLE` (artwork removed, media cleanup failed).
 
 ---
 
