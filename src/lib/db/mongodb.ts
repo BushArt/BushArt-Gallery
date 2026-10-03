@@ -1,7 +1,12 @@
 import { connection } from "next/server";
-import { MongoClient, Db } from "mongodb";
+import { MongoClient, Db, type ClientSession } from "mongodb";
+import { runWithTransaction } from "./transaction";
 
 declare global {
+  // Cached across hot reloads in development and across module scopes in
+  // production. Kept on `globalThis` (not a module-level `let`) precisely so a
+  // Next.js dev hot reload — which re-evaluates this module — reuses the same
+  // connection pool instead of leaking a new one on every reload.
   var _mongoClientPromise: Promise<MongoClient> | undefined;
 }
 
@@ -15,21 +20,20 @@ function getMongoUri(): string {
   return uri;
 }
 
-let cachedClientPromise: Promise<MongoClient> | null = null;
-
-async function getOrCreateClient(): Promise<MongoClient> {
-  if (!cachedClientPromise) {
+function getOrCreateClient(): Promise<MongoClient> {
+  if (!globalThis._mongoClientPromise) {
     const client = new MongoClient(getMongoUri(), {
       connectTimeoutMS: 10_000,
       serverSelectionTimeoutMS: 10_000,
+      maxPoolSize: 10,
     });
-    cachedClientPromise = client.connect().catch(async (error) => {
-      cachedClientPromise = null;
+    globalThis._mongoClientPromise = client.connect().catch(async (error) => {
+      globalThis._mongoClientPromise = undefined;
       await client.close().catch(() => undefined);
       throw error;
     });
   }
-  return cachedClientPromise;
+  return globalThis._mongoClientPromise;
 }
 
 /**
@@ -40,6 +44,24 @@ async function getOrCreateClient(): Promise<MongoClient> {
  */
 export async function getClient(): Promise<MongoClient> {
   return getOrCreateClient();
+}
+
+export async function startSession(): Promise<ClientSession> {
+  const client = await getClient();
+  return client.startSession();
+}
+
+/**
+ * Run `fn` inside a MongoDB transaction when the connected deployment supports
+ * them, transparently falling back to a non-transactional run when it does not
+ * (see `./transaction.ts`). The callback receives the session — or `undefined`
+ * on the fallback path — and MUST pass it to every driver call so the whole
+ * unit commits or aborts together.
+ */
+export async function withTransaction<T>(
+  fn: (session: ClientSession | undefined) => Promise<T>,
+): Promise<T> {
+  return runWithTransaction(startSession, fn);
 }
 
 /**

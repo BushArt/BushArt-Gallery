@@ -1,4 +1,5 @@
 import { MongoClient, Db, Collection, Document, ObjectId } from "mongodb";
+import { runWithTransaction } from "@/lib/db/transaction";
 
 let client: MongoClient | null = null;
 let db: Db | null = null;
@@ -142,6 +143,13 @@ export function testId(offset = "000000000000000000000001"): ObjectId {
  *   }));
  */
 export function createMongodbMock() {
+  const session = async () => {
+    if (!client) {
+      await getTestDb();
+    }
+    return client!.startSession();
+  };
+
   return {
     getDb: async () => await getTestDb(),
     getClient: async () => {
@@ -150,5 +158,12 @@ export function createMongodbMock() {
       }
       return client;
     },
+    startSession: session,
+    // Reuse the exact production fallback logic so standalone test databases
+    // (which reject transactions) exercise the same non-transactional path the
+    // app takes when a deployment lacks replica-set support.
+    withTransaction: async <T,>(
+      fn: (s: import("mongodb").ClientSession | undefined) => Promise<T>,
+    ): Promise<T> => runWithTransaction(session, fn),
   };
 }

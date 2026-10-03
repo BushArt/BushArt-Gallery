@@ -17,6 +17,7 @@ vi.mock("@/lib/auth/guard", () => ({
 
 import { GET, PATCH } from "@/app/api/settings/route";
 import { requireAdmin } from "@/lib/auth/guard";
+import { SINGLETON_SETTINGS_ID } from "@/lib/db/models/settings";
 
 describe("GET /api/settings", () => {
   beforeEach(async () => {
@@ -39,6 +40,7 @@ describe("GET /api/settings", () => {
   it("returns populated settings without url on image assets", async () => {
     const db = await getTestDb();
     await db.collection("site_settings").insertOne({
+      _id: SINGLETON_SETTINGS_ID,
       artistName: "Bush",
       tagline: "Gallery",
       biography: "Bio",
@@ -72,6 +74,7 @@ describe("GET /api/settings", () => {
   it("returns populated settings", async () => {
     const db = await getTestDb();
     await db.collection("site_settings").insertOne({
+      _id: SINGLETON_SETTINGS_ID,
       artistName: "Bush",
       tagline: "Gallery",
       biography: "Bio",
@@ -184,6 +187,7 @@ describe("PATCH /api/settings", () => {
     // First create settings
     const db = await getTestDb();
     await db.collection("site_settings").insertOne({
+      _id: SINGLETON_SETTINGS_ID,
       artistName: "Original",
       tagline: "Original tagline",
       biography: null,

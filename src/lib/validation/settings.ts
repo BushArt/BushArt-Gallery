@@ -3,7 +3,7 @@ import { ImageAssetSchema } from "./artwork";
 
 export const SocialLinkSchema = z.object({
   platform: z.string().min(1, "platform is required").max(40, "platform must be <= 40 chars"),
-  url: z.string().url(),
+  url: z.string().url().refine((u) => /^https?:/.test(u), "must be http or https"),
 });
 
 export const SiteSettingsSchema = z.object({
@@ -14,7 +14,7 @@ export const SiteSettingsSchema = z.object({
   bannerImage: ImageAssetSchema.nullable().optional(),
   socialLinks: z.array(SocialLinkSchema),
   contactEmail: z.string().email().optional().nullable(),
-  contactUrl: z.string().url().optional().nullable(),
+  contactUrl: z.string().url().refine((u) => /^https?:/.test(u), "must be http or https").optional().nullable(),
   updatedAt: z.string().refine((v) => v === undefined || v === null || !isNaN(Date.parse(v)), "updatedAt must be a valid date").optional(),
 });
 

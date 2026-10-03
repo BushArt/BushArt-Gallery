@@ -1,11 +1,13 @@
+import { ObjectId, type Collection } from "mongodb";
 import { getDb } from "@/lib/db/mongodb";
 import { SiteSettingsSchema } from "@/lib/validation/settings";
+import { info, warn } from "@/lib/logger";
 import type { SiteSettings } from "@/types/settings";
 
-// ── Internal MongoDB document shape ───────────────────────────────────────
+export const SINGLETON_SETTINGS_ID = new ObjectId("000000000000000000000001");
 
 interface SiteSettingsDoc {
-  _id: import("mongodb").ObjectId;
+  _id: ObjectId;
   artistName: string;
   tagline: string | null;
   biography: string | null;
@@ -17,16 +19,59 @@ interface SiteSettingsDoc {
   updatedAt: Date;
 }
 
-// ── Public API ────────────────────────────────────────────────────────────
+/**
+ * The singleton's stored fields, normalised so a legacy document that predates
+ * the fixed `_id` (H5) can be copied across without carrying `undefined`s.
+ */
+const SETTINGS_FIELDS = [
+  "artistName",
+  "tagline",
+  "biography",
+  "profileImage",
+  "bannerImage",
+  "socialLinks",
+  "contactEmail",
+  "contactUrl",
+] as const;
 
 /**
- * Find the singleton site settings document.
+ * Loads the singleton settings document, falling back to the newest document
+ * written before the fixed `_id` existed.
  *
- * @returns The settings document, or null if none exists yet.
+ * H5 keyed `site_settings` on {@link SINGLETON_SETTINGS_ID} so concurrent
+ * upserts can never create a second document. A document written before that
+ * change carries an arbitrary `_id`, so filtering on the singleton id alone
+ * would report an empty zero-state for settings that really exist — and the
+ * next PATCH would insert a second document next to the lost one.
  */
+async function findSettingsDoc(
+  col: Collection<SiteSettingsDoc>,
+): Promise<SiteSettingsDoc | null> {
+  const singleton = await col.findOne({ _id: SINGLETON_SETTINGS_ID });
+  if (singleton) return singleton;
+  const [legacy] = await col
+    .find({ _id: { $ne: SINGLETON_SETTINGS_ID } })
+    .sort({ updatedAt: -1 })
+    .limit(1)
+    .toArray();
+  return legacy ?? null;
+}
+
+function settingsFieldDefaults(doc: SiteSettingsDoc | null): Record<string, unknown> {
+  if (!doc) return {};
+  const out: Record<string, unknown> = {};
+  for (const field of SETTINGS_FIELDS) {
+    const value = doc[field];
+    if (value !== undefined) out[field] = value;
+  }
+  return out;
+}
+
 export async function findSettings(): Promise<SiteSettings | null> {
   const db = await getDb();
-  const doc = await db.collection<SiteSettingsDoc>("site_settings").findOne({});
+  const doc = await findSettingsDoc(
+    db.collection<SiteSettingsDoc>("site_settings"),
+  );
   if (!doc) return null;
   return {
     artistName: doc.artistName,
@@ -41,36 +86,53 @@ export async function findSettings(): Promise<SiteSettings | null> {
   };
 }
 
-/**
- * Create or update the site settings singleton.
- *
- * @param data - Partial settings to apply; omitted fields keep existing values on update.
- * @returns The resulting settings document.
- */
 export async function upsertSettings(data: Partial<SiteSettings>): Promise<SiteSettings> {
   const db = await getDb();
   const now = new Date();
 
-  // Validate input against schema (strip unknown fields, normalize types)
   const validated = SiteSettingsSchema.partial().strip().parse({
     ...data,
     updatedAt: now.toISOString(),
   });
 
-  // Spread validated fields (excluding server-managed `updatedAt` which is set below)
   const { updatedAt: _stripped, ...validatedFields } = validated;
+  const col = db.collection<SiteSettingsDoc>("site_settings");
+
+  // Carry the stored values across when this is the first write after the
+  // singleton `_id` was introduced (or a later partial PATCH).
+  const existing = await findSettingsDoc(col);
   const setData: Record<string, unknown> = {
+    ...settingsFieldDefaults(existing),
     ...validatedFields,
     updatedAt: now,
   };
 
-  await db.collection<SiteSettingsDoc>("site_settings").updateOne(
-    {},
+  await col.updateOne(
+    { _id: SINGLETON_SETTINGS_ID },
     { $set: setData },
     { upsert: true },
   );
 
-  const updated = await db.collection<SiteSettingsDoc>("site_settings").findOne({});
+  // The pre-singleton document has been copied into the singleton above —
+  // retire it (and any other strays) so the collection really is a singleton.
+  // Only reached after the singleton write succeeded, so no data can be lost;
+  // a failure here is logged rather than failing an already-persisted PATCH.
+  if (existing && !existing._id.equals(SINGLETON_SETTINGS_ID)) {
+    try {
+      await col.deleteMany({ _id: { $ne: SINGLETON_SETTINGS_ID } });
+      info("Adopted legacy site_settings document into the singleton", {
+        legacyId: existing._id.toHexString(),
+      });
+    } catch (cause) {
+      warn("Legacy site_settings document could not be retired", {
+        error: cause,
+      });
+    }
+  }
+
+  const updated = await col.findOne({
+    _id: SINGLETON_SETTINGS_ID,
+  });
   if (!updated) throw new Error("Failed to upsert site settings");
 
   return {
