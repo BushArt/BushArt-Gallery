@@ -1,9 +1,11 @@
 import { ObjectId, type Sort, type Filter } from "mongodb";
-import { getDb } from "@/lib/db/mongodb";
+import { getDb, withTransaction } from "@/lib/db/mongodb";
 import { incrementTagUsageCounts, decrementTagUsageCounts } from "@/lib/db/models/tag";
-import { ArtworkSchema, ArtworkBaseSchema, ImageAssetSchema, VideoAssetSchema } from "@/lib/validation/artwork";
+import { ArtworkSchema, ArtworkBaseSchema, ImageAssetSchema, VideoAssetSchema, type ArtworkPreview } from "@/lib/validation/artwork";
 import { z } from "zod";
 import type { Artwork, ArtworkListItem, ImageAsset, VideoAsset } from "@/types/artwork";
+
+export type { ArtworkPreview };
 
 /**
  * Internal validation schema for createArtwork.
@@ -119,6 +121,31 @@ interface ProjectedArtworkDoc {
   tagIds: ObjectId[];
 }
 
+/**
+ * Projection for the hover-preview endpoint.
+ *
+ * Deliberately narrower than ARTWORK_PROJECTION: a preview needs only the
+ * cover image and short text, so it omits `medium`, `type`, `completionDate`,
+ * and `tagIds`. Fewer fields over the wire on every gallery hover.
+ */
+const PREVIEW_PROJECTION = {
+  _id: 1,
+  slug: 1,
+  title: 1,
+  description: 1,
+  nsfw: 1,
+  "images.0": 1,
+} as const;
+
+interface PreviewArtworkDoc {
+  _id: ObjectId;
+  slug: string;
+  title: string;
+  description?: string | null;
+  nsfw: boolean;
+  images: ImageAsset[];
+}
+
 const LIST_DESCRIPTION_MAX = 160;
 
 function pickCoverImage(images: ImageAsset[]): ArtworkListItem["coverImage"] {
@@ -190,7 +217,7 @@ const ARTWORK_PROJECTION = {
   type: 1,
   nsfw: 1,
   completionDate: 1,
-  images: 1,
+  "images.0": 1,
   tagIds: 1,
 } as const;
 
@@ -203,7 +230,6 @@ const ARTWORK_PROJECTION = {
 export async function createArtwork(
   data: CreateArtworkData,
 ): Promise<Artwork> {
-  // Validate internal data shape before writing to MongoDB
   const parsed = ArtworkCreateInternalSchema.parse(data);
   const now = new Date();
   const doc: ArtworkDoc = {
@@ -224,15 +250,20 @@ export async function createArtwork(
     createdAt: now,
     updatedAt: now,
   };
-  const col = await collection();
-  await col.insertOne(doc);
-  
-  // Increment usage counts for associated tags
-  if (doc.tagIds.length > 0) {
-    await incrementTagUsageCounts(doc.tagIds.map((id) => id.toHexString()));
-  }
-  
-  return docToArtwork(doc);
+
+  return withTransaction(async (session) => {
+    const col = await collection();
+    await col.insertOne(doc, { session });
+
+    if (doc.tagIds.length > 0) {
+      await incrementTagUsageCounts(
+        doc.tagIds.map((id) => id.toHexString()),
+        session,
+      );
+    }
+
+    return docToArtwork(doc);
+  });
 }
 
 /**
@@ -246,41 +277,48 @@ export async function updateArtwork(
   id: string,
   data: UpdateArtworkData,
 ): Promise<Artwork | null> {
-  // Validate partial internal data shape before writing to MongoDB
   ArtworkUpdateInternalSchema.parse(data);
 
-  const col = await collection();
-  const existing = await col.findOne({ _id: new ObjectId(id) }, { projection: { tagIds: 1 } });
-  if (!existing) return null;
+  return withTransaction(async (session) => {
+    const col = await collection();
+    const existing = await col.findOne(
+      { _id: new ObjectId(id) },
+      { projection: { tagIds: 1 }, session },
+    );
+    if (!existing) return null;
 
-  const previousTagIds = existing.tagIds.map((oid) => oid.toHexString());
-  const nextTagIds = (data.tagIds ?? previousTagIds);
+    const previousTagIds = existing.tagIds.map((oid) => oid.toHexString());
+    const nextTagIds = data.tagIds ?? previousTagIds;
 
-  const added = nextTagIds.filter((tid) => !previousTagIds.includes(tid));
-  const removed = previousTagIds.filter((tid) => !nextTagIds.includes(tid));
+    const added = nextTagIds.filter((tid) => !previousTagIds.includes(tid));
+    const removed = previousTagIds.filter((tid) => !nextTagIds.includes(tid));
 
-  // Prepare $set payload, converting string tagIds to ObjectIds
-  const { tagIds: stringTagIds, ...restData } = data;
-  const setData: Record<string, unknown> = {
-    ...restData,
-    updatedAt: new Date(),
-  };
-  if (stringTagIds !== undefined) {
-    setData.tagIds = stringTagIds.map((id) => new ObjectId(id));
-  }
+    const { tagIds: stringTagIds, ...restData } = data;
+    const setData: Record<string, unknown> = {
+      ...restData,
+      updatedAt: new Date(),
+    };
+    if (stringTagIds !== undefined) {
+      setData.tagIds = stringTagIds.map((tid) => new ObjectId(tid));
+    }
 
-  const result = await col.findOneAndUpdate(
-    { _id: new ObjectId(id) },
-    { $set: setData },
-    { returnDocument: "after" },
-  );
+    const result = await col.findOneAndUpdate(
+      { _id: new ObjectId(id) },
+      { $set: setData },
+      { returnDocument: "after", session },
+    );
 
-  if (!result) return null;
+    if (!result) return null;
 
-  if (added.length > 0) await incrementTagUsageCounts(added);
-  if (removed.length > 0) await decrementTagUsageCounts(removed);
+    if (added.length > 0) {
+      await incrementTagUsageCounts(added, session);
+    }
+    if (removed.length > 0) {
+      await decrementTagUsageCounts(removed, session);
+    }
 
-  return docToArtwork(result);
+    return docToArtwork(result);
+  });
 }
 
 /**
@@ -292,14 +330,21 @@ export async function updateArtwork(
 export async function deleteArtwork(
   id: string,
 ): Promise<{ tagIds: string[] } | null> {
-  const col = await collection();
-  const doc = await col.findOneAndDelete({ _id: new ObjectId(id) });
-  if (!doc) return null;
+  return withTransaction(async (session) => {
+    const col = await collection();
+    const doc = await col.findOneAndDelete(
+      { _id: new ObjectId(id) },
+      { session },
+    );
+    if (!doc) return null;
 
-  const tagIds = doc.tagIds.map((oid) => oid.toHexString());
-  if (tagIds.length > 0) await decrementTagUsageCounts(tagIds);
+    const tagIds = doc.tagIds.map((oid) => oid.toHexString());
+    if (tagIds.length > 0) {
+      await decrementTagUsageCounts(tagIds, session);
+    }
 
-  return { tagIds };
+    return { tagIds };
+  });
 }
 
 /**
@@ -329,6 +374,44 @@ export async function findArtworkById(id: string): Promise<Artwork | null> {
   const col = await collection();
   const doc = await col.findOne({ _id: new ObjectId(id) });
   return doc ? docToArtwork(doc) : null;
+}
+
+/**
+ * Fetch the minimal artwork payload needed for a hover preview.
+ *
+ * Backed by PREVIEW_PROJECTION so a hover costs one narrow query instead of the
+ * full document. NSFW is honoured the same way as the detail lookup: callers
+ * pass `includeNsfw`, which is true only for a verified admin session, so a
+ * public hover can never surface NSFW media.
+ *
+ * @returns the preview, or null when the slug does not exist (or is NSFW and
+ *          `includeNsfw` is false).
+ */
+export async function findArtworkPreview(
+  slug: string,
+  includeNsfw = false,
+): Promise<ArtworkPreview | null> {
+  const col = await collection();
+  // Filter is typed against ArtworkDoc (the collection's declared type); only
+  // slug/nsfw are constrained here, so the narrower projection below is safe.
+  const filter: Filter<ArtworkDoc> = { slug };
+  if (!includeNsfw) {
+    filter.nsfw = false;
+  }
+
+  const doc = await col.findOne<PreviewArtworkDoc>(filter, {
+    projection: PREVIEW_PROJECTION,
+  });
+
+  if (!doc) return null;
+
+  return {
+    slug: doc.slug,
+    title: doc.title,
+    nsfw: doc.nsfw,
+    coverImage: pickCoverImage(doc.images),
+    descriptionPreview: truncateListDescription(doc.description),
+  };
 }
 
 /**
@@ -372,9 +455,9 @@ export async function listArtworks(params: {
     filter.medium = params.medium;
   }
 
-  if (params.year) {
-    const start = new Date(params.year, 0, 1);
-    const end = new Date(params.year + 1, 0, 1);
+    if (params.year) {
+      const start = new Date(Date.UTC(params.year, 0, 1));
+      const end = new Date(Date.UTC(params.year + 1, 0, 1));
     filter.completionDate = { $gte: start, $lt: end };
   }
 

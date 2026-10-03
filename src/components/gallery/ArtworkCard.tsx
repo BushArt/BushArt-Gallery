@@ -3,11 +3,14 @@
 import clsx from "clsx";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { getTransformationUrl } from "@/lib/cloudinary/transformations";
-import { cacheArtworkDetail } from "@/lib/utils/artworkDetailCache";
+import {
+  cacheArtworkPreview,
+  getCachedArtworkPreview,
+} from "@/lib/utils/artworkPreviewCache";
 import { formatCompletionDate } from "@/lib/utils/formatDate";
-import type { ArtworkListItem } from "@/types/artwork";
+import type { ArtworkListItem, ArtworkPreview } from "@/types/artwork";
 import { Badge } from "@/components/ui/Badge";
 import { SketchRevealImage } from "@/components/ui/SketchReveal";
 
@@ -19,6 +22,8 @@ interface ArtworkCardProps {
   description?: string | null;
 }
 
+const PREFETCH_DELAY_MS = 300;
+
 export function ArtworkCard({ artwork, viewMode, description }: ArtworkCardProps) {
   const router = useRouter();
   const context = viewMode === "grid" ? "grid" : "list";
@@ -26,14 +31,34 @@ export function ArtworkCard({ artwork, viewMode, description }: ArtworkCardProps
   const dateLabel = formatCompletionDate(artwork.completionDate);
   const href = `/artwork/${artwork.slug}`;
 
+  // Scoped to this card instance. A module-level (or window-global) handle let
+  // one card's pending request get cancelled by a hover on a different card, so
+  // moving across the gallery silently dropped every prefetch.
+  const prefetchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (prefetchTimeout.current) clearTimeout(prefetchTimeout.current);
+    };
+  }, []);
+
   const prefetchDetail = useCallback(() => {
     router.prefetch(href);
-    void fetch(`/api/artworks/${encodeURIComponent(artwork.slug)}`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data) cacheArtworkDetail(data);
-      })
-      .catch(() => {});
+
+    // The shared preview cache already dedupes by slug, so a slug held from an
+    // earlier hover never needs re-fetching.
+    if (getCachedArtworkPreview(artwork.slug)) return;
+
+    if (prefetchTimeout.current) clearTimeout(prefetchTimeout.current);
+    prefetchTimeout.current = setTimeout(() => {
+      prefetchTimeout.current = null;
+      void fetch(`/api/artworks/${encodeURIComponent(artwork.slug)}/preview`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data: ArtworkPreview | null) => {
+          if (data) cacheArtworkPreview(data);
+        })
+        .catch(() => {});
+    }, PREFETCH_DELAY_MS);
   }, [artwork.slug, href, router]);
 
   if (viewMode === "list") {

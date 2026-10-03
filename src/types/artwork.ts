@@ -1,3 +1,9 @@
-import type { Artwork, ArtworkListItem, ImageAsset, VideoAsset } from "../lib/validation/artwork";
+import type {
+  Artwork,
+  ArtworkListItem,
+  ArtworkPreview,
+  ImageAsset,
+  VideoAsset,
+} from "../lib/validation/artwork";
 
-export type { Artwork, ArtworkListItem, ImageAsset, VideoAsset };
+export type { Artwork, ArtworkListItem, ArtworkPreview, ImageAsset, VideoAsset };

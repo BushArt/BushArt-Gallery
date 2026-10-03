@@ -24,8 +24,20 @@ vi.mock("@/lib/cloudinary/destroy", () => ({
   destroyAssets: vi.fn(async () => undefined),
 }));
 
-// Mock slug generation for deterministic tests
-vi.mock("@/lib/api/artwork-slug", () => ({
+// Mock asset ownership verification — the real one calls the Cloudinary Admin
+// API (covered by asset-verification.test.ts); these tests exercise the route.
+vi.mock("@/lib/cloudinary/verify", () => ({
+  verifyAssetOwnershipAll: vi.fn(async () => ({ ok: true, rejected: [] })),
+  describeAssetRejections: (rejected: Array<{ publicId: string; reason: string }>) => ({
+    missing: rejected.filter((r) => r.reason === "missing").map((r) => r.publicId),
+    foreign: rejected.filter((r) => r.reason === "foreign").map((r) => r.publicId),
+  }),
+}));
+
+// Mock slug generation for deterministic tests while keeping the real
+// SlugGenerationError class so `instanceof` checks in the routes still match.
+vi.mock("@/lib/api/artwork-slug", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/api/artwork-slug")>()),
   generateUniqueArtworkSlug: vi.fn(async (title: string) =>
     title.toLowerCase().replace(/\s+/g, "-"),
   ),
@@ -507,7 +519,7 @@ describe("DELETE /api/artworks/:id", () => {
     ]);
   });
 
-  it("returns 503 and does not delete artwork when Cloudinary destroy fails", async () => {
+  it("returns 503 when Cloudinary destroy fails after the artwork was removed", async () => {
     vi.mocked(destroyAssets).mockRejectedValue(new Error("Cloudinary down"));
 
     const res = await DELETE(
@@ -521,12 +533,14 @@ describe("DELETE /api/artworks/:id", () => {
     const json = await res.json();
     expect(json.error.code).toBe("SERVICE_UNAVAILABLE");
 
-    // Verify artwork was NOT deleted
+    // H4: Mongo delete happens first so a partial destroy can never leave a
+    // document pointing at missing originals — the doc is gone and the
+    // failure is surfaced for reconciliation.
     const db = await getTestDb();
     const stillExists = await db
       .collection("artworks")
       .findOne({ _id: new ObjectId(artworkId) });
-    expect(stillExists).toBeTruthy();
+    expect(stillExists).toBeNull();
   });
 
   it("returns 404 when artwork not found", async () => {
