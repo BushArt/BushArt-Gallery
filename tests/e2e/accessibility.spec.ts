@@ -23,7 +23,12 @@ test.describe("Accessibility", () => {
     await mockGalleryApis(page);
     await page.goto("/");
 
-    await expect(page.getByRole("img", { name: "E2E Test Artwork" }).first()).toBeAttached();
+    // Gate on the card link, not the artwork <img>: the mock CDN URL cannot
+    // load, so SketchReveal swaps the image for its "Image unavailable"
+    // fallback, and an image-based gate races that swap.
+    await expect(page.getByRole("link", { name: /E2E Test Artwork/i })).toBeVisible({
+      timeout: 15_000,
+    });
 
     const result = await new AxeBuilder({ page }).analyze();
 
@@ -66,13 +71,25 @@ test.describe("Accessibility", () => {
 
     const mediumFilter = page.getByTestId("filter-medium");
     await mediumFilter.focus();
-    await mediumFilter.pressSequentially("Gouache");
-    await expect(page).toHaveURL(/medium=Gouache/, { timeout: 5_000 });
+    // The gallery is a client component: keystrokes sent before React hydrates
+    // the input are dropped and the URL never changes, so retry the typed
+    // filter until the debounced URL rewrite lands.
+    await expect(async () => {
+      await mediumFilter.fill("");
+      await mediumFilter.pressSequentially("Gouache");
+      await expect(page).toHaveURL(/medium=Gouache/, { timeout: 2_000 });
+    }).toPass({ timeout: 15_000 });
 
     const typeFilter = page.getByTestId("filter-type");
-    await typeFilter.focus();
-    await typeFilter.press("ArrowDown");
-    await expect(typeFilter).toHaveValue("personal");
+    // The URL rewrite from the medium filter re-renders the filter panel, which
+    // can drop focus between the key presses. Reset to the first option and
+    // step down again so the retry is idempotent.
+    await expect(async () => {
+      await typeFilter.focus();
+      await typeFilter.press("Home");
+      await typeFilter.press("ArrowDown");
+      await expect(typeFilter).toHaveValue("personal", { timeout: 1_000 });
+    }).toPass({ timeout: 15_000 });
 
     const listToggle = page.getByRole("button", { name: "List" });
     await listToggle.focus();
@@ -148,8 +165,12 @@ test.describe("Accessibility", () => {
     await expect(page.getByText("Image 1 of 2")).toBeAttached();
 
     const nextButton = page.getByTestId("fullscreen-next");
-    await nextButton.focus();
-    await expect(nextButton).toBeFocused();
+    // useFocusTrap re-applies the panel's initial focus for two animation
+    // frames after mount, so a focus() issued in between gets stolen back.
+    await expect(async () => {
+      await nextButton.focus();
+      await expect(nextButton).toBeFocused({ timeout: 1_000 });
+    }).toPass({ timeout: 15_000 });
     await nextButton.press("Enter");
     await expect(page.getByText("Image 2 of 2")).toBeAttached({ timeout: 15_000 });
 
@@ -195,9 +216,13 @@ test.describe("Accessibility", () => {
     await page.goto("/");
 
     const loginTrigger = page.getByTestId("admin-login-trigger");
+    // The footer is a client component behind <Suspense>, so it may exist in the
+    // HTML before React hydrates its onClick handler. Without this wait the
+    // Enter press can land pre-hydration and no modal ever opens.
+    await expect(loginTrigger).toBeVisible({ timeout: 15_000 });
     await loginTrigger.focus();
     await loginTrigger.press("Enter");
-    await expect(page.getByTestId("login-modal")).toBeVisible();
+    await expect(page.getByTestId("login-modal")).toBeVisible({ timeout: 10_000 });
     await expect(page.getByTestId("login-username")).toBeFocused();
   });
 });

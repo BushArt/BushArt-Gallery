@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { E2E_NSFW_SLUG, E2E_SLUG, E2E_TITLE, e2eNsfwDetail, mockGalleryApis } from "./fixtures";
 
 test.describe("Artwork modal entry paths", () => {
