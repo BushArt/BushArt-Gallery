@@ -42,3 +42,9 @@ ci-reports/
 
 # Misc
 # .pre-commit-config.yaml
+
+# Local agent tooling (contains a nested git worktree)
+.kilo/
+
+# Generated database backups (scripts/backup.ts)
+backups/
