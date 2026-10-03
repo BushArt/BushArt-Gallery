@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { requireAdmin } from "@/lib/auth/guard";
 import { toArtworkDetailResponse } from "@/lib/api/artwork-response";
 import { apiError, handleRouteError, OBJECT_ID_REGEX } from "@/lib/api/errors";
 import { destroyAssets, type DestroyAsset } from "@/lib/cloudinary/destroy";
+import {
+  describeAssetRejections,
+  verifyAssetOwnershipAll,
+  type AssetRef,
+} from "@/lib/cloudinary/verify";
 import { error as logError } from "@/lib/logger";
 import {
   deleteArtwork,
@@ -16,15 +22,49 @@ import { ArtworkPatchRequestSchema } from "@/lib/validation/artwork";
 type RouteContext = { params: Promise<{ id: string }> };
 
 /**
+ * Collect the Cloudinary assets introduced by a patch body.
+ *
+ * Only assets present in the request are verified: a patch that omits `images`
+ * keeps whatever the artwork already stored, and those were verified when they
+ * were first written.
+ */
+function collectPatchedAssetRefs(
+  parsed: z.infer<typeof ArtworkPatchRequestSchema>,
+): AssetRef[] {
+  const refs: AssetRef[] = (parsed.images ?? []).map((image) => ({
+    publicId: image.publicId,
+    resourceType: "image" as const,
+  }));
+
+  // An explicit `timelapse: null` removes the video; only a provided object
+  // introduces a publicId that needs verifying.
+  if (parsed.timelapse) {
+    refs.push({ publicId: parsed.timelapse.publicId, resourceType: "video" });
+  }
+
+  return refs;
+}
+
+/**
  * GET /api/artworks/:slug — full detail (05 §4.2); param is slug, not ObjectId.
  * PATCH /api/artworks/:id — partial update (05 §7.2)
  * DELETE /api/artworks/:id — delete artwork + Cloudinary media (05 §7.3)
  */
 
-export async function GET(_request: NextRequest, context: RouteContext): Promise<NextResponse> {
+export async function GET(request: NextRequest, context: RouteContext): Promise<NextResponse> {
   try {
     const { id: slug } = await context.params;
-    const artwork = await findArtworkBySlug(slug, true);
+    
+    // Check if request is from admin (has valid session)
+    let isAdmin = false;
+    try {
+      await requireAdmin(request);
+      isAdmin = true;
+    } catch {
+      // Not admin, continue without admin access
+    }
+
+    const artwork = await findArtworkBySlug(slug, isAdmin);
 
     if (!artwork) {
       return apiError(404, "NOT_FOUND", "Artwork not found");
@@ -74,6 +114,22 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
         return apiError(400, "VALIDATION_ERROR", "One or more tagIds do not exist", {
           tagIds: missingTags,
         });
+      }
+    }
+
+    // Prove any newly referenced media really exists in this cloud before
+    // letting the patch overwrite a document that already holds valid assets.
+    const patchedAssetRefs = collectPatchedAssetRefs(parsed.data);
+    if (patchedAssetRefs.length > 0) {
+      const verification = await verifyAssetOwnershipAll(patchedAssetRefs);
+      if (!verification.ok) {
+        const { missing, foreign } = describeAssetRejections(verification.rejected);
+        return apiError(
+          400,
+          "VALIDATION_ERROR",
+          "One or more referenced Cloudinary assets could not be verified",
+          { missing, foreign },
+        );
       }
     }
 
@@ -141,20 +197,23 @@ export async function DELETE(request: NextRequest, context: RouteContext): Promi
       });
     }
 
-    try {
-      await destroyAssets(assets);
-    } catch (error) {
-      logError("DELETE /api/artworks/:id Cloudinary destroy failed", { error });
-      return apiError(
-        503,
-        "SERVICE_UNAVAILABLE",
-        "Failed to delete artwork media; artwork was not removed",
-      );
-    }
-
     const deleted = await deleteArtwork(id);
     if (!deleted) {
       return apiError(404, "NOT_FOUND", "Artwork not found");
+    }
+
+    try {
+      await destroyAssets(assets);
+    } catch (error) {
+      logError("DELETE /api/artworks/:id Cloudinary destroy failed after Mongo deletion", {
+        artworkId: id,
+        error,
+      });
+      return apiError(
+        503,
+        "SERVICE_UNAVAILABLE",
+        "Artwork removed but media cleanup failed; reconciliation required",
+      );
     }
 
     return NextResponse.json({ deleted: true, id });

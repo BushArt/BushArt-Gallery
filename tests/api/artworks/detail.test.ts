@@ -11,11 +11,21 @@ import {
 // Mock the mongodb module to redirect to test database
 vi.mock("@/lib/db/mongodb", () => createMongodbMock());
 
+// Mock auth guard — NSFW detail is only visible to an authenticated admin
+vi.mock("@/lib/auth/guard", () => ({
+  requireAdmin: vi.fn(),
+}));
+
 import { GET } from "@/app/api/artworks/[id]/route";
+import { requireAdmin } from "@/lib/auth/guard";
 
 describe("GET /api/artworks/:slug", () => {
   beforeEach(async () => {
     await clearCollections(["artworks", "tags"]);
+    vi.mocked(requireAdmin).mockResolvedValue({
+      id: "admin1",
+      username: "bush",
+    });
 
     const db = await getTestDb();
     const tagId = new ObjectId("65a1e0a0c4d5e6f7a8b9c0aa");
@@ -72,6 +82,18 @@ describe("GET /api/artworks/:slug", () => {
     expect(json.tags).toEqual([
       { id: "65a1e0a0c4d5e6f7a8b9c0aa", name: "Gouache", slug: "gouache" },
     ]);
+  });
+
+  it("returns 404 for an NSFW artwork to a non-admin visitor", async () => {
+    vi.mocked(requireAdmin).mockRejectedValue(new Error("unauthenticated"));
+
+    const req = new NextRequest("http://localhost/api/artworks/moth-study");
+    const res = await GET(req, {
+      params: Promise.resolve({ id: "moth-study" }),
+    });
+    expect(res.status).toBe(404);
+    const json = await res.json();
+    expect(json.error.code).toBe("NOT_FOUND");
   });
 
   it("returns 404 when slug does not exist", async () => {

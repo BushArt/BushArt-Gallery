@@ -3,13 +3,13 @@ import { apiError, handleRouteError } from "@/lib/api/errors";
 import { getTransformationUrl } from "@/lib/cloudinary/transformations";
 import { findArtworkBySlug } from "@/lib/db/models/artwork";
 import { ArtworkDownloadQuerySchema } from "@/lib/validation/artwork";
+import { requireAdmin } from "@/lib/auth/guard";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
 /**
  * GET /api/artworks/:slug/download — redirect to Cloudinary fl_attachment URL (05 §4.3)
  */
-
 export async function GET(
   request: NextRequest,
   context: RouteContext,
@@ -27,7 +27,15 @@ export async function GET(
       );
     }
 
-    const artwork = await findArtworkBySlug(slug, true);
+    let isAdmin = false;
+    try {
+      await requireAdmin(request);
+      isAdmin = true;
+    } catch {
+      // Not admin
+    }
+
+    const artwork = await findArtworkBySlug(slug, isAdmin);
     if (!artwork) {
       return apiError(404, "NOT_FOUND", "Artwork not found");
     }
