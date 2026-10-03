@@ -20,6 +20,19 @@ function createMockCollection<T extends { _id: ObjectId }>() {
       const idx = docs.findIndex((d: any) => d._id?.equals?.(filter._id) ?? false);
       if (idx !== -1) docs[idx] = { ...docs[idx], ...update.$set };
     },
+    async findOneAndUpdate(filter: any, update: any) {
+      const idx = docs.findIndex((d: any) => d._id?.equals?.(filter._id) ?? false);
+      if (idx === -1) return null;
+      const next: any = { ...(docs[idx] as any) };
+      if (update.$set) Object.assign(next, update.$set);
+      if (update.$inc) {
+        for (const [key, val] of Object.entries(update.$inc)) {
+          next[key] = (next[key] ?? 0) + (val as number);
+        }
+      }
+      docs[idx] = next as T;
+      return next;
+    },
     find(_filter: any) {
       const filter = _filter ?? {};
       const filtered = docs.filter((d: any) => {
@@ -53,6 +66,11 @@ vi.mock("@/lib/db/mongodb", () => ({
         return collections[name];
       },
     }),
+  // The model layer wraps multi-document writes in a transaction; the
+  // in-memory collections are single-document, so running the callback
+  // directly (no session) is the faithful behaviour for this harness.
+  withTransaction: async <T>(fn: (session?: unknown) => Promise<T>) =>
+    fn(undefined),
 }));
 
 beforeEach(() => {

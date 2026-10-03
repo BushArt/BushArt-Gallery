@@ -11,6 +11,7 @@ interface AdminDoc {
   failedLoginAttempts: number;
   lockUntil: Date | null;
   lastLoginAt: Date | null;
+  tokenVersion: number;
   createdAt: Date;
 }
 
@@ -29,6 +30,7 @@ function docToAdmin(doc: AdminDoc): Admin {
     failedLoginAttempts: doc.failedLoginAttempts,
     lockUntil: doc.lockUntil,
     lastLoginAt: doc.lastLoginAt,
+    tokenVersion: doc.tokenVersion,
     createdAt: doc.createdAt,
   };
 }
@@ -52,6 +54,7 @@ export async function createAdmin(data: {
     failedLoginAttempts: 0,
     lockUntil: null,
     lastLoginAt: null,
+    tokenVersion: 0,
     createdAt: new Date(),
   };
   const col = await collection();
@@ -72,6 +75,7 @@ function docToAdminInternal(doc: AdminDoc): AdminInternal {
     failedLoginAttempts: doc.failedLoginAttempts,
     lockUntil: doc.lockUntil,
     lastLoginAt: doc.lastLoginAt,
+    tokenVersion: doc.tokenVersion,
     createdAt: doc.createdAt,
   };
 }
@@ -122,13 +126,45 @@ export async function findAdminById(id: string): Promise<Admin | null> {
 export async function updateLoginState(
   id: string,
   data: {
-    failedLoginAttempts: number;
-    lockUntil: Date | null;
-    lastLoginAt: Date | null;
+    failedLoginAttempts?: number;
+    lockUntil?: Date | null;
+    lastLoginAt?: Date | null;
   },
 ): Promise<void> {
   const col = await collection();
-  await col.updateOne({ _id: new ObjectId(id) }, { $set: data });
+  const setData: Record<string, unknown> = {};
+  if (data.failedLoginAttempts !== undefined) setData.failedLoginAttempts = data.failedLoginAttempts;
+  if (data.lockUntil !== undefined) setData.lockUntil = data.lockUntil;
+  if (data.lastLoginAt !== undefined) setData.lastLoginAt = data.lastLoginAt;
+  await col.findOneAndUpdate(
+    { _id: new ObjectId(id) },
+    { $set: setData },
+    { returnDocument: "after" },
+  );
+}
+
+export async function incrementTokenVersion(id: string): Promise<void> {
+  const col = await collection();
+  await col.findOneAndUpdate(
+    { _id: new ObjectId(id) },
+    { $inc: { tokenVersion: 1 } },
+  );
+}
+
+export async function incrementFailedAttempts(
+  id: string,
+): Promise<{ failedLoginAttempts: number; lockUntil: Date | null } | null> {
+  const col = await collection();
+  const result = await col.findOneAndUpdate(
+    { _id: new ObjectId(id) },
+    { $inc: { failedLoginAttempts: 1 }, $set: { lastLoginAt: new Date() } },
+    { returnDocument: "after" },
+  );
+  if (!result) return null;
+  return {
+    failedLoginAttempts: result.failedLoginAttempts,
+    lockUntil: result.lockUntil,
+  };
 }
 
 /**

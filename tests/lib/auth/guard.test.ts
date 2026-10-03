@@ -19,12 +19,20 @@ vi.mock("@/lib/db/models/admin", () => ({
     failedLoginAttempts: 0,
     lockUntil: null,
     lastLoginAt: null,
+    tokenVersion: 0,
     createdAt: new Date(),
   })),
   getAdminByUsername: vi.fn(),
   updateLoginState: vi.fn(),
   createAdmin: vi.fn(),
   findAdminById: vi.fn(),
+}));
+
+// requireAdmin refuses admin writes until boot has verified the indexes; tests
+// exercise the auth chain itself, so treat indexes as verified.
+vi.mock("@/lib/db/indexReady", () => ({
+  areIndexesVerified: () => true,
+  setIndexesVerified: vi.fn(),
 }));
 
 // ── Import after mocks ─────────────────────────────────────────────────────
@@ -91,6 +99,7 @@ describe("requireAdmin (guard.ts)", () => {
       failedLoginAttempts: 5,
       lockUntil: new Date(Date.now() + 1000),
       lastLoginAt: null,
+      tokenVersion: 0,
       createdAt: new Date(),
     });
 

@@ -2,9 +2,9 @@ import { describe, it, expect } from "vitest";
 import { signToken, verifyToken, TokenPayload } from "@/lib/auth/jwt";
 
 /**
- * Set a deterministic secret for the entire suite. The jwt module falls back
- * to `process.env.JWT_SECRET ?? 'test-secret'`, so we pin it here to make
- * sign/verify round-trips predictable.
+ * Pin a deterministic secret for the entire suite. The jwt module requires
+ * `JWT_SECRET` in every environment (the former `test-secret` fallback was
+ * removed), so we set it here to make sign/verify round-trips predictable.
  */
 process.env.JWT_SECRET = "test-secret";
 
@@ -12,6 +12,8 @@ describe("jwt", () => {
   const basePayload: TokenPayload = {
     id: "65a1f2b3c4d5e6f7a8b9c0d1",
     username: "admin",
+    jti: "11111111-1111-1111-1111-111111111111",
+    tokenVersion: 0,
   };
 
   describe("signToken + verifyToken round-trip", () => {
@@ -21,7 +23,7 @@ describe("jwt", () => {
       expect(decoded).toEqual(basePayload);
     });
 
-    it("includes iat and exp within the expected 7-day window", () => {
+    it("includes iat and exp within the expected 8-hour window", () => {
       const before = Math.floor(Date.now() / 1000);
       const token = signToken(basePayload);
       const after = Math.floor(Date.now() / 1000);
@@ -33,8 +35,8 @@ describe("jwt", () => {
 
       expect(payload.iat).toBeGreaterThanOrEqual(before - 1);
       expect(payload.iat).toBeLessThanOrEqual(after + 1);
-      expect(payload.exp - payload.iat).toBeGreaterThanOrEqual(7 * 24 * 60 * 60 - 2);
-      expect(payload.exp - payload.iat).toBeLessThanOrEqual(7 * 24 * 60 * 60 + 2);
+      expect(payload.exp - payload.iat).toBeGreaterThanOrEqual(8 * 60 * 60 - 2);
+      expect(payload.exp - payload.iat).toBeLessThanOrEqual(8 * 60 * 60 + 2);
     });
   });
 
