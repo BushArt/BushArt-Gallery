@@ -48,6 +48,8 @@ Never resolve a conflict by guessing — if two docs disagree in a way that bloc
 
 This file carries no precedence of its own. Where it summarizes a rule, the source doc wins if they ever diverge — treat that as a bug in this file, and fix this file, not the rule.
 
+`TODO.md` sits outside the numbered precedence chain. While a task is in-flight, its TODO entry is the authoritative record of what is being built and what success looks like — once the item is closed out, its permanent record moves to `CHANGELOG.md` and any touched numbered docs. Never let a TODO note and a numbered doc contradict each other mid-task; if they do, the numbered doc wins and the TODO is wrong.
+
 ## Hard Constraints
 
 The mistakes most likely to slip past a first read of the docs. Treat these as absolute.
