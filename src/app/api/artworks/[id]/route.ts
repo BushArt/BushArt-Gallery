@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { requireAdmin } from "@/lib/auth/guard";
+import { requireAdmin, isAdminRequest } from "@/lib/auth/guard";
 import { toArtworkDetailResponse } from "@/lib/api/artwork-response";
 import { apiError, handleRouteError, OBJECT_ID_REGEX } from "@/lib/api/errors";
 import { destroyAssets, type DestroyAsset } from "@/lib/cloudinary/destroy";
@@ -55,14 +55,9 @@ export async function GET(request: NextRequest, context: RouteContext): Promise<
   try {
     const { id: slug } = await context.params;
     
-    // Check if request is from admin (has valid session)
-    let isAdmin = false;
-    try {
-      await requireAdmin(request);
-      isAdmin = true;
-    } catch {
-      // Not admin, continue without admin access
-    }
+    // 503 (booting) and 423 (locked) propagate instead of silently degrading
+    // to the public view — see isAdminRequest.
+    const isAdmin = await isAdminRequest(request);
 
     const artwork = await findArtworkBySlug(slug, isAdmin);
 

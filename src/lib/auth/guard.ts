@@ -151,3 +151,33 @@ export async function isAdminSession(): Promise<boolean> {
     return false;
   }
 }
+
+/**
+ * Whether the caller holds a valid admin session, for Route Handlers that
+ * serve *both* the public and the admin view of the same resource.
+ *
+ * `requireAdmin` throws a `Response`: 401 when there is no valid session, 423
+ * when the account is locked, and 503 while boot is still verifying database
+ * indexes. Only the first is a legitimate reason to fall through to the public
+ * view. The handlers that used a bare `try { ... } catch { isAdmin = false }`
+ * swallowed all three, so a booting database or a locked account was
+ * indistinguishable from "not logged in" — the admin got the public page, and a
+ * 404 for their own NSFW artwork, with nothing in the response to explain why.
+ *
+ * Failures other than 401 are rethrown so the caller's own error handler
+ * reports the real status (`handleRouteError` returns a `Response` untouched).
+ *
+ * Note this is fail-*closed* on content either way: a swallowed 503 still
+ * hides NSFW artwork, so this is an observability defect rather than a leak.
+ */
+export async function isAdminRequest(request: NextRequest): Promise<boolean> {
+  try {
+    await requireAdmin(request);
+    return true;
+  } catch (error) {
+    if (error instanceof Response && error.status === 401) {
+      return false;
+    }
+    throw error;
+  }
+}

@@ -3,7 +3,7 @@ import { apiError, handleRouteError } from "@/lib/api/errors";
 import { getTransformationUrl } from "@/lib/cloudinary/transformations";
 import { findArtworkBySlug } from "@/lib/db/models/artwork";
 import { ArtworkDownloadQuerySchema } from "@/lib/validation/artwork";
-import { requireAdmin } from "@/lib/auth/guard";
+import { requireAdmin, isAdminRequest } from "@/lib/auth/guard";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -27,13 +27,9 @@ export async function GET(
       );
     }
 
-    let isAdmin = false;
-    try {
-      await requireAdmin(request);
-      isAdmin = true;
-    } catch {
-      // Not admin
-    }
+    // 503 (booting) and 423 (locked) propagate instead of silently degrading
+    // to the public view — see isAdminRequest.
+    const isAdmin = await isAdminRequest(request);
 
     const artwork = await findArtworkBySlug(slug, isAdmin);
     if (!artwork) {

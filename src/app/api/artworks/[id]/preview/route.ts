@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth/guard";
+import { isAdminRequest } from "@/lib/auth/guard";
 import { apiError, handleRouteError } from "@/lib/api/errors";
 import { findArtworkPreview } from "@/lib/db/models/artwork";
 
@@ -23,13 +23,9 @@ export async function GET(
   try {
     const { id: slug } = await context.params;
 
-    let isAdmin = false;
-    try {
-      await requireAdmin(request);
-      isAdmin = true;
-    } catch {
-      // Not admin — the preview stays restricted to non-NSFW artwork.
-    }
+    // 503 (booting) and 423 (locked) propagate instead of silently degrading
+    // to the public view — see isAdminRequest.
+    const isAdmin = await isAdminRequest(request);
 
     const preview = await findArtworkPreview(slug, isAdmin);
 

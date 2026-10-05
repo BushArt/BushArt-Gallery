@@ -37,7 +37,7 @@ import { setIndexesVerified, resetIndexesVerified } from "@/lib/db/indexReady";
 
 // ── Import after mocks ─────────────────────────────────────────────────────
 
-import { requireAdmin } from "@/lib/auth/guard";
+import { requireAdmin, isAdminRequest } from "@/lib/auth/guard";
 import { verifyToken } from "@/lib/auth/jwt";
 import { findByUsername } from "@/lib/db/models/admin";
 
@@ -166,4 +166,58 @@ describe("requireAdmin (guard.ts)", () => {
     expect(json.error.message).toBe("No valid session");
   });
 
+});
+
+describe("isAdminRequest (guard.ts)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    setIndexesVerified();
+  });
+
+  it("reports true for a valid admin session", async () => {
+    await expect(isAdminRequest(createGuardedRequest("valid-token"))).resolves.toBe(true);
+  });
+
+  it("reports false only for 401 — the ordinary unauthenticated visitor", async () => {
+    await expect(isAdminRequest(createGuardedRequest())).resolves.toBe(false);
+    await expect(isAdminRequest(createGuardedRequest("tampered-token"))).resolves.toBe(false);
+  });
+
+  it("propagates 503 while indexes are unverified instead of reporting public", async () => {
+    // The regression this prevents: the handlers wrapped requireAdmin in a bare
+    // catch, so a booting database looked exactly like "not logged in" and the
+    // admin was shown the public page during a real outage.
+    resetIndexesVerified();
+
+    const error = await isAdminRequest(createGuardedRequest("valid-token")).catch((e) => e);
+    setIndexesVerified();
+
+    expect(error).toBeInstanceOf(Response);
+    expect((error as Response).status).toBe(503);
+  });
+
+  it("propagates 423 when the account is locked", async () => {
+    vi.mocked(findByUsername).mockResolvedValueOnce({
+      id: "507f1f77bcf86cd799439011",
+      username: "bush",
+      failedLoginAttempts: 5,
+      lockUntil: new Date(Date.now() + 60_000),
+      lastLoginAt: null,
+      tokenVersion: 0,
+      createdAt: new Date(),
+    });
+
+    const error = await isAdminRequest(createGuardedRequest("valid-token")).catch((e) => e);
+
+    expect(error).toBeInstanceOf(Response);
+    expect((error as Response).status).toBe(423);
+  });
+
+  it("propagates a non-Response failure rather than swallowing it", async () => {
+    vi.mocked(findByUsername).mockRejectedValueOnce(new Error("mongo exploded"));
+
+    await expect(isAdminRequest(createGuardedRequest("valid-token"))).rejects.toThrow(
+      "mongo exploded",
+    );
+  });
 });
