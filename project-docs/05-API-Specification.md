@@ -166,7 +166,31 @@ Note: the list response intentionally omits `description`, the full `images[]` a
 
 ---
 
-### 4.4 `GET /api/tags`
+### 4.4 `GET /api/artworks/:slug/preview`
+
+**Purpose:** the minimal payload a gallery hover needs, so the artwork modal can render its cover and title while the full detail request is still in flight.
+**Auth:** none (public). An admin session additionally allows NSFW artwork to appear; for anyone else NSFW artwork returns `404`.
+
+**Response `200`:**
+```json
+{
+  "slug": "moth-study-in-blue",
+  "title": "Moth Study in Blue",
+  "nsfw": false,
+  "coverImage": { "publicId": "bushart/uploads/cover", "width": 1600, "height": 1200 },
+  "descriptionPreview": "A study in…"
+}
+```
+
+Deliberately narrower than §4.2: a preview carries no `images[]`, `tags`, `medium`, `type`, `completionDate` or `id`, so it **cannot** stand in for the detail document. Clients that render or persist artwork must use §4.2.
+
+**Response headers:** `Cache-Control: private, no-store` — the payload varies by session (NSFW visibility), so it must not be held by a shared intermediary.
+
+**Errors:** `404 NOT_FOUND`, `503 SERVICE_UNAVAILABLE` (database unavailable).
+
+---
+
+### 4.5 `GET /api/tags`
 
 **Purpose:** the full master tag list, for filter UI and the admin tag picker.
 **Auth:** none.
@@ -185,7 +209,7 @@ No pagination — the tag list is expected to stay small (tens, not thousands, o
 
 ---
 
-### 4.5 `GET /api/settings`
+### 4.6 `GET /api/settings`
 
 **Purpose:** public hero/homepage content.
 **Auth:** none.
@@ -271,6 +295,36 @@ No pagination — the tag list is expected to stay small (tens, not thousands, o
 The signature is computed server-side using `CLOUDINARY_API_SECRET`, which never leaves the server. The signature is valid only for the exact parameters it was generated for and expires per Cloudinary's own signature timestamp window.
 
 **Errors:** `401 UNAUTHENTICATED`.
+
+---
+
+### 6.2 `DELETE /api/upload/cleanup`
+
+**Purpose:** destroy Cloudinary assets that were uploaded but never persisted to an artwork, so a failed save does not leave paid storage permanently consumed.
+**Auth:** admin session required.
+
+Runs server-side because Cloudinary destroy requires `CLOUDINARY_API_SECRET`, which must never reach the browser.
+
+**Request Body:**
+```json
+{
+  "assets": [
+    { "publicId": "bushart/uploads/orphan-1", "resourceType": "image" },
+    { "publicId": "bushart/uploads/orphan-2", "resourceType": "video" }
+  ]
+}
+```
+
+| Field | Type | Notes |
+|---|---|---|
+| `publicId` | `string` | Must begin with `bushart/`. Without that check an admin session could delete assets belonging to another tenant sharing the same Cloudinary cloud. |
+| `resourceType` | `"image" \| "video"` | |
+
+At most **25** assets per request, so one call cannot fan out unbounded destroy requests. Duplicates are collapsed before calling Cloudinary. Already-deleted ids are treated as success, so a retried cleanup is safe.
+
+**Response `200`:** `{ "destroyed": 2 }`
+
+**Errors:** `400 VALIDATION_ERROR` (malformed body, or a `publicId` outside the `bushart/` namespace), `401 UNAUTHENTICATED`, `503 SERVICE_UNAVAILABLE` (assets not destroyed; reconciliation required).
 
 ---
 
@@ -377,6 +431,7 @@ The signature is computed server-side using `CLOUDINARY_API_SECRET`, which never
 | GET | `/api/artworks` | Public | Paginated, filterable gallery feed |
 | GET | `/api/artworks/:slug` | Public | Full artwork detail |
 | GET | `/api/artworks/:slug/download` | Public | Redirect to original-quality download |
+| GET | `/api/artworks/:slug/preview` | Public | Lightweight hover payload for the artwork modal |
 | GET | `/api/tags` | Public | Master tag list |
 | GET | `/api/settings` | Public | Homepage hero content |
 | POST | `/api/auth/login` | Public | Start admin session |

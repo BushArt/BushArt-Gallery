@@ -48,6 +48,7 @@ erDiagram
         int failedLoginAttempts
         date lockUntil
         date lastLoginAt
+        int tokenVersion
         date createdAt
     }
 
@@ -237,6 +238,7 @@ Administrator accounts. The MVP UI assumes exactly one document exists, but noth
 | `failedLoginAttempts` | `number` | yes | Default `0`; reset on successful login. |
 | `lockUntil` | `Date \| null` | no | Set when `failedLoginAttempts` reaches the threshold defined in `02-Technical-Specification.md` §4. |
 | `lastLoginAt` | `Date \| null` | no | Updated on each successful login. |
+| `tokenVersion` | `number` | yes | Session-revocation counter; see `02-Technical-Specification.md` §4. Incremented on sign-out. Documents written before the field existed are normalised to `0` on read (`lib/db/models/admin.ts`) — without that, login would sign a JWT whose claim `JSON.stringify` drops, and the admin could never authenticate again. |
 | `createdAt` | `Date` | auto | |
 
 This collection is **never** exposed through any public API response, in whole or in part, under any circumstance.
