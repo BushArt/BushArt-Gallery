@@ -23,6 +23,21 @@ function collection() {
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
+/**
+ * A document written before `tokenVersion` existed has no such field.
+ *
+ * The interface says `number`, but an interface describes intent, not what is
+ * actually in the database. Returning `undefined` here would let login sign a
+ * token without the claim, and `JSON.stringify` drops undefined keys — so the
+ * token would fail `TokenClaimsSchema` on the very next request and lock the
+ * admin out with no visible cause. Defaulting to 0 is the same value a freshly
+ * seeded admin has, and the first `$inc` creates the field, so revocation
+ * starts working from there.
+ */
+function tokenVersionOf(doc: AdminDoc): number {
+  return typeof doc.tokenVersion === "number" ? doc.tokenVersion : 0;
+}
+
 function docToAdmin(doc: AdminDoc): Admin {
   return {
     id: doc._id.toHexString(),
@@ -30,7 +45,7 @@ function docToAdmin(doc: AdminDoc): Admin {
     failedLoginAttempts: doc.failedLoginAttempts,
     lockUntil: doc.lockUntil,
     lastLoginAt: doc.lastLoginAt,
-    tokenVersion: doc.tokenVersion,
+    tokenVersion: tokenVersionOf(doc),
     createdAt: doc.createdAt,
   };
 }
@@ -75,7 +90,7 @@ function docToAdminInternal(doc: AdminDoc): AdminInternal {
     failedLoginAttempts: doc.failedLoginAttempts,
     lockUntil: doc.lockUntil,
     lastLoginAt: doc.lastLoginAt,
-    tokenVersion: doc.tokenVersion,
+    tokenVersion: tokenVersionOf(doc),
     createdAt: doc.createdAt,
   };
 }

@@ -230,6 +230,7 @@ No pagination — the tag list is expected to stay small (tens, not thousands, o
 **Purpose:** end the current session.
 **Auth:** none required to call it (calling it with no session is a harmless no-op), but it only has an effect if a session cookie is present.
 **Response `200`:** empty body; clears the `bushart_session` cookie.
+**Scope:** signing out increments the admin's `tokenVersion`, which invalidates **every** active session for that account — not only the one presented. See `02-Technical-Specification.md` §4 for why the revocation counter is per-admin.
 
 ### 5.3 `GET /api/auth/me`
 

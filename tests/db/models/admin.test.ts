@@ -78,6 +78,7 @@ beforeEach(() => {
 });
 
 import { createAdmin, findByUsername, findAdminById, updateLoginState, getAdminByUsername } from "@/lib/db/models/admin";
+import { getDb } from "@/lib/db/mongodb";
 
 describe("models/admin", () => {
   it("createAdmin + findByUsername round-trip", async () => {
@@ -110,5 +111,60 @@ describe("models/admin", () => {
     const internal = await getAdminByUsername("dave");
     expect(internal?.id).toBe(created.id);
     expect(internal?.passwordHash).toBe("bcrypt-secret");
+  });
+
+  // `tokenVersion` was introduced alongside the session-revocation work and is
+  // absent from any admin document written before it. Both mappers must
+  // normalise it, because login copies this value straight into the JWT:
+  // an `undefined` here is dropped by JSON.stringify, the signed token then
+  // fails `TokenClaimsSchema`, and every request is answered 401 — a silent
+  // lockout with no error anywhere.
+  describe("documents predating the tokenVersion field", () => {
+    async function seedLegacyAdmin() {
+      const db = await getDb();
+      await db.collection("admins").insertOne({
+        _id: new ObjectId(),
+        username: "legacy",
+        passwordHash: "bcrypt-secret",
+        failedLoginAttempts: 0,
+        lockUntil: null,
+        lastLoginAt: null,
+        createdAt: new Date(),
+        // no tokenVersion
+      });
+    }
+
+    it("findByUsername reports tokenVersion 0 instead of undefined", async () => {
+      await seedLegacyAdmin();
+
+      const found = await findByUsername("legacy");
+
+      expect(found).not.toBeNull();
+      expect(found?.tokenVersion).toBe(0);
+    });
+
+    it("getAdminByUsername reports tokenVersion 0 so login signs a valid claim", async () => {
+      await seedLegacyAdmin();
+
+      const internal = await getAdminByUsername("legacy");
+
+      expect(internal).not.toBeNull();
+      expect(internal?.tokenVersion).toBe(0);
+    });
+
+    it("revocation still works: incrementing a legacy document moves it off 0", async () => {
+      await seedLegacyAdmin();
+
+      const before = await getAdminByUsername("legacy");
+      expect(before?.tokenVersion).toBe(0);
+
+      const { incrementTokenVersion } = await import("@/lib/db/models/admin");
+      const legacy = await getAdminByUsername("legacy");
+      await incrementTokenVersion(legacy!.id);
+
+      // A token issued before the bump must now fail the version comparison,
+      // so the backfill value cannot accidentally disable revocation.
+      expect((await getAdminByUsername("legacy"))?.tokenVersion).toBe(1);
+    });
   });
 });
