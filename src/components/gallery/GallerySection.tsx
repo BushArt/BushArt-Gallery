@@ -144,7 +144,7 @@ function GallerySectionInner({ refreshRef }: { refreshRef?: RefObject<(() => voi
             {viewMode === "grid" ? (
               <GalleryGrid items={items} leadingSlot={<UploadCard onClick={openUpload} />} />
             ) : (
-              <GalleryList items={items} />
+              <GalleryList items={items} leadingSlot={<UploadCard onClick={openUpload} />} />
             )}
           </motion.div>
         )}

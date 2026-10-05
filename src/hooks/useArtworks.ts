@@ -88,7 +88,10 @@ export function useArtworks({ filters, enabled = true }: UseArtworksOptions): Us
         setIsRetryable(false);
         setAppendFailed(false);
       } catch (err) {
-        if (err instanceof DOMException && err.name === "AbortError") return;
+        const isAbortError =
+          err instanceof DOMException && err.name === "AbortError" ||
+          err instanceof Error && err.name === "AbortError";
+        if (isAbortError) return;
         if (err instanceof TypeError) {
           setIsRetryable(true);
         }
