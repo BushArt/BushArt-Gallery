@@ -1,6 +1,6 @@
 # 07 — User Flows
 
-> **Precedence: 9th (part of "remaining documents").** This document translates `01-Product-Definition.md`'s user stories into concrete, step-by-step journeys, grounded in the screens described in `06-UI-Design-System.md` and the endpoints in `05-API-Specification.md`.
+> **Precedence: 9th.** This document translates `01-Product-Definition.md`'s user stories into concrete, step-by-step journeys, grounded in the screens described in `06-UI-Design-System.md` and the endpoints in `05-API-Specification.md`.
 
 ---
 

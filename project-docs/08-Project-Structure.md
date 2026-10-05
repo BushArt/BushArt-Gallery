@@ -1,6 +1,6 @@
 # 08 — Project Structure
 
-> **Precedence: 9th (part of "remaining documents").** This document defines the repository layout. It implements the architecture described in `03-System-Architecture.md` and must stay consistent with it — if a new top-level directory is introduced, `03-System-Architecture.md` should be checked for whether it implies a new component responsibility worth documenting there too.
+> **Precedence: 9th.** This document defines the repository layout. It implements the architecture described in `03-System-Architecture.md` and must stay consistent with it — if a new top-level directory is introduced, `03-System-Architecture.md` should be checked for whether it implies a new component responsibility worth documenting there too.
 
 ---
 
