@@ -1,6 +1,6 @@
 # 12 — Decision Log
 
-> **Precedence: 9th (part of "remaining documents"), but treat with care.** This document records *why* the choices baked into `02` through `09` were made. It does not override any higher-ranked document — it explains them. If a decision recorded here is ever reversed, the reversal gets a new, dated ADR; existing entries are never edited or deleted, only superseded.
+> **Precedence: 9th.** This document records *why* the choices baked into `02` through `09` were made. It does not override any higher-ranked document — it explains them. If a decision recorded here is ever reversed, the reversal gets a new, dated ADR; existing entries are never edited or deleted, only superseded.
 
 ---
 

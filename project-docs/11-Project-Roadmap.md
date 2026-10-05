@@ -1,6 +1,6 @@
 # 11 — Project Roadmap
 
-> **Precedence: 9th (part of "remaining documents").** This document sequences the functional requirements in `01-Product-Definition.md` and the future-facing hooks in `04-Database-Schema.md` §7 into concrete milestones. Every milestone is evaluated against `PROJECT-CONSTITUTION.md` before being scheduled.
+> **Precedence: 9th.** This document sequences the functional requirements in `01-Product-Definition.md` and the future-facing hooks in `04-Database-Schema.md` §7 into concrete milestones. Every milestone is evaluated against `PROJECT-CONSTITUTION.md` before being scheduled.
 
 ---
 

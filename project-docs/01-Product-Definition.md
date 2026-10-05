@@ -1,6 +1,6 @@
 # 01 — Product Definition
 
-> **Precedence: 2nd (below the Constitution).** This document answers *what are we building*, deliberately without prescribing *how*. Implementation detail lives in `02-Technical-Specification.md` onward.
+> **Precedence: 2nd.** This document answers *what are we building*, deliberately without prescribing *how*. Implementation detail lives in `02-Technical-Specification.md` onward.
 
 ---
 
