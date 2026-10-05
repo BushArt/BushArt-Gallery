@@ -167,7 +167,7 @@ _(No currently active items — pick up the next Not Started item from the phase
 - No deletion, migration, or reseeding is performed without separate approval
 
 **Tests:** None — operational inventory.
-**Notes / Results:** Opened at TODO-038 close-out. During that session, agent-run tests were pointed at the application database and destroyed data; the admin was restored, but the fate of a missing E2E artwork and the full extent of content loss were never established, and earlier empty-collection observations are not a current inventory. The `getTestDb()`/`seed-e2e.ts` guards (`12-Decision-Log.md` ADR-014) prevent recurrence on those paths only.
+**Notes / Results:** Opened at TODO-038 close-out after agent-run tests pointed at the application database and destroyed data; admin restored, but the fate of a missing E2E artwork and the full extent of content loss were never established. ADR-014 guards prevent recurrence on those paths.
 
 #### TODO-049 — Dependency security remediation (`npm audit`)
 **Status:** Not Started · **Est. time:** 2h · **Depends on:** None
@@ -179,7 +179,7 @@ _(No currently active items — pick up the next Not Started item from the phase
 - `eslint-config-next` matches the installed `next` major
 
 **Tests:** Full suite green after the bump (`npm run test:all`); `npm run build` succeeds.
-**Notes / Results:** Triaged 2026-09-18. The critical `next` advisories target Server Actions and the Image Optimization API, which this app does not use (no `use server`, no `next/image`); the app-facing risk is low but the in-range fix (next 16.2.10 → 16.3.5) is cheap. The only advisory without a non-breaking fix is dev-only `@vitest/mocker` — deferred to TODO-050. No CI `npm audit` gate for now (would turn unrelated advisories into red builds); revisit if remediation cadence becomes a problem.
+**Notes / Results:** Triaged 2026-09-18. Critical `next` advisories target unused Server Actions/Image Optimization API; in-range fix is cheap. Dev-only `@vitest/mocker` deferred to TODO-050. No CI `npm audit` gate for now.
 
 #### TODO-050 — Vitest 5 upgrade (deferred, breaking)
 **Status:** Not Started · **Est. time:** 3h · **Depends on:** TODO-049
