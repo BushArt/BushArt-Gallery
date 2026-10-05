@@ -28,12 +28,12 @@ vi.mock("@/lib/db/models/admin", () => ({
   findAdminById: vi.fn(),
 }));
 
-// requireAdmin refuses admin writes until boot has verified the indexes; tests
-// exercise the auth chain itself, so treat indexes as verified.
-vi.mock("@/lib/db/indexReady", () => ({
-  areIndexesVerified: () => true,
-  setIndexesVerified: vi.fn(),
-}));
+// The real `@/lib/db/indexReady` is deliberately NOT mocked here. requireAdmin
+// fail-closed with a 503 until boot verified the indexes, and mocking the flag
+// to `true` hid whether that state actually crosses the module-graph boundary
+// between `instrumentation.ts` and the route bundle. These tests drive the real
+// module so a regression there is caught rather than stubbed away.
+import { setIndexesVerified, resetIndexesVerified } from "@/lib/db/indexReady";
 
 // ── Import after mocks ─────────────────────────────────────────────────────
 
@@ -55,6 +55,9 @@ function createGuardedRequest(cookieValue?: string): NextRequest {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // Every other test in this file exercises the auth chain, which sits behind
+  // the index gate; mark indexes verified so those assertions are reachable.
+  setIndexesVerified();
 });
 
 describe("requireAdmin (guard.ts)", () => {
@@ -113,6 +116,39 @@ describe("requireAdmin (guard.ts)", () => {
     const json = await error.json();
     expect(json.error.code).toBe("LOCKED");
     expect(json.error.details.retryAfterSeconds).toBeGreaterThan(0);
+  });
+
+  it("throws 503 SERVICE_UNAVAILABLE while indexes are unverified, before any auth check", async () => {
+    // Regression guard for the boot gate. The flag lives on globalThis because
+    // instrumentation.ts and the route bundle are separate module graphs; a
+    // module-scoped `let` left this permanently false at runtime and fail-closed
+    // every admin request with a 503. Resetting here proves the gate is real and
+    // that clearing it takes effect.
+    resetIndexesVerified();
+
+    const req = createGuardedRequest("valid-token");
+
+    const error = await requireAdmin(req).catch((e) => e);
+    if (!(error instanceof Response)) {
+      throw new Error("Expected Response");
+    }
+    expect(error.status).toBe(503);
+    const json = await error.json();
+    expect(json.error.code).toBe("SERVICE_UNAVAILABLE");
+
+    // Restore for any subsequent test in this file.
+    setIndexesVerified();
+  });
+
+  it("allows the auth chain once indexes are verified", async () => {
+    setIndexesVerified();
+
+    const req = createGuardedRequest("valid-token");
+
+    await expect(requireAdmin(req)).resolves.toEqual({
+      id: "507f1f77bcf86cd799439011",
+      username: "bush",
+    });
   });
 
   it("throws 401 UNAUTHENTICATED when admin account no longer exists", async () => {
