@@ -4,6 +4,7 @@ import {
   getAdminByUsername,
   updateLoginState,
   findLockoutStateByUsername,
+  compareAndSetLoginState,
 } from "@/lib/db/models/admin";
 import { verifyPassword } from "@/lib/auth/password";
 import { DUMMY_PASSWORD_HASH } from "@/lib/auth/password";
@@ -73,7 +74,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const passwordValid = await verifyPassword(password, admin?.passwordHash ?? DUMMY_PASSWORD_HASH);
 
     if (!admin || !passwordValid) {
-      const failedState = recordFailedAttempt(
+      // The read above is stale by the time bcrypt returns (~100-300ms
+      // later): a concurrent request may have moved the counter, notably a
+      // successful login resetting it to 0. An unconditional write would
+      // clobber that newer state. Write conditionally, retrying on conflict
+      // with a fresh read; failure mode must never be weaker locking, so an
+      // exhausted retry falls back to an unconditional write.
+      let failedState = recordFailedAttempt(
         admin
           ? { failedLoginAttempts: admin.failedLoginAttempts, lockUntil: admin.lockUntil }
           : { failedLoginAttempts: 0, lockUntil: null },
@@ -81,11 +88,31 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
 
       if (admin) {
-        await updateLoginState(admin.id, {
-          failedLoginAttempts: failedState.failedLoginAttempts,
-          lockUntil: failedState.lockUntil,
-          lastLoginAt: admin.lastLoginAt,
-        });
+        const MAX_CAS_ATTEMPTS = 3;
+        let expected = {
+          failedLoginAttempts: admin.failedLoginAttempts,
+          lockUntil: admin.lockUntil,
+        };
+        let committed = false;
+        for (let attempt = 0; attempt < MAX_CAS_ATTEMPTS && !committed; attempt++) {
+          committed = await compareAndSetLoginState(admin.id, expected, {
+            failedLoginAttempts: failedState.failedLoginAttempts,
+            lockUntil: failedState.lockUntil,
+          });
+          if (!committed) {
+            const current = await findLockoutStateByUsername(admin.username);
+            if (!current) break;
+            expected = current;
+            failedState = recordFailedAttempt(current, now);
+          }
+        }
+        if (!committed) {
+          await updateLoginState(admin.id, {
+            failedLoginAttempts: failedState.failedLoginAttempts,
+            lockUntil: failedState.lockUntil,
+            lastLoginAt: admin.lastLoginAt,
+          });
+        }
       }
 
       if (isLocked(failedState.lockUntil, now)) {

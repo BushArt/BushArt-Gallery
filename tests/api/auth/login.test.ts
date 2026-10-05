@@ -289,4 +289,33 @@ describe("POST /api/auth/login", () => {
     expect(json.error.code).toBe("TOO_MANY_REQUESTS");
     expect(json.error.details.retryAfterSeconds).toBeGreaterThan(0);
   });
+
+  it("does not clobber a concurrent successful login's counter reset", async () => {
+    // Race B: the failed request reads the counter (4), a concurrent success
+    // resets it to 0 while bcrypt runs, then the stale failure write must
+    // retry from the fresh state (landing on 1) instead of overwriting with 5.
+    const admin = await seedAdmin({ failedLoginAttempts: 4, lockUntil: null });
+    const { updateLoginState } = await import("@/lib/db/models/admin");
+
+    vi.mocked(verifyPassword).mockImplementationOnce(async () => {
+      await updateLoginState(admin.id, {
+        failedLoginAttempts: 0,
+        lockUntil: null,
+        lastLoginAt: new Date(),
+      });
+      return false;
+    });
+
+    const res = await POST(
+      createLoginRequest({ username: "bush", password: "wrong-password" }),
+    );
+    expect(res.status).toBe(401);
+
+    const db = await getTestDb();
+    const updated = await db
+      .collection("admins")
+      .findOne({ _id: new ObjectId(admin.id) });
+    expect(updated?.failedLoginAttempts).toBe(1);
+    expect(updated?.lockUntil).toBeNull();
+  });
 });

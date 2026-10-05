@@ -1,8 +1,41 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ObjectId } from "mongodb";
 
+function matchesValue(actual: any, expected: any): boolean {
+  // Handles the filter shapes `compareAndSetLoginState` builds: exact
+  // values, `{ $in: [...] }`, and Dates (compared by time, not identity).
+  if (expected !== null && typeof expected === "object") {
+    if ("$in" in expected && Array.isArray((expected as any).$in)) {
+      return (expected as any).$in.some((v: any) => matchesValue(actual, v));
+    }
+    if (expected instanceof Date) {
+      return actual instanceof Date && actual.getTime() === expected.getTime();
+    }
+  }
+  if (expected === null) return actual === null || actual === undefined;
+  if (actual === undefined) return false;
+  if (actual instanceof Date && expected instanceof Date) {
+    return actual.getTime() === expected.getTime();
+  }
+  return actual === expected;
+}
+
 function createMockCollection<T extends { _id: ObjectId }>() {
   let docs: T[] = [];
+
+  const matchesFilter = (d: any, filter: any): boolean => {
+    for (const [key, expected] of Object.entries(filter ?? {})) {
+      if (key === "_id") {
+        const f: any = expected;
+        if (f?.$in) {
+          if (!f.$in.some((id: any) => d._id?.equals?.(id))) return false;
+        } else if (!d._id?.equals?.(f)) return false;
+      } else if (!matchesValue(d[key], expected)) {
+        return false;
+      }
+    }
+    return true;
+  };
 
   const base = {
     async insertOne(doc: T) { docs.push(doc); },
@@ -21,7 +54,7 @@ function createMockCollection<T extends { _id: ObjectId }>() {
       if (idx !== -1) docs[idx] = { ...docs[idx], ...update.$set };
     },
     async findOneAndUpdate(filter: any, update: any) {
-      const idx = docs.findIndex((d: any) => d._id?.equals?.(filter._id) ?? false);
+      const idx = docs.findIndex((d: any) => matchesFilter(d, filter));
       if (idx === -1) return null;
       const next: any = { ...(docs[idx] as any) };
       if (update.$set) Object.assign(next, update.$set);
@@ -165,6 +198,69 @@ describe("models/admin", () => {
       // A token issued before the bump must now fail the version comparison,
       // so the backfill value cannot accidentally disable revocation.
       expect((await getAdminByUsername("legacy"))?.tokenVersion).toBe(1);
+    });
+  });
+
+  // `compareAndSetLoginState` is the compare half of the lockout CAS. The
+  // login route reads the counter, spends ~100-300ms in bcrypt, then writes
+  // — a concurrent request can move the counter in between, notably a
+  // successful login resetting it to 0. The unconditional `updateLoginState`
+  // would clobber that newer state and lock out an admin who just entered
+  // the correct password.
+  describe("compareAndSetLoginState", () => {
+    it("applies the write when the document still holds the expected values", async () => {
+      const admin = await createAdmin({ username: "cas", passwordHash: "hash" });
+      const { compareAndSetLoginState } = await import("@/lib/db/models/admin");
+
+      const committed = await compareAndSetLoginState(
+        admin.id,
+        { failedLoginAttempts: 0, lockUntil: null },
+        { failedLoginAttempts: 1, lockUntil: null },
+      );
+
+      expect(committed).toBe(true);
+      expect((await findByUsername("cas"))?.failedLoginAttempts).toBe(1);
+    });
+
+    it("refuses the write when the counter moved since the read", async () => {
+      const admin = await createAdmin({ username: "cas-stale", passwordHash: "hash" });
+      const { compareAndSetLoginState } = await import("@/lib/db/models/admin");
+
+      // Simulate the race loser: the caller read 4, but a concurrent request
+      // already reset the counter to 0. The stale write of 5 must not land.
+      await updateLoginState(admin.id, { failedLoginAttempts: 0, lockUntil: null });
+      const committed = await compareAndSetLoginState(
+        admin.id,
+        { failedLoginAttempts: 4, lockUntil: null },
+        { failedLoginAttempts: 5, lockUntil: new Date() },
+      );
+
+      expect(committed).toBe(false);
+      expect((await findByUsername("cas-stale"))?.failedLoginAttempts).toBe(0);
+    });
+
+    it("matches a legacy document that lacks the failedLoginAttempts field", async () => {
+      const db = await getDb();
+      const id = new ObjectId();
+      await db.collection("admins").insertOne({
+        _id: id,
+        username: "cas-legacy",
+        passwordHash: "hash",
+        lockUntil: null,
+        lastLoginAt: null,
+        createdAt: new Date(),
+        // no failedLoginAttempts
+      });
+      const { compareAndSetLoginState } = await import("@/lib/db/models/admin");
+
+      const committed = await compareAndSetLoginState(
+        id.toHexString(),
+        { failedLoginAttempts: 0, lockUntil: null },
+        { failedLoginAttempts: 1, lockUntil: null },
+      );
+
+      expect(committed).toBe(true);
+      expect((await findByUsername("cas-legacy"))?.failedLoginAttempts).toBe(1);
     });
   });
 });

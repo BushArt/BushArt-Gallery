@@ -1,4 +1,4 @@
-import { ObjectId } from "mongodb";
+import { ObjectId, type Filter } from "mongodb";
 import { getDb } from "@/lib/db/mongodb";
 import { Admin, AdminInternal } from "@/types/admin";
 
@@ -164,6 +164,58 @@ export async function incrementTokenVersion(id: string): Promise<void> {
     { _id: new ObjectId(id) },
     { $inc: { tokenVersion: 1 } },
   );
+}
+
+/**
+ * Conditionally write login-state fields, succeeding only if the document
+ * still holds the values the caller read.
+ *
+ * This is the compare half of a compare-and-swap for the lockout counter.
+ * `updateLoginState` is an unconditional write: between the route's
+ * `getAdminByUsername` read and the post-bcrypt write, a concurrent request
+ * can move the counter (notably a successful login resetting it to 0), and
+ * the stale writer then clobbers the newer state — locking out an admin who
+ * just entered the correct password. Filtering on the observed values makes
+ * the loser of the race retry instead of overwriting.
+ *
+ * Legacy detail: a document written before `failedLoginAttempts` tracking may
+ * lack the field, and `{ failedLoginAttempts: 0 }` does not match a missing
+ * field in Mongo. The expected-0 case therefore filters `{ $in: [0, null] }`,
+ * which matches 0, null, and missing alike. Same treatment for `lockUntil`.
+ *
+ * @returns `true` if the document matched and was updated, `false` on conflict.
+ */
+export async function compareAndSetLoginState(
+  id: string,
+  expected: { failedLoginAttempts: number; lockUntil: Date | null },
+  next: { failedLoginAttempts: number; lockUntil: Date | null },
+): Promise<boolean> {
+  const col = await collection();
+  // `$in: [0, null]` matches 0, null, and a missing field alike (Mongo treats
+  // `null` equality as matching missing). The driver types `$in` as
+  // `number[]`, so the mixed literal needs a cast — runtime semantics are
+  // what matters here and they are covered by the legacy-doc test below.
+  const attemptsFilter = (
+    expected.failedLoginAttempts === 0
+      ? { $in: [0, null] }
+      : expected.failedLoginAttempts
+  ) as Filter<AdminDoc>["failedLoginAttempts"];
+  const result = await col.findOneAndUpdate(
+    {
+      _id: new ObjectId(id),
+      failedLoginAttempts: attemptsFilter,
+      ...(expected.lockUntil === null
+        ? { lockUntil: null }
+        : { lockUntil: expected.lockUntil }),
+    },
+    {
+      $set: {
+        failedLoginAttempts: next.failedLoginAttempts,
+        lockUntil: next.lockUntil,
+      },
+    },
+  );
+  return result !== null;
 }
 
 /**
