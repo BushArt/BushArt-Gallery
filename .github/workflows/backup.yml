@@ -1,3 +1,5 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+
 name: Backup
 
 on:
@@ -9,14 +11,13 @@ jobs:
   backup:
     runs-on: ubuntu-latest
 
-    services:
-      mongodb:
-        image: mongo:7
-        ports:
-          - 27017:27017
-
+    # No `services:` block. The previous version declared its own empty MongoDB
+    # container and pointed MONGODB_URI at it, so every scheduled run produced a
+    # well-formed artifact containing zero documents — a backup that reported
+    # success while archiving nothing. The URI now comes from a repository
+    # secret and targets the real database.
     env:
-      MONGODB_URI: mongodb://localhost:27017/bushart
+      MONGODB_URI: ${{ secrets.BACKUP_MONGODB_URI }}
 
     steps:
       - uses: actions/checkout@v4
@@ -27,15 +28,36 @@ jobs:
           node-version: "24.14.1"
           cache: "npm"
 
+      - name: Verify backup URI is configured
+        # Fail before doing any work rather than emitting an empty artifact.
+        # The secret is a full mongodb+srv:// Atlas URI; the check never logs it.
+        run: |
+          if [ -z "$MONGODB_URI" ]; then
+            echo "::error::BACKUP_MONGODB_URI secret is not set. Configure it in repository settings."
+            exit 1
+          fi
+
       - name: Install dependencies
         run: npm ci
 
       - name: Run backup script
-        run: node ./node_modules/tsx/dist/cli.mjs scripts/backup.ts
+        run: npm run db:backup
+
+      - name: Fail if the backup captured no documents
+        # A structurally valid but empty dump means the URI pointed somewhere
+        # without data. Surfacing that here is the whole point of the job.
+        run: |
+          count=$(find backups -name '*.json' -exec cat {} + | grep -o '"_id"' | wc -l)
+          echo "Documents captured: $count"
+          if [ "$count" -eq 0 ]; then
+            echo "::error::Backup captured 0 documents. The database is empty or the URI is wrong."
+            exit 1
+          fi
 
       - name: Upload backup
         uses: actions/upload-artifact@v4
         with:
           name: mongo-backup-${{ github.run_number }}
           path: backups/
-          if-no-files-found: warn
+          if-no-files-found: error
+          retention-days: 30

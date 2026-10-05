@@ -3,11 +3,33 @@ import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const DB_URI = process.env.MONGODB_URI ?? "mongodb://localhost:27017/bushart";
 const BACKUP_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "backups");
 
+/**
+ * Require an explicit MONGODB_URI.
+ *
+ * This used to fall back to `mongodb://localhost:27017/bushart`, which made a
+ * misconfigured backup indistinguishable from a good one: the scheduled workflow
+ * declared its own empty MongoDB service container, so every Sunday it produced
+ * a well-formed JSON artifact containing zero documents. Failing loudly is
+ * strictly better than archiving nothing while reporting success.
+ *
+ * Resolved inside `main()` so the throw is typed as `never` and the URI narrows
+ * to `string` for the rest of the function.
+ */
+function requireDbUri(): string {
+  const uri = process.env.MONGODB_URI;
+  if (!uri) {
+    throw new Error(
+      "MONGODB_URI is not set. Refusing to fall back to localhost, which would " +
+        "silently archive an empty database.",
+    );
+  }
+  return uri;
+}
+
 async function main() {
-  const client = new MongoClient(DB_URI, {
+  const client = new MongoClient(requireDbUri(), {
     connectTimeoutMS: 15_000,
     serverSelectionTimeoutMS: 15_000,
   });

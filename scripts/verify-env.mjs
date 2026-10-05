@@ -20,8 +20,7 @@ async function main() {
   const env = parseEnv(readFileSync('.env.local', 'utf8'));
   const results = { mongo: null, cloudinary: null };
 
-  // MongoDB check: first try SRV URI, then fallback to direct host if SRV fails
-  let mongoDirect = null;
+  // MongoDB check: connect and ping the configured URI
   try {
     const client = new MongoClient(env.MONGODB_URI, { serverApi: { version: '1', strict: true, deprecationErrors: true } });
     await client.connect();

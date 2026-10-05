@@ -14,6 +14,7 @@
     "lint": "eslint src/ tests/ scripts/",
     "format": "prettier --write .",
     "db:setup": "node ./node_modules/tsx/dist/cli.mjs scripts/db-setup.mjs",
+    "db:backup": "node ./node_modules/tsx/dist/cli.mjs scripts/backup.ts",
     "seed:admin": "node ./node_modules/tsx/dist/cli.mjs scripts/seed-admin.ts",
     "test": "node ./node_modules/vitest/vitest.mjs run",
     "test:all": "node scripts/test-all.mjs",
