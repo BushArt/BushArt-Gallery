@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getCachedArtworkDetail, cacheArtworkDetail } from "@/lib/utils/artworkDetailCache";
+import { getCachedArtworkPreview } from "@/lib/utils/artworkPreviewCache";
 import type { ArtworkDetailResponse } from "@/types/api";
+import type { ArtworkPreview } from "@/types/artwork";
 
 interface UseArtworkOptions {
   slug: string;
@@ -12,6 +14,16 @@ interface UseArtworkOptions {
 
 interface UseArtworkResult {
   artwork: ArtworkDetailResponse | null;
+  /**
+   * Whatever the gallery hover prefetch already warmed, for rendering a shell
+   * while the full document is still in flight.
+   *
+   * Deliberately kept separate from `artwork` rather than merged into it: a
+   * preview has no `images[]`, `tags`, `medium`, `type`, `completionDate` or
+   * `id`, so it cannot stand in for the detail document. Callers that mutate
+   * or persist artwork must read `artwork`, never this.
+   */
+  preview: ArtworkPreview | null;
   isLoading: boolean;
   error: string | null;
   isRetryable: boolean;
@@ -54,6 +66,18 @@ function resolveInitialData(
 ): ArtworkDetailResponse | null {
   if (initialData) return initialData;
   const cached = getCachedArtworkDetail(slug);
+  return cached?.slug === slug ? cached : null;
+}
+
+/**
+ * Read the hover prefetch for this slug, if one is warm.
+ *
+ * Read per render rather than held in state: the Map is the source of truth and
+ * it is mutated by `ArtworkCard`, so a cached value may appear between renders.
+ * The slug check guards against a stale entry from a previously-viewed artwork.
+ */
+function resolvePreview(slug: string): ArtworkPreview | null {
+  const cached = getCachedArtworkPreview(slug);
   return cached?.slug === slug ? cached : null;
 }
 
@@ -143,6 +167,7 @@ export function useArtwork({
 
   return {
     artwork,
+    preview: resolvePreview(slug),
     isLoading,
     error,
     isRetryable,

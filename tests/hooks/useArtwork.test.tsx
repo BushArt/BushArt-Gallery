@@ -1,7 +1,9 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { clearArtworkDetailCache, cacheArtworkDetail } from "@/lib/utils/artworkDetailCache";
+import { clearArtworkPreviewCache, cacheArtworkPreview } from "@/lib/utils/artworkPreviewCache";
 import type { ArtworkDetailResponse } from "@/types/api";
+import type { ArtworkPreview } from "@/types/artwork";
 import { useArtwork } from "@/hooks/useArtwork";
 
 const detail: ArtworkDetailResponse = {
@@ -23,10 +25,12 @@ const detail: ArtworkDetailResponse = {
 describe("useArtwork", () => {
   beforeEach(() => {
     clearArtworkDetailCache();
+    clearArtworkPreviewCache();
     vi.restoreAllMocks();
   });
 
   afterEach(() => {
+    clearArtworkPreviewCache();
     vi.unstubAllGlobals();
   });
 

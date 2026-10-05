@@ -95,6 +95,7 @@ describe("ArtworkPopup", () => {
     localStorage.setItem(NSFW_STORAGE_KEY, "include");
     vi.mocked(useArtwork).mockReturnValue({
       artwork: makeArtwork(),
+      preview: null,
       isLoading: false,
       error: null,
       isRetryable: false,
@@ -126,6 +127,7 @@ describe("ArtworkPopup", () => {
           slug: `tag-${i}`,
         })),
       }),
+      preview: null,
       isLoading: false,
       error: null,
       isRetryable: false,
@@ -138,10 +140,89 @@ describe("ArtworkPopup", () => {
     expect(screen.queryByText(/you might also like/i)).not.toBeInTheDocument();
   });
 
+  // The hover prefetch is only useful if the modal can render something from
+  // it while the full document loads. It must never become a way around the
+  // NSFW gate: the loading shell renders *before* the popup's own interstitial
+  // check, so it has to enforce the gate itself.
+  describe("loading shell from the hover prefetch", () => {
+    const preview = {
+      slug: "test-art",
+      title: "Warmed Title",
+      nsfw: false,
+      coverImage: { publicId: "cover-art", width: 800, height: 600 },
+      descriptionPreview: null,
+    };
+
+    function mockLoading(overrides: Partial<ReturnType<typeof useArtwork>> = {}) {
+      vi.mocked(useArtwork).mockReturnValue({
+        artwork: null,
+        preview: null,
+        isLoading: true,
+        error: null,
+        isRetryable: false,
+        refresh: vi.fn(),
+        ...overrides,
+      });
+    }
+
+    it("shows the plain loading text when no preview is warm", () => {
+      mockLoading();
+
+      render(<ArtworkPopup slug="test-art" />);
+
+      expect(screen.getByText(/loading artwork/i)).toBeInTheDocument();
+      expect(screen.queryByText("Warmed Title")).not.toBeInTheDocument();
+    });
+
+    it("renders the cover and title from the preview instead of a spinner", () => {
+      mockLoading({ preview });
+
+      render(<ArtworkPopup slug="test-art" />);
+
+      expect(screen.getByText("Warmed Title")).toBeInTheDocument();
+      expect(screen.getByAltText("Warmed Title")).toBeInTheDocument();
+      expect(screen.queryByText(/loading artwork/i)).not.toBeInTheDocument();
+    });
+
+    it("withholds the preview image from an NSFW artwork when SFW is preferred", () => {
+      // The regression this guards: adding an image to a shell that runs before
+      // the interstitial would flash NSFW media the visitor opted out of.
+      localStorage.setItem(NSFW_STORAGE_KEY, "exclude");
+      mockLoading({ preview: { ...preview, nsfw: true } });
+
+      render(<ArtworkPopup slug="test-art" />);
+
+      expect(screen.queryByAltText("Warmed Title")).not.toBeInTheDocument();
+      expect(screen.queryByText("Warmed Title")).not.toBeInTheDocument();
+      expect(screen.getByText(/loading artwork/i)).toBeInTheDocument();
+    });
+
+    it("shows the preview image for an NSFW artwork when the visitor opted in", () => {
+      localStorage.setItem(NSFW_STORAGE_KEY, "include");
+      mockLoading({ preview: { ...preview, nsfw: true } });
+
+      render(<ArtworkPopup slug="test-art" />);
+
+      expect(screen.getByAltText("Warmed Title")).toBeInTheDocument();
+    });
+
+    it("does not render the edit form from a preview while still loading", () => {
+      mockAuth({ isAuthenticated: true, isLoading: false });
+      mockLoading({ preview });
+
+      render(<ArtworkPopup slug="test-art" />);
+
+      // Saving from a preview would persist a truncated document: it carries
+      // no images[], tags, medium, type, completionDate or id.
+      expect(screen.queryByTestId("artwork-edit-button")).not.toBeInTheDocument();
+    });
+  });
+
   it("shows NSFW interstitial when artwork is NSFW and preference is SFW", async () => {
     localStorage.setItem(NSFW_STORAGE_KEY, "exclude");
     vi.mocked(useArtwork).mockReturnValue({
       artwork: makeArtwork({ nsfw: true }),
+      preview: null,
       isLoading: false,
       error: null,
       isRetryable: false,
@@ -166,6 +247,7 @@ describe("ArtworkPopup", () => {
           { publicId: "img-a", width: 800, height: 600, order: 0 },
         ],
       }),
+      preview: null,
       isLoading: false,
       error: null,
       isRetryable: false,

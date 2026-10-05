@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { NSFW_STORAGE_KEY } from "@/hooks/useFilters";
 import { NSFW_PREFERENCE_CHANGED } from "@/lib/utils/nsfwEvents";
 import type { ArtworkDetailResponse } from "@/types/api";
+import type { ArtworkPreview } from "@/types/artwork";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { SketchReveal, SketchRevealImage } from "@/components/ui/SketchReveal";
@@ -61,7 +62,27 @@ function NsfwInterstitial({
   );
 }
 
-export function ArtworkPopupLoadingShell({ closeMode = "back" }: { closeMode?: "back" | "home" }) {
+export function ArtworkPopupLoadingShell({
+  closeMode = "back",
+  preview = null,
+  hideMedia = false,
+}: {
+  closeMode?: "back" | "home";
+  /**
+   * The hover prefetch for this artwork, if the gallery already warmed it.
+   * Lets the cover and title appear immediately instead of "Loading artwork…".
+   */
+  preview?: ArtworkPreview | null;
+  /**
+   * Whether the NSFW gate is blocking this visitor.
+   *
+   * Required, not optional-by-default: this shell renders *before* the popup's
+   * own `nsfwBlocked` check runs, so without an explicit signal it would flash
+   * the cover of an NSFW artwork to someone who chose to exclude them — a leak
+   * the pre-existing text-only shell could not have had.
+   */
+  hideMedia?: boolean;
+}) {
   const router = useRouter();
   const handleClose = useCallback(() => {
     if (closeMode === "home") {
@@ -75,10 +96,29 @@ export function ArtworkPopupLoadingShell({ closeMode = "back" }: { closeMode?: "
     }
   }, [router, closeMode]);
 
+  const showPreview = preview !== null && !hideMedia;
+
   return (
     <Modal onClose={handleClose} testId="artwork-modal">
-      <div className="p-12 text-center text-body-md text-paper-500" data-testid="artwork-popup">
-        Loading artwork…
+      <div
+        className={clsx("p-12 text-center text-body-md text-paper-500", showPreview && "p-6")}
+        data-testid="artwork-popup"
+      >
+        {showPreview ? (
+          <>
+            <SketchRevealImage
+              src={getTransformationUrl(preview.coverImage.publicId, "popup")}
+              alt={preview.title}
+              className="aspect-[4/3] w-full rounded-sm"
+              loading="eager"
+            />
+            <h2 className="mt-4 font-fraunces text-display-sm text-paper-100">
+              {preview.title}
+            </h2>
+          </>
+        ) : (
+          "Loading artwork…"
+        )}
       </div>
     </Modal>
   );
@@ -102,7 +142,7 @@ export function ArtworkPopup({ slug, initialData = null, closeMode = "back" }: A
     }
   }, [router, closeMode]);
 
-  const { artwork, isLoading, error, refresh } = useArtwork({ slug, initialData });
+  const { artwork, preview, isLoading, error, refresh } = useArtwork({ slug, initialData });
   const [nsfwPreference, setNsfwPreference] = useState<"include" | "exclude">(
     readNsfwPreferenceFromStorage,
   );
@@ -177,7 +217,19 @@ export function ArtworkPopup({ slug, initialData = null, closeMode = "back" }: A
     : null;
 
   if (isLoading) {
-    return <ArtworkPopupLoadingShell closeMode={closeMode} />;
+    // The shell renders before `nsfwBlocked` below, so it needs its own gate:
+    // the preview carries `nsfw`, and showing the cover of a blocked artwork
+    // would leak exactly what the interstitial exists to withhold.
+    const previewBlocked =
+      preview?.nsfw === true && nsfwPreference === "exclude" && !nsfwConfirmed;
+
+    return (
+      <ArtworkPopupLoadingShell
+        closeMode={closeMode}
+        preview={preview}
+        hideMedia={previewBlocked}
+      />
+    );
   }
 
   if (error || !artwork) {
