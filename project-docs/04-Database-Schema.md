@@ -130,6 +130,18 @@ The core collection. One document per published piece.
 - `featuredOrder` is required (non-null) if and only if `featured` is `true`; enforced at the application layer (Zod), not as a MongoDB schema validator, to keep the database layer simple per the Constitution.
 - `tagIds` elements must reference existing `tags` documents at write time (checked in the API layer before insert/update — see `05-API-Specification.md`).
 
+### Indexes
+
+| Index | Fields | Purpose |
+|---|---|---|
+| `artworks_slug_unique` | `{ slug: 1 }`, unique | Slug lookups for artwork detail pages. |
+| `artworks_gallery_feed` | `{ nsfw: 1, type: 1, completionDate: -1, _id: -1 }` | Primary compound index backing the filtered, sorted gallery feed and cursor pagination. |
+| `artworks_tagIds` | `{ tagIds: 1 }` | Multikey index supporting tag-based filtering. |
+| `artworks_createdAt` | `{ createdAt: -1 }` | Backs the "recently added" sort mode. |
+| `artworks_featured` | `{ featured: 1, featuredOrder: 1 }` | Backs the homepage featured-section query. |
+
+---
+
 ### Example Document
 
 ```json
@@ -173,16 +185,6 @@ The core collection. One document per published piece.
   "colorPalette": null
 }
 ```
-
-### Indexes
-
-| Index | Fields | Purpose |
-|---|---|---|
-| `artworks_slug_unique` | `{ slug: 1 }`, unique | Slug lookups for artwork detail pages. |
-| `artworks_gallery_feed` | `{ nsfw: 1, type: 1, completionDate: -1, _id: -1 }` | Primary compound index backing the filtered, sorted gallery feed and cursor pagination. |
-| `artworks_tagIds` | `{ tagIds: 1 }` | Multikey index supporting tag-based filtering. |
-| `artworks_createdAt` | `{ createdAt: -1 }` | Backs the "recently added" sort mode. |
-| `artworks_featured` | `{ featured: 1, featuredOrder: 1 }` | Backs the homepage featured-section query. |
 
 ---
 
@@ -271,6 +273,12 @@ A **singleton** collection — exactly one document, holding all editable homepa
 | `platform` | `string` | Free text label (e.g., "Instagram", "Bluesky"). |
 | `url` | `string` | Full URL, validated at the application layer. |
 
+### Indexes
+
+None required beyond the default `_id` index — this collection is read via `findOne({})` and holds a single document.
+
+---
+
 ### Example Document
 
 ```json
@@ -296,10 +304,6 @@ A **singleton** collection — exactly one document, holding all editable homepa
   "updatedAt": "2026-07-10T12:00:00.000Z"
 }
 ```
-
-### Indexes
-
-None required beyond the default `_id` index — this collection is read via `findOne({})` and holds a single document.
 
 ---
 
