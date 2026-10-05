@@ -1,9 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   signUploadSignature,
-  validateFolder,
   SignUploadSignatureParams,
-  FolderValidationError,
   IMAGE_ALLOWED_FORMATS,
   VIDEO_ALLOWED_FORMATS,
   UPLOAD_FOLDER,
@@ -166,27 +164,5 @@ describe("signUploadSignature", () => {
     expect(result.cloudName).toBeUndefined();
 
     mockCloudinaryInstance.config = originalConfig;
-  });
-});
-
-describe("validateFolder", () => {
-  it("accepts exactly the fixed upload folder", () => {
-    expect(() => validateFolder(UPLOAD_FOLDER)).not.toThrow();
-  });
-
-  it("rejects path traversal, nesting, and foreign folders", () => {
-    const invalidFolders = [
-      "bushart/artworks/test",
-      "artworks/test",
-      "bushart/uploads/nested",
-      "bushart/uploads/../etc",
-      "../etc/passwd",
-      "/absolute/path",
-      "not-bushart/uploads",
-    ];
-
-    for (const folder of invalidFolders) {
-      expect(() => validateFolder(folder)).toThrow(FolderValidationError);
-    }
   });
 });

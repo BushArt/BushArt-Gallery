@@ -22,19 +22,6 @@ export const VIDEO_ALLOWED_FORMATS = "mp4,mov,webm";
 
 export const UPLOAD_MAX_FILE_SIZE = 50 * 1024 * 1024;
 
-export class FolderValidationError extends Error {
-  constructor(folder: string) {
-    super(`Invalid folder: must start with "bushart/uploads/", got "${folder}"`);
-    this.name = "FolderValidationError";
-  }
-}
-
-export function validateFolder(folder: string): void {
-  if (folder !== UPLOAD_FOLDER) {
-    throw new FolderValidationError(folder);
-  }
-}
-
 export interface SignUploadSignatureParams {
   resourceType: "image" | "video";
 }

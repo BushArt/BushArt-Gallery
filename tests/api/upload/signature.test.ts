@@ -36,7 +36,7 @@ import { POST } from "@/app/api/upload/signature/route";
 import { requireAdmin } from "@/lib/auth/guard";
 import {
   signUploadSignature,
-  FolderValidationError,
+  
 } from "@/lib/cloudinary/signature";
 
 function createSignatureRequest(body: unknown): NextRequest {
@@ -196,24 +196,7 @@ describe("POST /api/upload/signature", () => {
     expect(json).toEqual(mockSignatureResult);
   });
 
-  it("returns 400 VALIDATION_ERROR when folder validation fails (path traversal attempt)", async () => {
-    vi.mocked(requireAdmin).mockResolvedValue({
-      id: "admin1",
-      username: "bush",
-    });
-    const folderError = new FolderValidationError("../etc/passwd");
-    vi.mocked(signUploadSignature).mockRejectedValue(folderError);
-
-    const req = createSignatureRequest({
-      resourceType: "image",
-      folder: "../etc/passwd",
-    });
-    const res = await POST(req);
-    expect(res.status).toBe(400);
-    const json = await res.json();
-    expect(json.error.code).toBe("VALIDATION_ERROR");
-    expect(json.error.message).toContain("bushart/");
-  });
+  
 
   it("returns 423 LOCKOUT when admin account is locked", async () => {
     const mockError = new Response(

@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth/guard";
-import { signUploadSignature, FolderValidationError } from "@/lib/cloudinary/signature";
+import { signUploadSignature } from "@/lib/cloudinary/signature";
 import { apiError, handleRouteError } from "@/lib/api/errors";
 
 /**
@@ -57,11 +57,6 @@ export async function POST(request: NextRequest): Promise<Response> {
     // requireAdmin throws Response for 401/423; rethrow those as-is
     if (error instanceof Response) {
       return error;
-    }
-
-    // Folder validation errors are client mistakes → 400, not 500
-    if (error instanceof FolderValidationError) {
-      return apiError(400, "VALIDATION_ERROR", error.message);
     }
 
     return handleRouteError(error, "POST /api/upload/signature");

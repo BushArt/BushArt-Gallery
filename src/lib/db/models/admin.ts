@@ -166,22 +166,6 @@ export async function incrementTokenVersion(id: string): Promise<void> {
   );
 }
 
-export async function incrementFailedAttempts(
-  id: string,
-): Promise<{ failedLoginAttempts: number; lockUntil: Date | null } | null> {
-  const col = await collection();
-  const result = await col.findOneAndUpdate(
-    { _id: new ObjectId(id) },
-    { $inc: { failedLoginAttempts: 1 }, $set: { lastLoginAt: new Date() } },
-    { returnDocument: "after" },
-  );
-  if (!result) return null;
-  return {
-    failedLoginAttempts: result.failedLoginAttempts,
-    lockUntil: result.lockUntil,
-  };
-}
-
 /**
  * Atomically find an admin by username and return the current lockout state.
  * This helper is used to re-check lockout immediately before a successful login,
