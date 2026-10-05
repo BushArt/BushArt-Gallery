@@ -80,17 +80,9 @@ You do not need to read this package front-to-back to use it, but if you are onb
 
 ## 5. Sources of Truth — Documentation Hierarchy
 
-Every document in this package is internally consistent with the others as of `v0.1`. If a future edit ever creates a contradiction, **the document higher in this list wins**:
+Every document in this package is internally consistent with the others as of `v0.1`. If a future edit ever creates a contradiction, the higher-ranked document wins.
 
-1. `PROJECT-CONSTITUTION.md`
-2. `01-Product-Definition.md`
-3. `02-Technical-Specification.md`
-4. `03-System-Architecture.md`
-5. `04-Database-Schema.md`
-6. `05-API-Specification.md`
-7. `06-UI-Design-System.md`
-8. `09-Coding-Standards.md`
-9. All remaining documents (`07`, `08`, `10`, `11`, `12`, `CHANGELOG.md`)
+The authoritative precedence chain is maintained in `AGENT.md` §Precedence. This file does not restate it — consult AGENT.md when resolving conflicts.
 
 In practice this means: if `05-API-Specification.md` describes a field that `04-Database-Schema.md` doesn't have, the schema document is correct and the API document has a bug that needs fixing — not the other way around. The Constitution outranks everything, including this README.
 
