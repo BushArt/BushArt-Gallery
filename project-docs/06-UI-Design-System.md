@@ -92,9 +92,19 @@ Both `Fraunces` and `IBM Plex Mono` are loaded via `next/font` (self-hosted, not
 
 ## 5. Spacing Scale
 
-4px base unit, matching Tailwind's default scale so tokens map directly to utility classes without a custom config layer:
+4px base unit, matching Tailwind's default scale so tokens map directly to utility classes without a custom config layer.
 
-`--space-1: 4px · --space-2: 8px · --space-3: 12px · --space-4: 16px · --space-6: 24px · --space-8: 32px · --space-12: 48px · --space-16: 64px · --space-24: 96px`
+| Token | Value | Usage |
+|---|---|---|
+| `--space-1` | 4px | Tight inline gaps, icon-text spacing |
+| `--space-2` | 8px | Compact padding, badge gaps |
+| `--space-3` | 12px | Form input padding, list-item spacing |
+| `--space-4` | 16px | Default card padding, button padding |
+| `--space-6` | 24px | Section gaps, card-to-card spacing |
+| `--space-8` | 32px | Hero-to-gallery gap, modal padding |
+| `--space-12` | 48px | Major section breaks |
+| `--space-16` | 64px | Page-edge breathing room |
+| `--space-24` | 96px | Full-screen overlay gutters |
 
 ## 6. Elevation
 
