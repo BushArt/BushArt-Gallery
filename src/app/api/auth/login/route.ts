@@ -51,18 +51,23 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const clientIp = getClientIp(request);
 
   try {
-    const admin = await getAdminByUsername(username);
-
-    if (admin && isLocked(admin.lockUntil, now)) {
-      const retryAfterSeconds = Math.ceil((admin.lockUntil!.getTime() - now.getTime()) / 1000);
-      return apiError(423, "LOCKED", "Account is temporarily locked", { retryAfterSeconds });
-    }
-
+    // Rate limit first — it is an in-memory check that costs nothing, so it
+    // must gate the database lookup below. Checking after `getAdminByUsername`
+    // let an attacker force one MongoDB query per request simply by cycling
+    // usernames, and let a locked account burn unlimited attempts without ever
+    // consuming budget (the lockout branch returned before the check ran).
     const rateCheck = checkRateLimit(clientIp, username);
     if (!rateCheck.allowed) {
       return apiError(429, "TOO_MANY_REQUESTS", "Too many login attempts", {
         retryAfterSeconds: rateCheck.retryAfterSeconds,
       });
+    }
+
+    const admin = await getAdminByUsername(username);
+
+    if (admin && isLocked(admin.lockUntil, now)) {
+      const retryAfterSeconds = Math.ceil((admin.lockUntil!.getTime() - now.getTime()) / 1000);
+      return apiError(423, "LOCKED", "Account is temporarily locked", { retryAfterSeconds });
     }
 
     const passwordValid = await verifyPassword(password, admin?.passwordHash ?? DUMMY_PASSWORD_HASH);

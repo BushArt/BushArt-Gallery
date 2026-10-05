@@ -32,6 +32,7 @@ vi.mock("@/lib/auth/jwt", () => ({
 import { POST } from "@/app/api/auth/login/route";
 import { verifyPassword } from "@/lib/auth/password";
 import { signToken } from "@/lib/auth/jwt";
+import { clearRateLimits } from "@/lib/auth/rateLimit";
 
 async function seedAdmin(overrides: Record<string, unknown> = {}) {
   const db = await getTestDb();
@@ -54,6 +55,9 @@ async function seedAdmin(overrides: Record<string, unknown> = {}) {
 beforeEach(async () => {
   await clearCollections(["admins"]);
   vi.clearAllMocks();
+  // The limiter is module-level state; without this the budget consumed by one
+  // test would make an unrelated later test fail with a spurious 429.
+  clearRateLimits();
 });
 
 afterAll(async () => {
@@ -255,5 +259,34 @@ describe("POST /api/auth/login", () => {
     // H3: the same bcrypt work happens whether or not the username exists, so
     // response timing cannot reveal which usernames are real.
     expect(verifyPassword).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns 429 before consulting the account lock, so the limiter gates the database", async () => {
+    // Ordering regression: the rate-limit check must run ahead of both the
+    // lockout branch and `getAdminByUsername`. When it ran afterwards, an
+    // attacker forcing a MongoDB round trip per request by cycling usernames
+    // was never throttled, and a locked account returned 423 indefinitely
+    // without ever consuming budget.
+    const lockUntil = new Date(Date.now() + 5 * 60 * 1000);
+    await seedAdmin({ failedLoginAttempts: 5, lockUntil });
+
+    const attempt = () =>
+      POST(createLoginRequest({ username: "bush", password: "correct-password" }));
+
+    // Inside the window the lock still reports first — unchanged behaviour.
+    const locked = await attempt();
+    expect(locked.status).toBe(423);
+
+    // Once the limiter's budget is spent it answers first, which is the proof
+    // that the check sits ahead of `getAdminByUsername`.
+    for (let i = 0; i < 10; i++) {
+      await attempt();
+    }
+
+    const limited = await attempt();
+    expect(limited.status).toBe(429);
+    const json = await limited.json();
+    expect(json.error.code).toBe("TOO_MANY_REQUESTS");
+    expect(json.error.details.retryAfterSeconds).toBeGreaterThan(0);
   });
 });
