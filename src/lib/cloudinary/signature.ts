@@ -56,6 +56,17 @@ export interface SignUploadSignatureResult {
   maxFileSize: number;
   overwrite: boolean;
   uniqueFilename: boolean;
+  /**
+   * The signed `resource_type`, present only for video uploads.
+   *
+   * `signUploadSignature` signs `resource_type` when the resource type is not
+   * `image`; Cloudinary recomputes the signature from the parameters actually
+   * present in the upload request, so a signed field that the client omits makes
+   * the whole signature mismatch and the upload is rejected. Returning it here
+   * lets the client echo back exactly what was signed — see
+   * `uploadFileToCloudinary`.
+   */
+  resourceType?: "video";
 }
 
 export async function signUploadSignature(
@@ -95,5 +106,8 @@ export async function signUploadSignature(
     maxFileSize: UPLOAD_MAX_FILE_SIZE,
     overwrite: false,
     uniqueFilename: true,
+    // Mirrors the condition above: only signed for non-image resources, and
+    // therefore only returned when it was actually part of the signature.
+    ...(params.resourceType === "video" ? { resourceType: "video" as const } : {}),
   };
 }

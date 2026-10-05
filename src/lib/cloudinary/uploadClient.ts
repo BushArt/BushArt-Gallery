@@ -8,6 +8,7 @@ export interface UploadSignatureResponse {
   maxFileSize: number;
   overwrite: boolean;
   uniqueFilename: boolean;
+  resourceType?: "video";
 }
 
 export interface CloudinaryUploadResult {
@@ -52,6 +53,12 @@ export async function uploadFileToCloudinary(
   formData.append("max_file_size", String(sig.maxFileSize));
   formData.append("overwrite", String(sig.overwrite));
   formData.append("unique_filename", String(sig.uniqueFilename));
+  // `resource_type` is only signed for non-image uploads. Echo it back only when
+  // the server actually signed it — adding it unconditionally would change the
+  // parameter set for image uploads and invalidate their signature.
+  if (sig.resourceType) {
+    formData.append("resource_type", sig.resourceType);
+  }
 
   const endpoint = `https://api.cloudinary.com/v1_1/${sig.cloudName}/${resourceType}/upload`;
   const res = await fetch(endpoint, { method: "POST", body: formData });
