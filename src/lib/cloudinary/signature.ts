@@ -70,7 +70,6 @@ export async function signUploadSignature(
     folder,
     timestamp: String(timestamp),
     allowed_formats: allowedFormats,
-    max_file_size: String(UPLOAD_MAX_FILE_SIZE),
     overwrite: "false",
     unique_filename: "true",
   };

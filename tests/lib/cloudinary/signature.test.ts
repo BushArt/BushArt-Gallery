@@ -72,8 +72,10 @@ describe("signUploadSignature", () => {
     expect(callArgs[0]).toHaveProperty("timestamp", String(result.timestamp));
     // Every signed field must be returned so the client can echo it back, or
     // Cloudinary recomputes a different signature and rejects the upload.
+    // NOTE: max_file_size is NOT signed (Cloudinary excludes it from verification)
+    // but IS returned so the client sends it for server-side validation.
     expect(callArgs[0]).toHaveProperty("allowed_formats", IMAGE_ALLOWED_FORMATS);
-    expect(callArgs[0]).toHaveProperty("max_file_size", String(UPLOAD_MAX_FILE_SIZE));
+    expect(callArgs[0]).not.toHaveProperty("max_file_size");
     expect(callArgs[0]).toHaveProperty("overwrite", "false");
     expect(callArgs[0]).toHaveProperty("unique_filename", "true");
   });
