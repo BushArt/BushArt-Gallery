@@ -128,12 +128,12 @@ function GallerySectionInner({ refreshRef }: { refreshRef?: RefObject<(() => voi
         )}
       </div>
 
-      {!error && (items.length > 0 || viewMode === "grid") && (
+      {!error && (items.length > 0 || viewMode === "grid" || viewMode === "list") && (
         <div className="mt-6">
           {viewMode === "grid" ? (
-            <GalleryGrid items={items} leadingSlot={<UploadCard onClick={openUpload} />} />
+            <GalleryGrid items={items} leadingSlot={<UploadCard onClick={openUpload} viewMode={viewMode} />} />
           ) : (
-            <GalleryList items={items} leadingSlot={<UploadCard onClick={openUpload} />} />
+            <GalleryList items={items} leadingSlot={<UploadCard onClick={openUpload} viewMode={viewMode} />} />
           )}
         </div>
       )}
