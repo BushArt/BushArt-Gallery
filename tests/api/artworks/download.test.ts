@@ -11,6 +11,15 @@ import {
 // Mock the mongodb module to redirect to test database
 vi.mock("@/lib/db/mongodb", () => createMongodbMock());
 
+// The route derives admin visibility from isAdminRequest; without this mock the
+// real guard runs, finds no verified indexes, and fails every download with a
+// 503 boot error. All seeded artworks here are non-NSFW, so public visibility
+// (false) is the correct stand-in.
+vi.mock("@/lib/auth/guard", () => ({
+  requireAdmin: vi.fn(),
+  isAdminRequest: vi.fn(() => Promise.resolve(false)),
+}));
+
 vi.mock("@/lib/cloudinary/transformations", () => ({
   getTransformationUrl: vi.fn(
     (publicId: string, context: string, resourceType: string) =>

@@ -111,7 +111,7 @@ Authoritative repo layout: `08-Project-Structure.md`.
 
 | Command | What it runs |
 |---|---|
-| `npm test` | Full Vitest suite (unit + component projects) |
+| `npm test` | Full Vitest suite (unit + integration + component). Loads `.env.local` itself and forces the database to `bushart-test` (never the app database); an unreachable DB fails in ~5s with an actionable error |
 | `npm run test:watch` | Vitest in watch mode |
 | `npm run test:coverage` | Vitest with coverage gate on required paths |
 | `npm run test:e2e` | Playwright E2E (starts dev server automatically) |
@@ -121,6 +121,8 @@ Authoritative repo layout: `08-Project-Structure.md`.
 **Local E2E:** set `MONGODB_URI` for direct-URL tests; otherwise intercept-path tests still run with mocked APIs. See `tests/e2e/README.md`.
 
 `test:all` rewrites `MONGODB_URI` per stage (`bushart-test` for integration/coverage, `bushart-e2e` for the E2E stage), so a local `.env.local` pointed at the application database can never be seeded or wiped by a test run.
+
+Vitest applies the same protection on its own: `vitest.config.mts` calls the shared `loadEnvLocal()` and forces any database segment that does not end in `-test` to `bushart-test` before workers start, so plain `npm test` needs no manual `MONGODB_URI` export. The root config also sets `hookTimeout: 30_000` (Atlas round-trips can exceed Vitest's 10s default) and `tests/helpers/test-db.ts` gives the driver a 5s server-selection budget so a dead endpoint reports its real cause instead of a hook timeout.
 
 ---
 

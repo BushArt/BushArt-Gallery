@@ -14,6 +14,11 @@ export async function getTestDb(): Promise<Db> {
 
   const uri =
     process.env.MONGODB_URI ?? "mongodb://localhost:27017/bushart-test";
+  // A dead or missing database must fail loudly within seconds: the driver's
+  // 30s default server-selection window is far longer than Vitest's hook
+  // budget, so an unreachable endpoint used to surface as an opaque
+  // "Hook timed out in 10000ms" with the real cause hidden.
+  const client0 = new MongoClient(uri, { serverSelectionTimeoutMS: 5_000 });
   // Fail before connecting when the URI names a non-test database: the
   // destructive helpers below use deleteMany({}), so pointing them at the
   // application database would wipe real content (see TODO-038 notes).
@@ -31,9 +36,19 @@ export async function getTestDb(): Promise<Db> {
         `Point MONGODB_URI at bushart-test or bushart-e2e.`,
     );
   }
-  client = new MongoClient(uri);
-  await client.connect();
-  db = client.db();
+  try {
+    await client0.connect();
+  } catch (cause) {
+    throw new Error(
+      "Cannot reach the test MongoDB (server selection gave up after 5s). " +
+        "Start a local MongoDB or set MONGODB_URI — `npm test` loads it from " +
+        ".env.local and rewrites the database to bushart-test, and " +
+        "`npm run test:all -- --only=4` does the same explicitly.",
+      { cause },
+    );
+  }
+  client = client0;
+  db = client0.db();
   const name = db.databaseName;
   if (!allowedTestDbs.has(name) && !name.endsWith("-test")) {
     await client.close();

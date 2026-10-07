@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
 vi.mock("@/lib/auth/guard", () => ({
-  requireAdmin: vi.fn(),
+  isAdminRequest: vi.fn(),
 }));
 
 const findArtworkPreview = vi.fn();
@@ -12,9 +12,9 @@ vi.mock("@/lib/db/models/artwork", () => ({
 }));
 
 import { GET } from "@/app/api/artworks/[id]/preview/route";
-import { requireAdmin } from "@/lib/auth/guard";
+import { isAdminRequest } from "@/lib/auth/guard";
 
-const mockRequireAdmin = vi.mocked(requireAdmin);
+const mockIsAdminRequest = vi.mocked(isAdminRequest);
 const mockPreview = vi.mocked(findArtworkPreview);
 
 function params(slug: string) {
@@ -23,7 +23,7 @@ function params(slug: string) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockRequireAdmin.mockRejectedValue(new Response("{}", { status: 401 }));
+  mockIsAdminRequest.mockResolvedValue(false);
   mockPreview.mockResolvedValue(null);
 });
 
@@ -68,7 +68,7 @@ describe("GET /api/artworks/:slug/preview", () => {
   });
 
   it("includes NSFW in the lookup for an authenticated admin", async () => {
-    mockRequireAdmin.mockResolvedValue({ id: "admin1", username: "bush" });
+    mockIsAdminRequest.mockResolvedValue(true);
     mockPreview.mockResolvedValue({
       slug: "moth-study",
       title: "Moth Study",
