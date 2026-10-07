@@ -9,9 +9,9 @@ interface UploadCardProps {
 }
 
 export function UploadCard({ onClick }: UploadCardProps) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated } = useAuth();
 
-  if (isLoading || !isAuthenticated) return null;
+  if (!isAuthenticated) return null;
 
   return (
     <button

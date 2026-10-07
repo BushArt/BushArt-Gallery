@@ -45,6 +45,8 @@ export function useArtworks({ filters, enabled = true }: UseArtworksOptions): Us
   const filtersKey = JSON.stringify(filters);
   const abortRef = useRef<AbortController | null>(null);
   const fetchIdRef = useRef(0);
+  const filtersRef = useRef(filters);
+  filtersRef.current = filters;
 
   const fetchPage = useCallback(
     async (nextCursor?: string, append = false) => {
@@ -53,6 +55,7 @@ export function useArtworks({ filters, enabled = true }: UseArtworksOptions): Us
       abortRef.current = controller;
 
       const currentFetchId = ++fetchIdRef.current;
+      const currentFilters = filtersRef.current;
 
       if (append) {
         setIsLoadingMore(true);
@@ -69,7 +72,7 @@ export function useArtworks({ filters, enabled = true }: UseArtworksOptions): Us
       }
 
       try {
-        const qs = buildQueryString(filters, nextCursor);
+        const qs = buildQueryString(currentFilters, nextCursor);
         const res = await fetch(`/api/artworks?${qs}`, { signal: controller.signal });
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));
@@ -110,7 +113,7 @@ export function useArtworks({ filters, enabled = true }: UseArtworksOptions): Us
         }
       }
     },
-    [filters],
+    [],
   );
 
   useEffect(() => {
