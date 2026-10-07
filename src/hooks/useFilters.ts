@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { filtersToSearchParams } from "@/lib/utils/filterParams";
 import {
@@ -74,6 +74,8 @@ export function useFilters() {
     () => "exclude" as const,
   );
 
+  const pendingNsfwRef = useRef<"include" | "exclude" | null>(null);
+
   const filters = useMemo(
     () => parseFiltersFromParams(searchParams, nsfwDefault),
     [searchParams, nsfwDefault],
@@ -85,6 +87,7 @@ export function useFilters() {
       if (next.nsfw !== undefined) {
         localStorage.setItem(NSFW_STORAGE_KEY, merged.nsfw);
         dispatchNsfwPreferenceChanged(merged.nsfw);
+        pendingNsfwRef.current = merged.nsfw;
       }
       const params = filtersToParams(merged);
       const qs = params.toString();
@@ -94,9 +97,15 @@ export function useFilters() {
   );
 
   // Sync NSFW from localStorage into URL on first mount when URL has no nsfw param
+  // Skip if we just initiated a navigation to the target nsfw value (router.replace is async)
   useEffect(() => {
-    if (!searchParams.has("nsfw") && nsfwDefault !== "exclude") {
+    const currentNsfw = searchParams.get("nsfw");
+    if (!currentNsfw && nsfwDefault !== "exclude" && pendingNsfwRef.current !== nsfwDefault) {
       setFilters({ nsfw: nsfwDefault });
+    }
+    // Clear the pending ref once the URL reflects the target value
+    if (currentNsfw === pendingNsfwRef.current) {
+      pendingNsfwRef.current = null;
     }
   }, [nsfwDefault, searchParams, setFilters]);
 

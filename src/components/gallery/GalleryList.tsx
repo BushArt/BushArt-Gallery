@@ -9,7 +9,7 @@ interface GalleryListProps {
 export function GalleryList({ items, leadingSlot }: GalleryListProps) {
   return (
     <ul className="flex flex-col gap-3" data-testid="gallery-list">
-      {leadingSlot}
+      {leadingSlot && <li className="list-none">{leadingSlot}</li>}
       {items.map((artwork) => (
         <li key={artwork.id}>
           <ArtworkCard

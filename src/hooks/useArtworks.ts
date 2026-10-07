@@ -44,12 +44,15 @@ export function useArtworks({ filters, enabled = true }: UseArtworksOptions): Us
   const lastAppendCursorRef = useRef<string | null>(null);
   const filtersKey = JSON.stringify(filters);
   const abortRef = useRef<AbortController | null>(null);
+  const fetchIdRef = useRef(0);
 
   const fetchPage = useCallback(
     async (nextCursor?: string, append = false) => {
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;
+
+      const currentFetchId = ++fetchIdRef.current;
 
       if (append) {
         setIsLoadingMore(true);
@@ -77,6 +80,8 @@ export function useArtworks({ filters, enabled = true }: UseArtworksOptions): Us
         }
         const data = (await res.json()) as ArtworkListResponse;
 
+        if (fetchIdRef.current !== currentFetchId) return;
+
         setItems((prev) => {
           if (!append) return data.items;
           const existingIds = new Set(prev.map((i) => i.id));
@@ -88,6 +93,7 @@ export function useArtworks({ filters, enabled = true }: UseArtworksOptions): Us
         setIsRetryable(false);
         setAppendFailed(false);
       } catch (err) {
+        if (fetchIdRef.current !== currentFetchId) return;
         const isAbortError =
           err instanceof DOMException && err.name === "AbortError" ||
           err instanceof Error && err.name === "AbortError";
@@ -98,8 +104,10 @@ export function useArtworks({ filters, enabled = true }: UseArtworksOptions): Us
         setError(err instanceof Error ? err.message : "Failed to load artworks");
         if (!append) setItems([]);
       } finally {
-        setIsLoading(false);
-        setIsLoadingMore(false);
+        if (fetchIdRef.current === currentFetchId) {
+          setIsLoading(false);
+          setIsLoadingMore(false);
+        }
       }
     },
     [filters],

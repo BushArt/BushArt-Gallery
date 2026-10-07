@@ -1,7 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useImperativeHandle, useMemo, useState, useSyncExternalStore, type RefObject } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { useCallback, useEffect, useImperativeHandle, useState, useSyncExternalStore, type RefObject } from "react";
 import { useAdminShell } from "@/components/admin/AdminShell";
 import { useArtworks } from "@/hooks/useArtworks";
 import { useFilters } from "@/hooks/useFilters";
@@ -38,8 +37,6 @@ function subscribeViewMode(onStoreChange: () => void): () => void {
 function GallerySectionInner({ refreshRef }: { refreshRef?: RefObject<(() => void) | null> }) {
   const { openUpload } = useAdminShell();
   const { filters, setFilters } = useFilters();
-  const filtersKey = useMemo(() => JSON.stringify(filters), [filters]);
-  const prefersReducedMotion = useReducedMotion();
   const viewMode = useSyncExternalStore(subscribeViewMode, readViewMode, (): ViewMode => "grid");
   const [tags, setTags] = useState<Tag[]>([]);
   const {
@@ -120,7 +117,7 @@ function GallerySectionInner({ refreshRef }: { refreshRef?: RefObject<(() => voi
           </div>
         )}
 
-        {isLoading && !error && (
+        {isLoading && items.length === 0 && !error && (
           <p className="mt-8 text-center text-body-md text-paper-500">Loading gallery…</p>
         )}
 
@@ -131,24 +128,15 @@ function GallerySectionInner({ refreshRef }: { refreshRef?: RefObject<(() => voi
         )}
       </div>
 
-      <AnimatePresence mode="wait">
-        {!isLoading && !error && (items.length > 0 || viewMode === "grid") && (
-          <motion.div
-            key={filtersKey}
-            className="mt-6"
-            initial={prefersReducedMotion ? false : { opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={prefersReducedMotion ? undefined : { opacity: 0 }}
-            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-          >
-            {viewMode === "grid" ? (
-              <GalleryGrid items={items} leadingSlot={<UploadCard onClick={openUpload} />} />
-            ) : (
-              <GalleryList items={items} leadingSlot={<UploadCard onClick={openUpload} />} />
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {!error && (items.length > 0 || viewMode === "grid") && (
+        <div className="mt-6">
+          {viewMode === "grid" ? (
+            <GalleryGrid items={items} leadingSlot={<UploadCard onClick={openUpload} />} />
+          ) : (
+            <GalleryList items={items} leadingSlot={<UploadCard onClick={openUpload} />} />
+          )}
+        </div>
+      )}
 
       <div ref={sentinelRef} className="h-4" aria-hidden="true" />
 
@@ -166,9 +154,5 @@ export function GallerySection({
 }: {
   refreshRef?: RefObject<(() => void) | null>;
 }) {
-  return (
-    <Suspense fallback={<p className="py-12 text-center text-paper-500">Loading gallery…</p>}>
-      <GallerySectionInner refreshRef={refreshRef} />
-    </Suspense>
-  );
+  return <GallerySectionInner refreshRef={refreshRef} />;
 }
