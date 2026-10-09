@@ -134,7 +134,7 @@ const PREVIEW_PROJECTION = {
   title: 1,
   description: 1,
   nsfw: 1,
-  "images.0": 1,
+  images: 1,
 } as const;
 
 interface PreviewArtworkDoc {
@@ -217,7 +217,7 @@ const ARTWORK_PROJECTION = {
   type: 1,
   nsfw: 1,
   completionDate: 1,
-  "images.0": 1,
+  images: 1,
   tagIds: 1,
 } as const;
 
