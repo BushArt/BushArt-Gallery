@@ -79,7 +79,7 @@ describe("findArtworkPreview", () => {
       title: 1,
       description: 1,
       nsfw: 1,
-      "images.0": 1,
+      images: 1,
     });
     // Fields a preview never renders must not be fetched.
     expect(options.projection).not.toHaveProperty("medium");
