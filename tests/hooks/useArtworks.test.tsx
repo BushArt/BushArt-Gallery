@@ -96,6 +96,22 @@ describe("useArtworks", () => {
     expect(cursorCalls).toHaveLength(0);
   });
 
+  it("does not refetch when filters is re-created with identical values", async () => {
+    const { result, rerender } = renderHook(
+      ({ filters }) => useArtworks({ filters }),
+      { initialProps: { filters: baseFilters } },
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    const callsAfterInitialLoad = vi.mocked(fetch).mock.calls.length;
+
+    // New object identity, same values — must not trigger a refetch (flicker regression).
+    rerender({ filters: { ...baseFilters } });
+    await act(async () => {});
+
+    expect(vi.mocked(fetch).mock.calls.length).toBe(callsAfterInitialLoad);
+  });
+
   it("marks network errors as retryable", async () => {
     vi.mocked(fetch).mockRejectedValue(new TypeError("Failed to fetch"));
 

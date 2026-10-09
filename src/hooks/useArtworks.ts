@@ -46,7 +46,11 @@ export function useArtworks({ filters, enabled = true }: UseArtworksOptions): Us
   const abortRef = useRef<AbortController | null>(null);
   const fetchIdRef = useRef(0);
   const filtersRef = useRef(filters);
-  filtersRef.current = filters;
+  // Sync outside render (react-hooks/refs); declared before the fetch effect
+  // below so a filters change is always read after this has run.
+  useEffect(() => {
+    filtersRef.current = filters;
+  }, [filters]);
 
   const fetchPage = useCallback(
     async (nextCursor?: string, append = false) => {
