@@ -13,7 +13,12 @@ If `MONGODB_URI` is unset locally, mocked intercept-path tests still run; direct
 
 | Spec | What it covers | API mocking |
 |---|---|---|
-| `artwork-modal.spec.ts` | Modal entry paths (in-app + direct URL), Esc/fullscreen stacking, NSFW interstitial, thumbnails, download, share | Mixed — intercept paths use `mockGalleryApis()`; direct URL uses seeded DB |
+| `accessibility.spec.ts` | Axe-core accessibility — contrast, reduced motion, keyboard flows, fullscreen announcements, security headers | Always mocked via `mockGalleryApis()` |
+| `admin-login.spec.ts` | Admin login access control, session auth, login/error paths | Mocked auth callbacks; real server |
+| `admin-upload.spec.ts` | Admin artwork upload flow, authenticated write, validation, cancel | Intercepted Cloudinary + real DB |
+| `admin-edit-after-login.spec.ts` | Admin edit-after-login: authenticated artwork edit via route integration | Intercepted DB reads/writes |
+| `artwork-modal.spec.ts` | Modal entry (in-app + direct URL), Esc/fullscreen stacking, NSFW interstitial, thumbnails, download, share | Mixed — intercept paths use `mockGalleryApis()`; direct URL uses seeded DB |
 | `gallery-browse.spec.ts` | Filter URL sync, grid/list toggle, NSFW localStorage persistence | Always mocked via `mockGalleryApis()` |
+| `nsfw-toggle.spec.ts` | NSFW toggle, per-artwork NSFW state, gallery persistence after reload | Intercepted gallery + direct URL |
 
 Shared fixtures and route intercepts live in `fixtures.ts`.

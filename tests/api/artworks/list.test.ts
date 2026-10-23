@@ -40,7 +40,7 @@ async function seedTestData() {
   // Seed artworks
   await db.collection("artworks").insertMany([
     {
-      slug: "moth-study",
+      slug: "moth-study-list",
       title: "Moth Study",
       description: "A detailed gouache painting of a moth",
       medium: "Gouache",

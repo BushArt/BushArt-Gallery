@@ -75,6 +75,31 @@ describe("logger context sanitization", () => {
     expect(output).toContain('"passwordHash":"***MASKED***"');
     expect(output).not.toContain("deadbeef");
   });
+
+  // Regression guard: the SENSITIVE_KEYS needle must be lowercased before
+  // matching. A camelCase "apiKey" needle never matches an already-lowercased
+  // key, so Cloudinary credentials logged under any casing (apiKey, api_key,
+  // CLOUDINARY_API_KEY) used to leak verbatim — violating the AGENT.md hard
+  // rule "never log a Cloudinary API secret" (09-Coding-Standards.md §12).
+  it("masks API keys and secrets regardless of key casing", () => {
+    const spy = vi.spyOn(console, "info").mockImplementation(() => {});
+    info("cloudinary", {
+      apiKey: "1234567890",
+      api_key: "abcdef",
+      CLOUDINARY_API_KEY: "key-leak",
+      CLOUDINARY_API_SECRET: "secret-leak",
+      secret: "shh",
+    });
+    const [output] = spy.mock.calls[0] as [string];
+    expect(output).toContain('"apiKey":"***MASKED***"');
+    expect(output).toContain('"api_key":"***MASKED***"');
+    expect(output).toContain('"CLOUDINARY_API_KEY":"***MASKED***"');
+    expect(output).toContain('"CLOUDINARY_API_SECRET":"***MASKED***"');
+    expect(output).not.toContain("1234567890");
+    expect(output).not.toContain("abcdef");
+    expect(output).not.toContain("key-leak");
+    expect(output).not.toContain("secret-leak");
+  });
 });
 
 describe("logger resilience", () => {

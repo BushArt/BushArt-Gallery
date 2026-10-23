@@ -39,8 +39,8 @@ describe("GET /api/artworks/:slug", () => {
     });
 
     await db.collection("artworks").insertOne({
-      _id: new ObjectId("65a1f2b3c4d5e6f7a8b9c0d1"),
-      slug: "moth-study",
+      _id: new ObjectId("65a1f2b3c4d5e6f7a8b9c0d9"),
+      slug: "moth-study-detail",
       title: "Moth Study",
       description: "A study",
       medium: "Gouache",
@@ -71,13 +71,13 @@ describe("GET /api/artworks/:slug", () => {
   });
 
   it("returns full detail including NSFW artwork", async () => {
-    const req = new NextRequest("http://localhost/api/artworks/moth-study");
+    const req = new NextRequest("http://localhost/api/artworks/moth-study-detail");
     const res = await GET(req, {
-      params: Promise.resolve({ id: "moth-study" }),
+      params: Promise.resolve({ id: "moth-study-detail" }),
     });
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json.slug).toBe("moth-study");
+    expect(json.slug).toBe("moth-study-detail");
     expect(json.nsfw).toBe(true);
     expect(json.tags).toEqual([
       { id: "65a1e0a0c4d5e6f7a8b9c0aa", name: "Gouache", slug: "gouache" },
@@ -87,9 +87,9 @@ describe("GET /api/artworks/:slug", () => {
   it("returns 404 for an NSFW artwork to a non-admin visitor", async () => {
     vi.mocked(isAdminRequest).mockResolvedValue(false);
 
-    const req = new NextRequest("http://localhost/api/artworks/moth-study");
+    const req = new NextRequest("http://localhost/api/artworks/moth-study-detail");
     const res = await GET(req, {
-      params: Promise.resolve({ id: "moth-study" }),
+      params: Promise.resolve({ id: "moth-study-detail" }),
     });
     expect(res.status).toBe(404);
     const json = await res.json();
@@ -111,7 +111,7 @@ describe("GET /api/artworks/:slug", () => {
     const tagId = new ObjectId("65a1e0a0c4d5e6f7a8b9c0aa");
 
     await db.collection("artworks").updateOne(
-      { slug: "moth-study" },
+      { slug: "moth-study-detail" },
       {
         $set: {
           images: [
@@ -141,9 +141,9 @@ describe("GET /api/artworks/:slug", () => {
       },
     );
 
-    const req = new NextRequest("http://localhost/api/artworks/moth-study");
+    const req = new NextRequest("http://localhost/api/artworks/moth-study-detail");
     const res = await GET(req, {
-      params: Promise.resolve({ id: "moth-study" }),
+      params: Promise.resolve({ id: "moth-study-detail" }),
     });
     const json = await res.json();
     expect(json.images.map((img: { order: number }) => img.order)).toEqual([

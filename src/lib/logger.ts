@@ -36,6 +36,16 @@ function shouldLog(level: number): boolean {
 
 const SENSITIVE_KEYS = ["password", "passwordHash", "secret", "apiKey", "token"];
 
+// Compare on an alphanumeric-only, lowercased form so a camelCase needle
+// ("apiKey") still matches snake_case / SCREAMING_SNAKE keys ("api_key",
+// "CLOUDINARY_API_KEY"). Without this normalization a mixed-case needle never
+// matched an already-lowercased key, so Cloudinary credentials logged under
+// their env-var casing leaked verbatim (09-Coding-Standards.md §12; AGENT.md
+// "never log a Cloudinary API secret").
+const NORMALIZED_SENSITIVE_KEYS = SENSITIVE_KEYS.map((s) =>
+  s.toLowerCase().replace(/[^a-z0-9]/g, ""),
+);
+
 /**
  * Recursively sanitize a value, masking known-sensitive keys and converting
  * Error instances into a serializable shape (JSON.stringify drops Error's own
@@ -60,8 +70,8 @@ function sanitizeValue(value: unknown, depth = 0): unknown {
     if (depth > 4) return "[Object]";
     const out: Record<string, unknown> = {};
     for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
-      const lowerKey = key.toLowerCase();
-      if (SENSITIVE_KEYS.some((s) => lowerKey.includes(s))) {
+      const normalizedKey = key.toLowerCase().replace(/[^a-z0-9]/g, "");
+      if (NORMALIZED_SENSITIVE_KEYS.some((s) => normalizedKey.includes(s))) {
         // Replace sensitive values with mask rather than omitting entirely
         // so the key exists but value is obfuscated
         out[key] = "***MASKED***";

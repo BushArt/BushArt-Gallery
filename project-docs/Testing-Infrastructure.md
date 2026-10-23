@@ -41,10 +41,10 @@ flowchart TB
 |---|---|---|
 | **Unit** (`tests/lib/`) | Correctness of isolated functions — auth, validation, slug generation, API response shaping | MongoDB persistence, HTTP wiring, browser behavior |
 | **Model unit** (`tests/db/models/`) | Document mapping and query logic with a mocked driver | Real index behavior or Atlas connectivity |
-| **Route integration** (`tests/api/`) | Handler auth, validation, status codes, error envelopes via mocked `lib/` calls | End-to-end DB round-trips (see TODO-036) |
+| **Route integration** (`tests/api/`) | Handler auth, validation, status codes, error envelopes via mocked `lib/` calls; real-DB round-trips on `bushart-test` | End-to-end DB round-trips on real MongoDB |
 | **DB integration** (`tests/db-setup.test.ts`) | Index creation matches `04-Database-Schema.md` | Application logic |
 | **Component / hook** (`tests/components/`, `tests/hooks/`) | Interactive UI behavior in jsdom | Layout fidelity, cross-browser quirks |
-| **E2E** (`tests/e2e/`) | Full stack: routing, modal, gallery filters, NSFW persistence | Every admin CMS flow (Phase 7+) |
+| **E2E** (`tests/e2e/`) | Full stack incl. admin login + upload flows (auth, CMS write) | Remaining admin CMS flows (Phase 7+) |
 
 ---
 
@@ -189,8 +189,8 @@ Shared helpers in `tests/helpers/` reduce duplication across API tests. Prefer i
 
 | Gap | Owner |
 |---|---|
-| Real-MongoDB route integration (all 15 endpoints) | TODO-036 |
-| Login + upload E2E flows | TODO-037 |
+| Real-DB route integration (all 15 endpoints) | [Resolved] — routes now run against the real DB in CI |
+| Login + upload E2E flows | [Resolved] — admin-login + admin-upload specs added |
 | MSW layer for multi-request hook tests | TODO-041 |
 | Schema contract tests (Zod vs `04`/`05`) | TODO-042 |
 | Visual regression baseline | TODO-043 |

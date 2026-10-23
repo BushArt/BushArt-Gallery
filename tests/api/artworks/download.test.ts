@@ -37,7 +37,7 @@ describe("GET /api/artworks/:slug/download", () => {
     const db = await getTestDb();
     await db.collection("artworks").insertOne({
       _id: new ObjectId("65a1f2b3c4d5e6f7a8b9c0d1"),
-      slug: "moth-study",
+      slug: "moth-study-download",
       title: "Moth Study",
       description: null,
       medium: "Gouache",
@@ -82,10 +82,10 @@ describe("GET /api/artworks/:slug/download", () => {
 
   it("302 redirects to fl_attachment URL for primary image", async () => {
     const req = new NextRequest(
-      "http://localhost/api/artworks/moth-study/download",
+      "http://localhost/api/artworks/moth-study-download/download",
     );
     const res = await GET(req, {
-      params: Promise.resolve({ id: "moth-study" }),
+      params: Promise.resolve({ id: "moth-study-download" }),
     });
     expect(res.status).toBe(302);
     expect(getTransformationUrl).toHaveBeenCalledWith(
@@ -100,10 +100,10 @@ describe("GET /api/artworks/:slug/download", () => {
 
   it("redirects to requested image index", async () => {
     const req = new NextRequest(
-      "http://localhost/api/artworks/moth-study/download?image=1",
+      "http://localhost/api/artworks/moth-study-download/download?image=1",
     );
     const res = await GET(req, {
-      params: Promise.resolve({ id: "moth-study" }),
+      params: Promise.resolve({ id: "moth-study-download" }),
     });
     expect(res.status).toBe(302);
     expect(getTransformationUrl).toHaveBeenCalledWith(
@@ -115,10 +115,10 @@ describe("GET /api/artworks/:slug/download", () => {
 
   it("redirects to timelapse video download", async () => {
     const req = new NextRequest(
-      "http://localhost/api/artworks/moth-study/download?asset=timelapse",
+      "http://localhost/api/artworks/moth-study-download/download?asset=timelapse",
     );
     const res = await GET(req, {
-      params: Promise.resolve({ id: "moth-study" }),
+      params: Promise.resolve({ id: "moth-study-download" }),
     });
     expect(res.status).toBe(302);
     expect(getTransformationUrl).toHaveBeenCalledWith(
@@ -141,25 +141,25 @@ describe("GET /api/artworks/:slug/download", () => {
   it("returns 404 when timelapse requested but absent", async () => {
     const db = await getTestDb();
     await db.collection("artworks").updateOne(
-      { slug: "moth-study" },
+      { slug: "moth-study-download" },
       { $set: { timelapse: null } },
     );
 
     const req = new NextRequest(
-      "http://localhost/api/artworks/moth-study/download?asset=timelapse",
+      "http://localhost/api/artworks/moth-study-download/download?asset=timelapse",
     );
     const res = await GET(req, {
-      params: Promise.resolve({ id: "moth-study" }),
+      params: Promise.resolve({ id: "moth-study-download" }),
     });
     expect(res.status).toBe(404);
   });
 
   it("returns 404 when image index is out of range", async () => {
     const req = new NextRequest(
-      "http://localhost/api/artworks/moth-study/download?image=99",
+      "http://localhost/api/artworks/moth-study-download/download?image=99",
     );
     const res = await GET(req, {
-      params: Promise.resolve({ id: "moth-study" }),
+      params: Promise.resolve({ id: "moth-study-download" }),
     });
     expect(res.status).toBe(404);
     const json = await res.json();
@@ -168,10 +168,10 @@ describe("GET /api/artworks/:slug/download", () => {
 
   it("returns 400 VALIDATION_ERROR for invalid query parameters", async () => {
     const req = new NextRequest(
-      "http://localhost/api/artworks/moth-study/download?image=abc",
+      "http://localhost/api/artworks/moth-study-download/download?image=abc",
     );
     const res = await GET(req, {
-      params: Promise.resolve({ id: "moth-study" }),
+      params: Promise.resolve({ id: "moth-study-download" }),
     });
     expect(res.status).toBe(400);
     const json = await res.json();
@@ -181,7 +181,7 @@ describe("GET /api/artworks/:slug/download", () => {
   it("uses sorted order when images array is unsorted in MongoDB", async () => {
     const db = await getTestDb();
     await db.collection("artworks").updateOne(
-      { slug: "moth-study" },
+      { slug: "moth-study-download" },
       {
         $set: {
           images: [
@@ -205,10 +205,10 @@ describe("GET /api/artworks/:slug/download", () => {
     );
 
     const req = new NextRequest(
-      "http://localhost/api/artworks/moth-study/download?image=1",
+      "http://localhost/api/artworks/moth-study-download/download?image=1",
     );
     const res = await GET(req, {
-      params: Promise.resolve({ id: "moth-study" }),
+      params: Promise.resolve({ id: "moth-study-download" }),
     });
     expect(res.status).toBe(302);
     expect(getTransformationUrl).toHaveBeenCalledWith(
