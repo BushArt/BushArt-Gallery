@@ -61,7 +61,7 @@ const playwrightFiles = filesUnder(join(root, "tests/e2e"), /\.spec\.ts$/);
 assertAtLeast(vitestFiles.length, baseline.vitest.minTestFiles, "Vitest test files");
 assertAtLeast(vitest.numTotalTests, baseline.vitest.minTests, "Vitest tests");
 assertAtLeast(vitest.numPassedTests, baseline.vitest.minPassedTests, "Vitest passed tests");
-if (vitest.numFailedTests > 3) throw new Error(`Vitest failures: ${vitest.numFailedTests} (max tolerated: 3)`);
+if (vitest.numFailedTests > 0) throw new Error(`Vitest failures: ${vitest.numFailedTests}`);
 if (vitest.numPendingTests > baseline.vitest.maxSkipped) {
   throw new Error(
     `Vitest skips increased: ${vitest.numPendingTests} > ${baseline.vitest.maxSkipped}`,
@@ -79,8 +79,8 @@ const playwrightTests =
   (playwrightStats.flaky ?? 0) +
   (playwrightStats.skipped ?? 0);
 assertAtLeast(playwrightTests, baseline.playwright.minTests, "Playwright tests");
-if ((playwrightStats.unexpected ?? 0) > 3)
-  throw new Error(`Playwright failures: ${playwrightStats.unexpected} (max tolerated: 3)`);
+if ((playwrightStats.unexpected ?? 0) > 0)
+  throw new Error(`Playwright failures: ${playwrightStats.unexpected}`);
 if ((playwrightStats.skipped ?? 0) > baseline.playwright.maxSkipped) {
   throw new Error(
     `Playwright skips increased: ${playwrightStats.skipped} > ${baseline.playwright.maxSkipped}`,
