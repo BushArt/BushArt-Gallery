@@ -192,7 +192,9 @@ const featuredRefinements = <T extends z.ZodTypeAny>(schema: T) =>
 export const ArtworkCreateRequestSchema = featuredRefinements(ArtworkWritableFieldsSchema);
 
 /** Partial update body for PATCH /api/artworks/:id (05 §7.2) */
-export const ArtworkPatchRequestSchema = ArtworkWritableFieldsSchema.partial();
+export const ArtworkPatchRequestSchema = featuredRefinements(
+  ArtworkWritableFieldsSchema.partial(),
+);
 
 /** Query params for GET /api/artworks (05 §4.1) */
 export const ArtworkListQuerySchema = z.object({

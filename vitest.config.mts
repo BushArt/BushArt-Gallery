@@ -22,7 +22,13 @@ function testMongoUri(): string | undefined {
   if (!uri) return undefined;
   const dbPath = (uri.match(/^mongodb(?:\+srv)?:\/\/[^/]*\/([^?]*)/) || [])[1];
   if (dbPath === undefined || dbPath.endsWith("-test")) return uri;
-  return uri.replace(/(\/\/[^/]*\/)[^?]*/, "$1bushart-test");
+  const rewritten = uri.replace(/(\/\/[^/]*\/)[^?]*/, "$1bushart-test");
+  const rewrittenDbPath = (rewritten.match(/^mongodb(?:\\+srv)?:\\/\\/[^/]*\\/([^?]*)/) || [])[1];
+  if (!rewrittenDbPath?.endsWith("-test")) {
+    throw new Error(
+      `MONGODB_URI "${uri}" could not be safely rewritten to a test database. Refusing to run tests without a "-test" database suffix to protect production data.`,
+    );
+  }
 }
 
 const MONGODB_URI = testMongoUri();
@@ -57,7 +63,6 @@ export default defineConfig({
     // (artworks_slug_unique, tags_slug_unique, admins_username_unique).
     // Pool options such as `maxWorkers` are only honoured at the root config
     // level, so parallelism is disabled here rather than per project.
-    fileParallelism: false,
     coverage: {
       provider: "v8",
       include: [
@@ -67,9 +72,7 @@ export default defineConfig({
         "src/app/api/**",
         "src/instrumentation.ts",
       ],
-      exclude: [
-        "src/lib/auth/index.ts",
-      ],
+      exclude: [],
       thresholds: {
         ...coverageThresholds,
         "src/lib/auth/**": coverageThresholds,
@@ -95,6 +98,10 @@ export default defineConfig({
           name: "integration",
           environment: "node",
           include: ["tests/api/**/*.test.ts", "tests/db-setup.test.ts"],
+          // Integration tests share a single MongoDB connection and clear
+          // collections in beforeEach; concurrent runs would collide on
+          // unique indexes. Serialize execution here only.
+          fileParallelism: false,
         },
       },
       {
