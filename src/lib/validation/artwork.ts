@@ -162,10 +162,10 @@ const ArtworkWritableFieldsSchema = ArtworkBaseSchema.pick({
     featuredOrder: z.number().nullable().optional().default(null),
   });
 
-const featuredRefinements = <T extends z.ZodTypeAny>(schema: T) =>
+const featuredRefinements = (schema: typeof ArtworkWritableFieldsSchema) =>
   schema
     .refine(
-      (val: z.infer<typeof ArtworkWritableFieldsSchema>) => {
+      (val: z.output<typeof ArtworkWritableFieldsSchema>) => {
         if (val.featured) {
           return typeof val.featuredOrder === "number" && !Number.isNaN(val.featuredOrder);
         }
@@ -177,7 +177,7 @@ const featuredRefinements = <T extends z.ZodTypeAny>(schema: T) =>
       },
     )
     .refine(
-      (val: z.infer<typeof ArtworkWritableFieldsSchema>) => {
+      (val: z.output<typeof ArtworkWritableFieldsSchema>) => {
         if (!val.featured) {
           return val.featuredOrder === null || val.featuredOrder === undefined;
         }
